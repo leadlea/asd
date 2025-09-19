@@ -204,3 +204,46 @@ python -m src.models.baseline   --feat_csv data/processed/features_merged.csv   
 > - `/docs/2.html`：主要プロファイルと実践への示唆（個別化・環境調整・ロールプレイ等）
 > - `/docs/3.html`：言語・音声（韻律/流暢性/運動）まで拡張した枠組みと介入指針
 
+
+---
+
+## ハンズオン（次にやること・履歴つき）
+
+**再現可能**かつ**自動で履歴を残す**評価手順。出力は `reports/` 配下、履歴は `CHANGELOG.md` に追記されます。
+
+### 0) 依存パッケージ
+```bash
+python -m pip install --upgrade pip setuptools wheel
+pip install pandas numpy scikit-learn matplotlib
+1) LoCO（Leave-One-Corpus-Out）
+bash
+Copy code
+python scripts/loco_eval.py \
+  --feat_csv data/processed/features_merged.csv \
+  --out_json reports/loco_report.json \
+  --out_png reports/figures/loco_auc.png
+2) 特徴アブレーション（1特徴ずつ外す）
+bash
+Copy code
+python scripts/ablation_eval.py \
+  --feat_csv data/processed/features_merged.csv \
+  --out_json reports/ablation_report.json \
+  --out_png reports/figures/ablation_delta.png
+3) 履歴（CHANGELOG）
+各スクリプト完了時に自動追記（日時／AUC・F1／設定）。
+
+---
+
+## まとめ（2024-09-20）
+- **採用設定**: SGKF(k=2) + Platt calibration + threshold=0.55  
+- **特徴サブセット (top5)**: `propernoun_ratio`, `pronoun_ratio`, `verb_ratio`, `discourse_marker_rate`, `mental_state_rate`
+- **再現コマンド**:  
+  - 評価: `make eval_best`  
+  - アブレーション: `make ablate_best`  
+  - 推論: `make infer_best`
+- **最近のサニティチェック（全件推論の混同行列）**: TP=26, FP=3, FN=4, TN=27 → **BA=0.883**
+
+成果物:
+- レポート: `reports/loco_report.json`, `reports/ablation_report.json`
+- 図: `reports/figures/loco_auc.png`, `reports/figures/loco_ba.png`, `reports/figures/ablation_delta.png`
+- 予測: `reports/pred_top5.csv`

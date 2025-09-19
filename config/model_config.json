@@ -1,0 +1,14 @@
+{
+  "features": [
+    "propernoun_ratio",
+    "pronoun_ratio",
+    "verb_ratio",
+    "discourse_marker_rate",
+    "mental_state_rate"
+  ],
+  "decision_threshold": 0.55,
+  "calibrate": "platt",
+  "C": 1.0,
+  "cv_mode": "sgkf",
+  "cv_splits": 2
+}

@@ -1,0 +1,6 @@
+{
+  "decision_threshold": 0.55,
+  "calibrate": "platt",
+  "cv_mode": "sgkf",
+  "cv_splits": 2
+}
