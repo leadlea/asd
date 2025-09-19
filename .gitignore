@@ -1,0 +1,31 @@
+# ---- secrets / env
+.venv/
+.env
+__pycache__/
+.DS_Store
+
+# ---- raw data (絶対に公開しない)
+data/raw/
+data/raw_mvp/
+data/interim/
+data/processed/
+data/audio/
+
+# ---- unpacked corpora folders（誤って直置きした場合に備え）
+Brown/
+Sachs/
+Nadig/
+Rollins/
+Flusberg/
+Providence/
+
+# ---- file types to avoid
+*.cha
+*.wav
+*.zip
+*.gz
+
+# ---- generated artifacts（必要なら後で外す）
+reports/corpus_manifest.csv
+reports/baseline_report.json
+reports/figures/top_features.png
