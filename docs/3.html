@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ASDと言語・音声の特徴 — もう1本の総説をやさしく解説</title>
+  <style>
+    /* === Base === */
+    :root{
+      --ink:#111;
+      --muted:#555;
+      --brand:#0b63ce;
+      --accent:#0aa;
+      --bg:#fff;
+      --card:#f7f7f9;
+      --line:#e6e6ef;
+    }
+    html{scroll-behavior:smooth}
+    body{
+      margin:0; background:var(--bg); color:var(--ink);
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, "Hiragino Kaku Gothic ProN", Meiryo, sans-serif;
+      line-height:1.75; font-size:16px;
+    }
+    .wrap{max-width: 920px; margin: 0 auto; padding: 28px 18px 64px}
+
+    /* === Header === */
+    header.site{
+      border-bottom:1px solid var(--line);
+      position: sticky; top:0; background: rgba(255,255,255,.9); backdrop-filter: blur(6px);
+      z-index:10
+    }
+    .site .inner{max-width:920px; margin:0 auto; padding:12px 18px; display:flex; align-items:center; gap:16px}
+    .logo{width:12px; height:12px; border-radius:50%; background:var(--brand)}
+    h1{font-size: clamp(20px, 3.4vw, 36px); margin: 14px 0 6px}
+    .lead{color:var(--muted); margin:0 0 20px}
+
+    /* === TOC === */
+    .toc{background:var(--card); border:1px solid var(--line); border-radius:12px; padding:14px 16px; margin: 12px 0 24px}
+    .toc b{font-size:14px}
+    .toc a{color:var(--brand); text-decoration:none}
+    .toc a:hover{text-decoration:underline}
+
+    /* === Sections === */
+    section{margin: 22px 0 26px}
+    section h2{font-size: clamp(18px, 2.4vw, 26px); margin:0 0 8px}
+    h3{margin: 18px 0 6px; font-size: 18px}
+    .callout{border-left:4px solid var(--accent); background:#f2fbfb; padding:10px 12px; border-radius:6px; margin:12px 0}
+    .grid{display:grid; gap:14px}
+    @media (min-width: 880px){ .grid-2{grid-template-columns: 1.1fr 1fr} }
+    .card{background:var(--card); border:1px solid var(--line); border-radius:12px; padding:12px}
+    code.k{background:#eef3ff; border:1px solid #d8e2ff; padding:0 .35em; border-radius:6px}
+
+    /* === Footer === */
+    footer.site{margin-top:34px; padding-top:16px; border-top:1px solid var(--line); color:var(--muted); font-size:13px}
+
+    /* Print */
+    @media print{
+      header.site{position:static; background:#fff}
+      .toc{break-inside: avoid}
+    }
+
+    /* === Mermaid: wider & readable === */
+    @media (min-width: 880px){
+      .grid-2 > .card:has(.mermaid){ grid-column: 1 / -1; }
+    }
+    .mermaid{ display:block; }
+    .mermaid svg{ width:100% !important; height:auto; }
+  </style>
+</head>
+<body>
+  <!-- Sticky top bar -->
+  <header class="site">
+    <div class="inner">
+      <div class="logo" aria-hidden="true"></div>
+      <div>
+        <div style="font-weight:600">レビュー解説（高校生にもわかる）</div>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <article>
+      <header>
+        <h1>ASDと言語・音声の特徴 — もう1本の総説をやさしく解説</h1>
+        <p class="lead">ASD（自閉スペクトラム症）における<strong>言語・音声プロフィールの多様性</strong>を扱った総説の要点を、実践で使える目線で整理します。DSM-5/ICD-11の枠組み、言語サブシステム（意味・語用・形態統語・音韻/韻律・流暢性/運動）を横断し、<em>評価と介入</em>に直結するポイントをまとめました。</p>
+      </header>
+
+      <nav class="toc">
+        <b>目次</b>
+        <ol>
+          <li><a href="#aim">この論文のねらい</a></li>
+          <li><a href="#framework">診断枠組み（DSM-5 / ICD-11）</a></li>
+          <li><a href="#profiles">言語プロファイル（4タイプ）</a></li>
+          <li><a href="#subsystems">サブシステム別の所見</a></li>
+          <li><a href="#predictors">予測因子・早期介入</a></li>
+          <li><a href="#practice">実践への示唆</a></li>
+          <li><a href="#summary">ひとことで要点</a></li>
+        </ol>
+      </nav>
+
+      <section id="aim">
+        <h2>1. この論文のねらい</h2>
+        <p>ASDの人たちに見られる<strong>コミュニケーションの困難さの組み合わせ</strong>に基づいて、言語・音声のプロフィールを分類し、臨床・教育の鑑別や介入選択に役立つ<em>カテゴリー別アプローチ</em>を提案しています。個々の強みと弱みが<em>連続体</em>として広がる点が大前提です。</p>
+      </section>
+
+      <section id="framework">
+        <h2>2. 診断枠組み（DSM-5 / ICD-11）</h2>
+        <div class="grid grid-2">
+          <div class="card">
+            <h3>DSM-5の視点</h3>
+            <ul>
+              <li>ASDの<strong>中核</strong>に「社会的コミュニケーションの困難」。</li>
+              <li>言語障害は<strong>併存・指定子</strong>で切り分ける。</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3>ICD-11の視点</h3>
+            <ul>
+              <li>知的発達障害の有無 × <strong>機能的言語</strong>の有無でASDをタイプ分け。</li>
+              <li>単なる「話せる/話せない」でなく、<em>機能的・社会的な使用</em>を重視。</li>
+            </ul>
+          </div>
+        </div>
+        <div class="callout">診断ラベルは出発点。評価では<strong>言語の構造</strong>と<strong>語用論</strong>、<strong>韻律</strong>、<strong>非言語認知</strong>まで分けて見るのがコツ。</div>
+      </section>
+
+      <section id="profiles">
+        <h2>3. 言語プロファイル（4タイプ）</h2>
+        <div class="grid grid-2">
+          <div class="card">
+            <h3>タイプ1：語用論中心の困難（他の言語障害なし）</h3>
+            <p>言語能力は良好でも、<strong>社会的場面での使い分け</strong>（比喩・皮肉・談話の結束など）に課題。いわゆる“ペダンティック”な話し方や<em>字義通り解釈</em>が目立つことも。</p>
+          </div>
+          <div class="card">
+            <h3>タイプ2：ASD＋言語障害（DLD/SSD/言語失行など）</h3>
+            <p><strong>形態統語・音韻</strong>などルール面の弱さを併存。鑑別上、ASD起因の語用論課題とDLD由来の言語課題を分けて評価する。</p>
+          </div>
+          <div class="card">
+            <h3>タイプ3：知的障害を伴うASD</h3>
+            <p><strong>言語と一般知能の広範な遅れ</strong>が関与。予後・教育支援では実用的コミュニケーションの確立が鍵。</p>
+          </div>
+          <div class="card">
+            <h3>タイプ4：二次的な言語遅れ</h3>
+            <p>社会的交流・言語練習の機会不足等により、<strong>二次的に言語が遅れる</strong>タイプ。環境調整と<em>言語入力の質・量</em>が重要。</p>
+          </div>
+
+          <div class="card">
+            <h3>関係図（Mermaid）</h3>
+            <div class="mermaid">
+              flowchart TD
+                A[ASDにおける言語・音声の多様性] --> P{4タイプの言語プロファイル}
+                P --> T1[タイプ1<br/>語用論中心の困難]
+                P --> T2[タイプ2<br/>ASD + 言語障害 DLD/SSD/AS]
+                P --> T3[タイプ3<br/>知的障害を伴うASD]
+                P --> T4[タイプ4<br/>二次的な言語遅れ]
+                subgraph Axes[評価軸]
+                  E1[意味論]
+                  E2[語用論]
+                  E3[形態統語]
+                  E4[音韻/韻律]
+                  E5[流暢性/運動]
+                  E6[ToM/EF]
+                end
+                T1 -.主に-.-> E2
+                T2 -.主に-.-> E3
+                T2 -.しばしば-.-> E4
+                T3 --> E1
+                T3 --> E3
+                T3 --> E6
+                T4 --> E2
+                T4 --> E5
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="subsystems">
+        <h2>4. サブシステム別の所見</h2>
+        <div class="grid grid-2">
+          <div class="card">
+            <h3>意味論</h3>
+            <ul>
+              <li>抽象語の扱い・多義語・カテゴリー化でばらつき。</li>
+              <li>一部では<strong>卓越した言語能力</strong>も報告（個人差が大きい）。</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3>語用論</h3>
+            <ul>
+              <li>比喩・皮肉・談話構成、<strong>共同注意</strong>の弱さと関連。</li>
+              <li><em>エコラリア</em>や<em>ペダンティック・スピーチ</em>が機能的役割を持つ場合も。</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3>形態統語</h3>
+            <ul>
+              <li>時制標識・代名詞・クリティック等に課題が出るサブグループ。</li>
+              <li>表面上は統語だが、<em>語用論・韻律との接点</em>由来の誤りも。</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3>音韻 / 韻律</h3>
+            <ul>
+              <li>SSD併存の報告、語音の多様性制限、<strong>非典型韻律</strong>（単調・抑揚の不一致・話速の違いなど）。</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3>流暢性 / 口腔運動</h3>
+            <ul>
+              <li>吃音・クラッタリング様の非流暢、<strong>口腔運動の困難</strong>が一部で言語表出と関連。</li>
+            </ul>
+          </div>
+          <div class="card">
+            <h3>関連する認知</h3>
+            <ul>
+              <li><strong>ToM（心の理論）/ EF（実行機能）</strong>が言語使用（特に語用論）と結びつく。</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section id="predictors">
+        <h2>5. 予測因子・早期介入</h2>
+        <ul>
+          <li>乳幼児期の<strong>共同注意・模倣・遊び</strong>は後の言語・社会性の予測因子。</li>
+          <li>親の言語入力の質・量が<strong>神経発達指標や到達</strong>に関連。</li>
+          <li>MV（最小限発話）でも、<em>SVOなど基本語順の理解</em>が内在する可能性—<strong>非言語的な理解課題</strong>の活用が有効。</li>
+        </ul>
+      </section>
+
+      <section id="practice">
+        <h2>6. 実践への示唆</h2>
+        <ul>
+          <li><strong>プロファイル別</strong>に介入を設計（語用論中心／DLD併存／知的障害併存／二次遅れ）。</li>
+          <li>単語テストだけでなく、<strong>語用論・韻律・談話</strong>＋<strong>ToM/EF</strong>まで評価。</li>
+          <li>口腔運動・発話計画の課題が疑われるときは、<strong>運動面と並行</strong>した支援を。</li>
+          <li>比喩・皮肉・参照の教示、ロールプレイ、視覚支援、<em>一貫した環境調整</em>を組み合わせる。</li>
+        </ul>
+      </section>
+
+      <section id="summary">
+        <h2>7. ひとことで要点（高校生向け）</h2>
+        <p>ASDの言葉と話し方は<strong>すごく多様</strong>。文法・語彙・韻律・話し方・コミュ力・心の読み取りを<em>分けて</em>見て、<strong>その人のプロファイル</strong>に合う学び方・伝え方を選ぼう。診断名だけでは足りないので、<strong>タイプ×評価軸</strong>で支援をデザインするのがコツ！</p>
+      </section>
+
+      <footer class="site">
+        <div>まとめ：<strong>ASD×言語は“多様性”が前提</strong>。プロファイル別に、意味・語用・形態統語・音韻/韻律・流暢性・ToM/EFを横断して評価・支援する。</div>
+      </footer>
+    </article>
+  </main>
+
+  <!-- Mermaid v10（ライトテーマ） -->
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+    mermaid.initialize({ startOnLoad: true, theme: 'default', fontFamily: 'system-ui, -apple-system, Segoe UI, Roboto, "Hiragino Kaku Gothic ProN", Meiryo, sans-serif' });
+  </script>
+</body>
+</html>

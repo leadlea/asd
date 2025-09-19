@@ -186,3 +186,21 @@ python -m src.models.baseline   --feat_csv data/processed/features_merged.csv   
 - `No module named spacy` → `pip install "spacy<3.8"` → `python -m spacy download en_core_web_sm`  
 - `NaNで落ちる` → baselineはImputer内蔵。必要なら `--exclude_cols "age,len_tokens"`  
 - 重い → まず `data/raw_mvp/` で検証、問題なければ `data/raw/` 全体解析へ
+
+### 意思決定の理由と有効性（Q&A）
+
+**Q1. どうして今回の研究テーマに決定したのか？**  
+- レビューが示すのは、ASDの言語は**構造（語彙・文法）／語用論（使い方）／韻律（抑揚・話速）**などで凸凹が大きく、“一括りに測れない”という事実です。本研究はこの凸凹を**最小構成の指標セット**で縦断的に捉える設計（例：構造と言語運用、韻律）にしており、レビューの示唆と実務上のギャップを同時に埋めます。 :contentReference[oaicite:13]{index=13} :contentReference[oaicite:14]{index=14}  
+- **「話さない＝理解していない」ではない**という示唆に対応し、積極的応答を求めない理解課題（選択・マッチング等）を評価系に含められるよう設計します。これにより**MV（最小限発話）**の当事者を取りこぼさない評価が可能になります。 :contentReference[oaicite:15]{index=15} :contentReference[oaicite:16]{index=16}  
+- プロファイル（ASD-LN / ASD-LI / MV ほか）ごとの差を分けて評価できる構成とし、**個別化支援や介入デザイン**に直接つながる指標を優先します。 :contentReference[oaicite:17]{index=17} :contentReference[oaicite:18]{index=18}
+
+**Q2. ASD当事者としてこの研究をする目的や社会的意味は？**  
+- **誤った判断の抑制**：発話量だけで理解を過小評価するバイアスを減らし、当事者の潜在的理解を**可視化**することで教育・就労場面の誤解（過小支援／過大負荷）を防ぎます。 :contentReference[oaicite:19]{index=19}  
+- **個別最適化の基盤**：構造・語用論・韻律・ToM/EFなどを分けて測ることで、学校／家庭／臨床が**同じ地図**で話せるようになり、支援設計の再現性が上がります。 :contentReference[oaicite:20]{index=20} :contentReference[oaicite:21]{index=21}  
+- **アクセシブルな評価**：MVや口腔運動の困難がある人でも取り組める、**低負荷・非言語的**な理解課題の普及に寄与します。日本語環境でのエビデンス整備を進め、**当事者中心の標準**づくりに接続します。 :contentReference[oaicite:22]{index=22}
+
+> 参考リンク（ローカル /docs）  
+> - `/docs/1.html`：ASDことばの凸凹・評価観点の総覧（構造／語用論／韻律／非言語） :contentReference[oaicite:23]{index=23}  
+> - `/docs/2.html`：主要プロファイルと実践への示唆（個別化・環境調整・ロールプレイ等） :contentReference[oaicite:24]{index=24}  
+> - `/docs/3.html`：言語・音声（韻律/流暢性/運動）まで拡張した枠組みと介入指針 :contentReference[oaicite:25]{index=25}
+
