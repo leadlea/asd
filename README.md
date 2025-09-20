@@ -215,20 +215,21 @@ python -m src.models.baseline   --feat_csv data/processed/features_merged.csv   
 ```bash
 python -m pip install --upgrade pip setuptools wheel
 pip install pandas numpy scikit-learn matplotlib
+```
 1) LoCO（Leave-One-Corpus-Out）
-bash
-Copy code
+```bash
 python scripts/loco_eval.py \
   --feat_csv data/processed/features_merged.csv \
   --out_json reports/loco_report.json \
   --out_png reports/figures/loco_auc.png
+```
 2) 特徴アブレーション（1特徴ずつ外す）
-bash
-Copy code
+```bash
 python scripts/ablation_eval.py \
   --feat_csv data/processed/features_merged.csv \
   --out_json reports/ablation_report.json \
   --out_png reports/figures/ablation_delta.png
+```
 3) 履歴（CHANGELOG）
 各スクリプト完了時に自動追記（日時／AUC・F1／設定）。
 
@@ -247,3 +248,188 @@ python scripts/ablation_eval.py \
 - レポート: `reports/loco_report.json`, `reports/ablation_report.json`
 - 図: `reports/figures/loco_auc.png`, `reports/figures/loco_ba.png`, `reports/figures/ablation_delta.png`
 - 予測: `reports/pred_top5.csv`
+
+## 処理フロー
+```mermaid
+flowchart TD
+  %% ===== データ入力 =====
+  subgraph DATA[データ入力]
+    A1[Raw .cha files
+       役割 収集済みのCHAT形式
+       内容 *CHI *INV 行と各種注釈を含む]
+    A2[data/processed/features_merged.csv
+       役割 既存の特徴量CSV
+       内容 学習入力として直接利用可能]
+  end
+
+  %% ===== 特徴量生成（任意 実装済み） =====
+  subgraph BUILD[特徴量生成 任意]
+    direction LR
+    B1[src/ingest/chat_to_csv.py
+       役割 .chaから発話抽出
+       内容 *行のテキストのみを取り出す 話者やfile_idを付与]
+    B2[data/interim/utterances.csv
+       役割 中間CSV
+       内容 file_id speaker utt の縦長テーブル]
+    B3[src/features/pragmatics.py
+       役割 発話ごとの語用論特徴計算
+       内容 pronoun propernoun verb 談話標識 心的状態 um uh 等を比率化]
+    B4[data/processed/features_merged.csv
+       役割 学習用最終特徴
+       内容 file_id単位で平均集約 ラベル corpus含む]
+    A1 --> B1 --> B2 --> B3 --> B4
+  end
+
+  %% ===== 設定保存 =====
+  subgraph CFG[設定保存]
+    C1[scripts/save_preset.py
+       役割 評価プリセット作成
+       内容 cv_mode splits calibrate しきい値をJSON化]
+    C2[config/eval_preset.json
+       役割 再現設定
+       内容 実行時の既定パラメータを保持]
+    C1 --> C2
+  end
+
+  %% ===== 交差検証とレポート =====
+  subgraph EVAL[交差検証とレポート]
+    direction LR
+    E0[data/processed/features_merged.csv
+       役割 学習入力
+       内容 数値特徴とメタ列]
+    E1[scripts/loco_eval.py
+       役割 CV評価
+       内容 SGKF k=2 Platt校正 しきい値0.55 図とJSON出力]
+    E2[reports/loco_report.json
+       役割 指標ログ
+       内容 AUC BA F1 MCC fold別結果]
+    E3[reports/figures/loco_auc.png
+       役割 図
+       内容 fold別AUCバー]
+    E4[reports/figures/loco_ba.png
+       役割 図
+       内容 fold別BAバー]
+    E5[scripts/runlog_util.py
+       役割 履歴追記
+       内容 CHANGELOGに実行記録を追加]
+    E6[CHANGELOG.md
+       役割 実行履歴
+       内容 いつ 何を どの設定で実施したか]
+    E0 --> E1 --> E2
+    E1 --> E3
+    E1 --> E4
+    E1 --> E5 --> E6
+  end
+
+  %% ===== アブレーション =====
+  subgraph ABL[アブレーション]
+    ABL1[scripts/ablation_eval.py
+         役割 1特徴ずつ除外再CV
+         内容 ΔAUC等で寄与を定量化]
+    ABL2[reports/ablation_report.json
+         役割 結果JSON
+         内容 特徴ごとの性能低下量]
+    ABL3[reports/figures/ablation_delta.png
+         役割 図
+         内容 ΔAUCランキング表示]
+    E0 --> ABL1 --> ABL2
+    ABL1 --> ABL3
+    ABL1 --> E6
+  end
+
+  %% ===== しきい値探索 =====
+  subgraph THR[しきい値探索]
+    TH1[scripts/threshold_search.py
+         役割 しきい値スイープ
+         内容 BA F1の曲線と推奨点]
+    TH2[reports/threshold_report.json
+         役割 結果JSON
+         内容 閾値別の指標一覧]
+    TH3[reports/figures/threshold_curve.png
+         役割 図
+         内容 指標のしきい値曲線]
+    E0 --> TH1 --> TH2
+    TH1 --> TH3
+    TH1 --> E6
+  end
+
+  %% ===== 特徴サブセット評価 =====
+  subgraph SUB[特徴サブセット評価]
+    SUB1[scripts/feature_subset_eval.py
+         役割 任意特徴でCV
+         内容 --features --C --threshold 指定可能]
+    SUB2[reports/feature_subset_report.json
+         役割 結果JSON
+         内容 サブセットと指標の対応]
+    E0 --> SUB1 --> SUB2
+    SUB1 --> E6
+  end
+
+  %% ===== 推論 =====
+  subgraph INF[推論]
+    I1[scripts/inference_cli.py
+       役割 確率と判定の出力
+       内容 features指定可 しきい値0.55 C 1.0 preset読み込み可]
+    I2[reports/predictions.csv
+       役割 既定特徴の予測
+       内容 prob_asd pred_asd]
+    I3[reports/pred_top5.csv
+       役割 Top5特徴の予測
+       内容 prob_asd pred_asd]
+    E0 --> I1 --> I2
+    I1 --> I3
+    I1 --> E6
+  end
+
+  %% ===== フォールド点検 =====
+  subgraph INS[フォールド点検]
+    INS1[scripts/inspect_folds.py
+         役割 分割の健全性確認
+         内容 fold別混同行列 メンバー表を作成]
+    INS2[reports/confusion_by_fold.csv
+         役割 混同行列
+         内容 TN FP FN TPのfold別一覧]
+    INS3[reports/fold_membership.csv
+         役割 メンバー表
+         内容 各foldに含まれるfile_id]
+    INS4[reports/inspection_summary.md
+         役割 サマリ
+         内容 表と要点の簡易まとめ]
+    E0 --> INS1 --> INS2
+    INS1 --> INS3 --> INS4
+    INS1 --> E6
+  end
+
+  %% ===== Make ターゲット =====
+  subgraph MK[Make ターゲット]
+    M1[make eval_best
+       役割 再現評価
+       内容 loco_eval.pyを既定設定で実行]
+    M2[make ablate_best
+       役割 アブレーション実行
+       内容 ablation_eval.pyの既定実行]
+    M3[make infer_best
+       役割 推論CSV出力
+       内容 inference_cli.pyでpred_top5を作成]
+    M1 --> E2
+    M2 --> ABL2
+    M3 --> I3
+  end
+
+  %% ===== 既存CSVからの分岐 =====
+  A2 --> E1
+  A2 --> ABL1
+  A2 --> TH1
+  A2 --> SUB1
+  A2 --> I1
+  A2 --> INS1
+
+  classDef code fill:#eef,stroke:#446;
+  classDef file fill:#efe,stroke:#484;
+  classDef img fill:#ffe,stroke:#aa6;
+  classDef make fill:#eef7ff,stroke:#268bd2;
+
+  class B1,B3,C1,E1,E5,ABL1,TH1,SUB1,I1,INS1,M1,M2,M3 code
+  class A1,A2,B2,B4,E0,E2,E6,ABL2,TH2,SUB2,I2,I3,INS2,INS3,INS4 file
+  class E3,E4,ABL3,TH3 img
+```
