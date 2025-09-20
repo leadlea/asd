@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="ja"><meta charset="utf-8">
+<title>ASD vs TD — 語用論MVPまとめ（docs版）</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+body{font-family:system-ui,-apple-system,Segoe UI,Roboto,'Hiragino Kaku Gothic ProN',Meiryo,sans-serif;line-height:1.7;margin:0;background:#fff;color:#111}
+.wrap{max-width:1100px;margin:0 auto;padding:24px}
+h1{font-size:28px;margin:0 0 12px}
+h2{margin-top:28px;border-left:4px solid #0b63ce;padding-left:10px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.card{background:#f7f7f9;border:1px solid #e6e6ef;border-radius:12px;padding:12px}
+.muted{color:#555}
+img{max-width:100%;border-radius:8px;border:1px solid #e6e6ef}
+table{border-collapse:collapse;width:100%}
+th,td{border:1px solid #e6e6ef;padding:6px 8px;text-align:right}
+th:first-child,td:first-child{text-align:left}
+footer{margin-top:28px;color:#777;font-size:12px}
+</style>
+<body><div class="wrap">
+<h1>ASD vs TD — 語用論MVPまとめ（docs版）</h1>
+<p class="muted">このHTMLは <code>docs/</code> 内の CSV と PNG を直接読み込んで再生成しています。</p>
+
+<h2>データ & QC</h2>
+<div class="grid">
+  <div class="card">
+    <b>採用セッション数</b>
+    <ul>
+      <li>ASD: 71</li>
+      <li>TD: 386</li>
+    </ul>
+    <b>QC閾値（参考）</b>
+    <ul>
+      <li>ASD: n_total [209–1312], chi_ratio [0.255–0.455]</li>
+      <li>TD:  n_total [318–1582], chi_ratio [0.319–0.671]</li>
+    </ul>
+  </div>
+  <div class="card">
+    <b>中央値（QC後）</b>
+    <table>
+      <tr><th></th><th>ASD</th><th>TD</th></tr>
+      <tr><td>CHI比</td><td>0.345</td><td>0.453</td></tr>
+      <tr><td>MLU (Child)</td><td>2.279</td><td>3.053</td></tr>
+      <tr><td>MLU (Adult)</td><td>3.825</td><td>4.765</td></tr>
+    </table>
+  </div>
+</div>
+
+<h2>比較図（docs/ の fig_box_*.png を自動埋め込み）</h2>
+<div class="grid">
+  <div class="card"><div class="muted">disf_per_1k</div><img src="fig_box_disf_per_1k.png" alt="disf_per_1k"></div>
+<div class="card"><div class="muted">dm_per_utt</div><img src="fig_box_dm_per_utt.png" alt="dm_per_utt"></div>
+
+</div>
+
+<h2>語用論MVP — 上位3指標（|Cohen's d|順）</h2>
+<table>
+  <tr><th>metric</th><th>ASD_mean</th><th>TD_mean</th><th>ASD_median</th><th>TD_median</th><th>Cohen d</th><th>Cliff δ</th><th>ASD_n</th><th>TD_n</th></tr>
+<tr><td>disf_per_utt</td><td>0.122</td><td>0.183</td><td>0.093</td><td>0.154</td><td>-0.456</td><td>-0.243</td><td>71</td><td>386</td></tr>
+<tr><td>disf_per_1k</td><td>104.984</td><td>67.256</td><td>41.260</td><td>50.200</td><td>0.427</td><td>-0.028</td><td>71</td><td>386</td></tr>
+<tr><td>dm_per_utt</td><td>0.018</td><td>0.028</td><td>0.010</td><td>0.022</td><td>-0.393</td><td>-0.298</td><td>71</td><td>386</td></tr>
+</table>
+<footer>Generated from docs/ — 再生成済み</footer></div></body></html>

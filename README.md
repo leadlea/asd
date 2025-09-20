@@ -433,3 +433,46 @@ flowchart TD
   class A1,A2,B2,B4,E0,E2,E6,ABL2,TH2,SUB2,I2,I3,INS2,INS3,INS4 file
   class E3,E4,ABL3,TH3 img
 ```
+
+## ASD/TD 語用論MVP（追加）
+
+**目的**: 公開英語コーパス（ASDBank / CHILDES）で ASD/TD の語用論指標（談話標識・不流暢・代名詞・心的状態語 等）を検証。
+
+**成果物**
+- 統合レポート（図＋表）: `docs/ASD_TD_MVP_Report.html`
+- 効果量テーブル（語用論特徴）: `docs/prag_features_effects.csv`
+- 主要図: `docs/fig_box_disf_per_1k.png`, `docs/fig_box_dm_per_utt.png`
+- QCしきい値（自動）: `reports/qc_auto_thresholds_asd.json`, `reports/qc_auto_thresholds_td.json`
+- セッション指標: `reports/session_metrics_asd.csv`, `reports/session_metrics_td.csv`
+
+### クイック再現（ASD/TD 別QC → 特徴抽出 → 効果量 → HTML）
+```bash
+# 0) 取り込み＆クリーニング（既存手順）
+python src/ingest/chat_to_csv.py --in_dir data/raw --out_csv data/interim/utterances.csv
+python scripts/clean_utterances.py  # または README に記載のワンライナー
+
+# 1) コホート別に自動QC（IQR×1.5 ＋ 10–90pct、最小発話数は p10 と 20 の大きい方）
+python qc_auto.py --utterances data/processed/utterances_clean_asd.csv   --out_csv data/processed/utterances_qc_asd.csv   --out_metrics reports/session_metrics_asd.csv   --out_speaker reports/speaker_metrics_asd.csv   --save_thresholds reports/qc_auto_thresholds_asd.json
+
+python qc_auto.py --utterances data/processed/utterances_clean_td.csv   --out_csv data/processed/utterances_qc_td.csv   --out_metrics reports/session_metrics_td.csv   --out_speaker reports/speaker_metrics_td.csv   --save_thresholds reports/qc_auto_thresholds_td.json
+
+# 2) 語用論特徴（Child発話ベース：DM/不流暢/代名詞/心的状態語）
+python scripts/prag_features_extract.py   --asd data/processed/utterances_qc_asd.csv   --td  data/processed/utterances_qc_td.csv   --out_asd reports/features_child_asd.csv   --out_td  reports/features_child_td.csv
+
+# 3) 効果量と図の生成
+python scripts/prag_features_effects.py   --asd reports/features_child_asd.csv   --td  reports/features_child_td.csv   --out_csv docs/prag_features_effects.csv   --out_fig_dir docs
+
+# 4) 統合レポート（docs/ に HTML を生成）
+python scripts/build_html_report.py --out docs/ASD_TD_MVP_Report.html --fig_dir docs
+```
+
+### Git 同期（先生共有想定）
+```bash
+git checkout -b feat/mvp-pragmatics-report
+git add README.md RESULTS.md REVIEW_SUMMARY.md CHANGELOG.md
+git add docs/ASD_TD_MVP_Report.html docs/prag_features_effects.csv docs/fig_box_*.png
+git commit -m "docs: ASD/TD pragmatics MVP — report+figures; README/RESULTS/CHANGELOG updated"
+git push -u origin feat/mvp-pragmatics-report
+```
+
+> GitHub Pages を使う場合は、リポジトリ設定 → Pages → **Source: /docs** を選択してください。

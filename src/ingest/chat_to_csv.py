@@ -42,7 +42,8 @@ def main():
         w.writeheader()
         for p in files:
             # .gz/.xmlは今回は素通り（.cha推奨）。必要なら展開/整形を追加。
-            if p.suffix != ".cha":
+            ext = p.suffix.lower()
+            if not (ext == ".cha" or p.name.lower().endswith(".cha.xml")):
                 continue
             rows = parse_cha(p)
             for r in rows:
