@@ -1,0 +1,10 @@
+fold,AUC_adj,F1_cal,thr
+Flusberg+Brown,0.558,0.315,0.595
+Flusberg+Providence,0.702,0.381,0.699
+Flusberg+Sachs,0.573,0.222,0.649
+Nadig+Brown,0.568,0.218,0.633
+Nadig+Providence,0.571,0.119,0.53
+Nadig+Sachs,0.629,0.541,0.652
+Rollins+Brown,0.781,0.155,0.547
+Rollins+Providence,0.596,0.091,0.506
+Rollins+Sachs,0.721,0.483,0.656

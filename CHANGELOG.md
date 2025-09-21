@@ -154,3 +154,13 @@
 - Fix preset: SGKF2 + Platt + thr=0.55 + TOP5 features
 - Eval: see reports/loco_report.json / figures
 - Sanity (all predictions): TP=26 FP=3 FN=4 TN=27 | BA=0.883
+### 2025-09-21 12:31:30 — Feature ablation (leave-1-out)
+- Base AUC=0.909, F1=0.575, thr=0.55 | Features=11 | splits=5
+- metrics: AUC=0.909, F1=0.575
+- params: `{"feat_csv": "reports/feat_ablate_base.csv", "out_json": "reports/ablation_report.json", "threshold": 0.55, "splits": 5}`
+
+### 2025-09-21 12:34:00 — Feature ablation (leave-1-out)
+- Base AUC=0.909, F1=0.575, thr=0.55 | Features=10 | splits=5
+- metrics: AUC=0.909, F1=0.575
+- params: `{"feat_csv": "reports/feat_ablate_base.csv", "out_json": "reports/ablation_report.json", "threshold": 0.55, "splits": 5}`
+
