@@ -50,6 +50,12 @@ def main() -> None:
     num_cols: List[str] = [
         c for c in df.columns if c not in meta and pd.api.types.is_numeric_dtype(df[c])
     ]
+    # --- Robustness: drop all-NaN columns and constants (avoid imputer warnings) ---
+    num_cols = [c for c in num_cols if df[c].notna().any()]
+    num_cols = [c for c in num_cols if df[c].nunique(dropna=True) > 1]
+    # （念のため）意図せず混入した 'cohort' を強制除外
+    if "cohort" in num_cols:
+        num_cols.remove("cohort")
 
     pipe = Pipeline(
         [
