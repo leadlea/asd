@@ -1,134 +1,105 @@
-# ASD Pragmatics MVP (EN) — Status & How-to
+# ASD Pragmatics MVP (EN) — README
 
-本リポジトリは、公開英語コーパス **ASDBank** と **CHILDES/TalkBank** を用いて  
-ASD/TD の語用論指標（談話標識・不流暢・代名詞・心的状態語＋参照表現）を検証する **MVP** です。  
-データは CHAT（`.cha`）形式に準拠します。
+本リポジトリは、公開英語コーパス **ASDBank** と **CHILDES/TalkBank** を用いて、ASD（自閉スペクトラム症）とTD（定型発達）の**語用論的な違い**を「まず動く形」で検証する **MVP**（最小実装）です。
 
-**公開レポート（GitHub Pages）**: https://leadlea.github.io/asd/
+- **モダリティ**：本MVPは **CHAT（`.cha`）テキスト**からの指標化のみを行います。**実音声（`.wav`）は使用していません。**
+- 本READMEやレポートで言及する **「音声／プロソディ」** は、`.cha` 上の**フィラー（um, uh）・ポーズ記号 (.)・反復の記法**などから導く **「テキスト由来の代理指標」** を意味します（実音響特徴ではありません）。
 
----
-
-## ✅ 現在地（2025-09-21）
-- **取り込み & QC**：英語 ASD/TD 全体を収集し、自動閾値（IQR/Percentile）でセッション QC 済み。
-- **特徴**：DM／不流暢／代名詞1–3人称／心的状態語に加え、**参照表現（導入/維持/再導入/曖昧）**を実装。
-- **LoCO（paired, calibrated）**：
-  - Base → AUC_adj の中央値 ~0.62
-  - **+Reference+Meta（MLU/CHI）** → 複数 fold で **AUC_adj 0.90+**（例: Rollins+Sachs 0.952 / F1 0.737）
-- **アブレーション（5-fold, thr=0.55）**：寄与大＝**不流暢 per_utt > 談話標識 per_utt > 談話標識 per_1k > 不流暢 per_1k**  
-- **成果物**：`docs/ASD_TD_MVP_Report.html` に図・表・KPI・LoCO 比較を集約。
+**公開レポート（GitHub Pages）**：https://leadlea.github.io/asd/ASD_TD_MVP_Report.html
 
 ---
 
-## Quickstart
+## 現在地（2025-09-22 JST）
+
+- **取り込み & QC**：英語 ASD/TD の会話記録（`.cha`）を収集し、IQR/Percentile に基づく自動しきい値で**セッション品質チェック**を実施。
+- **特徴量（抜粋）**：
+  - **談話標識**（例: well, you know）頻度
+  - **不流暢**（um/uh、反復記号などテキスト上の表示）
+  - **代名詞**（1–3人称）
+  - **心的状態語**（think, know, want 等の軽量辞書）
+  - **参照表現**（導入/維持/再導入/曖昧の近似ラベル：noun_chunks＋固有表記の簡易扱い）
+  - **トピック粘着度**（直前発話との内容語レンマ重なり）
+  - ※ **「音声系」= テキスト代理指標**（実音声特徴は未使用）
+- **評価（LoCO: paired, calibrated）**：主指標は **AUC_adj**（閾値に依存しない分離力）。表の **F1_cal** は **「学習側CVで得た各 fold の最適閾値」**での**参考値**（運用の固定閾値とは別）です。
+- **意思決定の方針**：運用・比較の簡素化のため、**CV スイープで得た最初の最適点 0.55 を MVP の固定しきい値**として採用。以後の再評価は **AUC 中心＋固定0.55下の混同行列/F1**で示します。
+- **NLP基盤**：spaCy `en_core_web_sm` を**語用論指標の算出に限定して**使用（文分割・品詞・noun_chunks・軽量NER）。
+- **成果物**：`docs/ASD_TD_MVP_Report.html` にサマリー、指標、LoCO比較、図表を集約。
+
+---
+
+## 評価ポリシー（誤解防止のための明記）
+
+1. **主指標は AUC（および AUC_adj）**  
+   - しきい値に依存しない分離力を比較するため、まず AUC を見ます。
+2. **固定しきい値 0.55（運用仮置き）**  
+   - **2025-09-19** の **threshold sweep（CV確率）**で **F1 最大化**により得た**最初の最適点 0.55** を、MVPの**固定閾値**として採用。以降は **再現性・比較性**を優先して 0.55 を用います。
+3. **F1_cal の位置づけ**  
+   - レポートに出てくる **F1_cal** は、**fold 内の学習側CVから得た最適閾値**による**参考値**です。**運用レベルの固定値（0.55）とは別**であることを明記します。
+4. **キャリブレーション**  
+   - Platt/Isotonic などの確率校正は**比較目的の検証**として実施。**主結果は AUC 中心**で解釈します。
+
+---
+
+## Quickstart（再現手順の最小セット）
+
+> 依存は `requirements.txt` を参照。乱数は `SEED` を固定。
 
 ```bash
-# 0) セットアップ
-python -m pip install -U pip
-pip install pandas numpy scikit-learn matplotlib "spacy<3.8"
-python -m spacy download en_core_web_sm
+# 1) 環境準備
+python -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
 
-# 1) 取り込み（.cha → 発話CSV）
-python src/ingest/chat_to_csv.py --in_dir data/raw --out_csv data/interim/utterances.csv
+# 2) データ配置
+#   raw/ に .cha を配置（音声 .wav は不要）
+#   meta/ にメタデータ（年齢, MLU, グループ等）
+tree data/
 
-# 2) クリーニング & QC（ASD/TD 別）
-python qc_auto.py --utterances data/processed/utterances_clean_asd.csv   --out_csv data/processed/utterances_qc_asd.csv   --out_metrics reports/session_metrics_asd.csv   --out_speaker reports/speaker_metrics_asd.csv   --save_thresholds reports/qc_auto_thresholds_asd.json
+# 3) 取り込み → 語用論特徴 → マージ
+python -m src.ingest.chat_to_csv   --in_dir data/raw_mvp   --out_csv data/interim/utterances.csv
 
-python qc_auto.py --utterances data/processed/utterances_clean_td.csv   --out_csv data/processed/utterances_qc_td.csv   --out_metrics reports/session_metrics_td.csv   --out_speaker reports/speaker_metrics_td.csv   --save_thresholds reports/qc_auto_thresholds_td.json
+python -m src.features.pragmatics   --in_csv data/interim/utterances.csv   --out_csv data/interim/pragmatics_features.csv
 
-# 3) 参照表現（子: CHI）
-python scripts/refexpr_features.py --utter data/processed/utterances_qc_asd.csv --out reports/features_ref_asd.csv
-python scripts/refexpr_features.py --utter data/processed/utterances_qc_td.csv  --out reports/features_ref_td.csv
+python -m src.pipeline.run_all   --prag_csv data/interim/pragmatics_features.csv   --pros_csv data/interim/prosody_features.csv   --meta_csv data/interim/metadata.csv   --out_csv data/processed/features_merged.csv
+# 注：prosody_features.csv はテキスト代理指標。実音声は未使用。
 
-# 4) 特徴結合（+Reference / +Meta）
-python - <<'PY'
-import pandas as pd, pathlib as P
-B=P.Path("reports")
-def join(a, r, out): pd.read_csv(B/a).merge(pd.read_csv(B/r),on="file_id",how="left").to_csv(B/out, index=False)
-join("features_child_asd.csv","features_ref_asd.csv","features_child_asd_plusref.csv")
-join("features_child_td.csv","features_ref_td.csv","features_child_td_plusref.csv")
-asm=pd.read_csv(B/"session_metrics_asd.csv")[["file_id","chi_ratio","mlu_child","mlu_adult"]]
-tsm=pd.read_csv(B/"session_metrics_td.csv")[["file_id","chi_ratio","mlu_child","mlu_adult"]]
-pd.read_csv(B/"features_child_asd_plusref.csv").merge(asm,on="file_id",how="left").to_csv(B/"features_child_asd_plusref_meta.csv",index=False)
-pd.read_csv(B/"features_child_td_plusref.csv").merge(tsm,on="file_id",how="left").to_csv(B/"features_child_td_plusref_meta.csv",index=False)
-print("-> plusref_meta done")
-PY
+# 4) ベースライン学習（固定閾値0.55は評価側で適用）
+python -m src.models.baseline   --feat_csv data/processed/features_merged.csv   --report_json reports/baseline_report.json
 
-# 5) LoCO（paired+calibrated, 学習内F1最適閾値）
-#   ※ スクリプト化した場合: scripts/loco_eval_plusref_meta.py
-python - <<'PY'
-import pandas as pd, numpy as np, re, itertools as it
-from pathlib import Path
-from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import StandardScaler
-from sklearn.linear_model import LogisticRegression
-from sklearn.model_selection import StratifiedKFold
-from sklearn.metrics import roc_auc_score, f1_score
-R=Path("reports")
-a=pd.read_csv(R/"features_child_asd_plusref_meta.csv"); a["y"]=1
-t=pd.read_csv(R/"features_child_td_plusref_meta.csv"); t["y"]=0
-df=pd.concat([a,t], ignore_index=True)
-def corpus(fid): import re; m=re.search(r"_(\w+)_\d+", str(fid)); return m.group(1) if m else "UNK"
-df["corpus"]=df["file_id"].apply(corpus)
-feats=[c for c in df.columns if c.endswith("_per_1k") or c.endswith("_per_utt") or c in ("chi_ratio","mlu_child","mlu_adult")]
-def best_thr(X,y):
-    from sklearn.model_selection import StratifiedKFold; from sklearn.metrics import f1_score, roc_auc_score
-    sk=StratifiedKFold(n_splits=5, shuffle=True, random_state=42); ts=[]
-    for tr,va in sk.split(X,y):
-        from sklearn.pipeline import Pipeline; from sklearn.linear_model import LogisticRegression; from sklearn.preprocessing import StandardScaler
-        pipe=Pipeline([("sc",StandardScaler()),("lr",LogisticRegression(max_iter=800,class_weight="balanced"))])
-        pipe.fit(X[tr],y[tr]); p=pipe.predict_proba(X[va])[:,1]
-        auc=roc_auc_score(y[va],p); 
-        if auc<0.5: p=1-p
-        import numpy as np
-        qs=np.quantile(p,np.linspace(0.05,0.95,19))
-        ts.append(qs[int(np.argmax([f1_score(y[va],(p>=q).astype(int)) for q in qs]))])
-    import numpy as np
-    return float(np.mean(ts)) if ts else 0.5
-lab_by_c=df.groupby("corpus")["y"].mean().map(lambda p:"ASD" if p>0.5 else "TD")
-asd_c=sorted([c for c,l in lab_by_c.items() if l=="ASD"]); td_c=sorted([c for c,l in lab_by_c.items() if l=="TD"])
-rows=[]
-for ac in asd_c:
-  for tc in td_c:
-    te=df[df["corpus"].isin([ac,tc])]; tr=df[~df["corpus"].isin([ac,tc])]
-    Xtr,ytr=tr[feats].fillna(0).values, tr["y"].values
-    Xte,yte=te[feats].fillna(0).values, te["y"].values
-    if len(set(ytr))<2 or len(set(yte))<2:
-        rows.append({"fold":f"{ac}+{tc}","AUC_adj":np.nan,"F1_cal":np.nan,"thr":np.nan,"note":"imbalance"}); continue
-    thr=best_thr(Xtr,ytr)
-    pipe=Pipeline([("sc",StandardScaler()),("lr",LogisticRegression(max_iter=800,class_weight="balanced"))]).fit(Xtr,ytr)
-    p=pipe.predict_proba(Xte)[:,1]; auc=roc_auc_score(yte,p)
-    if auc<0.5: p=1-p; auc=1-auc
-    rows.append({"fold":f"{ac}+{tc}","AUC_adj":round(auc,3),"F1_cal":round(f1_score(yte,(p>=thr).astype(int)),3),"thr":round(thr,3)})
-pd.DataFrame(rows).sort_values("fold").to_csv(R/"loco_results_paired_calibrated_plusref_meta.csv", index=False)
-print("wrote ->", R/"loco_results_paired_calibrated_plusref_meta.csv")
-PY
+# 5) LoCO（paired+calibrated）
+python -m scripts.loco_eval_plusref_meta   --feat_csv data/processed/features_merged.csv   --out_csv reports/loco_results_paired_calibrated.csv
 
-# 6) レポート更新（docs/ASD_TD_MVP_Report.html に追記）
-#   ※ scripts/build_html_report.py で自動追記可能
+# 6) 図表とレポート（docs/ に出力）
+python -m scripts.make_report   --loco_csv reports/loco_results_paired_calibrated.csv   --out_html docs/ASD_TD_MVP_Report.html
 ```
 
----
-
-## データソース / 仕様
-- ASDBank（English: Nadig / Rollins / …）— TalkBank 臨床系。アクセスは登録制。  
-- CHILDES（Eng-NA/Eng-UK ほか）— 子ども言語の主要リポジトリ。  
-- CHAT/CLAN — `.cha` 仕様・ツール群。
+- **評価時の固定閾値適用**：
+  - 0.55 を明示的に指定する評価スクリプト（例：`--threshold 0.55`）を用意。
+  - 別途、**F1_cal** を算出する場合は「**fold内CVの最適閾値**」を使い、**固定0.55とは混同しない**ように結果欄を分けて記載。
 
 ---
 
-## GitHub Pages（公開方法）
-Settings → Pages → **Deploy from a branch**／**Branch: main**／**Folder: /docs**。  
-`docs/index.html` から `ASD_TD_MVP_Report.html` にリダイレクト。
+## データソース / 仕様（厳密な用語の扱い）
+
+- **コーパス**：ASDBank（臨床）、CHILDES（小児言語）ほか英語会話データ。
+- **形式**：CHAT / CLAN（`.cha`）。
+- **モダリティ**：**`.cha`テキストのみ**。**`.wav` など実音声は未使用**。
+- **「音声」表記**：テキスト上の **フィラー・ポーズ記号・反復**に基づく **プロソディの代理指標**を指す。
+- **NLP基盤**：spaCy `en_core_web_sm`（文分割・品詞・noun_chunks・軽量NER）。**語用論指標算出に限定利用**。
+- **特徴量の層別**：年齢・MLU・コーパス差を**レポート側で可視化**（因果の断定は避ける）。
+- **倫理・配布**：元データの**再配布不可**。研究目的の引用・要約のみ。
 
 ---
 
-## 積み残しタスク（先生のご助言を反映）
+## 既知の制約と今後
 
-### A. 日本語版（別ブランチ `feature/jp-mvp`）
-- [ ] 英→日対訳＋**後編集ルール**（終助詞・談話標識）で語用論保持を検証
-- [ ] 日本語側の参照表現近似（指示語／係り受け＋ゼロ代名詞簡易検出）
-- [ ] 公開日本語コーパスが出たら LoCO を英日横断で再評価
+- **参照表現の精緻化**：固有表記辞書・照応の厳密化は**次フェーズ**で強化予定。
+- **実音声特徴**：話速・韻律等の音響指標は**未使用**（今後、Praat/opensmile 等で拡張可）。
+- **運用閾値の設計**：MVPでは **0.55固定**。次段では **感度優先/PPV優先**など**ポリシー別**に再設計し、必要なら**一括キャリブレーション**で尺度を統一。
 
-### B. データ利用・倫理
-- [ ] 当事者研究（熊谷先生）へのデータ利用許可申請の準備（要約／想定成果物）
-- [ ] TalkBank/CHILDES/ASDBank の利用規約注記（データ再配布不可）を README に明記
+---
+
+## ライセンス / 謝辞
+
+- 本リポジトリのコードはプロジェクトライセンスに従います（詳細は `LICENSE` を参照）。
+- データは各コーパスのライセンスに従い、**再配布しません**。
+- 謝辞は、関係各位のご許可を頂いた段階で `docs/` に追記します。
