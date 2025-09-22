@@ -1,0 +1,42 @@
+paper_title: "Bang & Nadig (2015) Autism Research — English subset (Mother input)"
+paper_doi: "10.1002/aur.1448"
+notes:
+  - "Target: Table 2 (ENGLISH subset), mother MLU (words/utterance)."
+  - "Use .cha transcripts from ASDBank/CHILDES; keep sessions that include English."
+  - "Speaker = MOT only; aggregation = per mother -> group mean±SD."
+  - "Tokenization: punctuation stripped; codes/filers excluded; alphabetic+contractions only."
+  - "Optional: %mor-based counting to approximate CLAN MLUw (enabled below)."
+
+dataset:
+  transcripts_dir: "./Nadig"
+  include_language_codes: ["eng"]
+  include_speakers: ["MOT"]     # ← 母親発話に戻す
+  group_labels: ["ASD", "TYP"]
+  strict_english_only: false
+  aggregate_by_mother: true      # ← 母親単位で平均→群平均
+preprocess:
+  use_mor_tokens: true
+  min_utterance_len_tokens: 2
+  exclude_tokens_regex: '^(?:[:+].*|&.*|xxx|yyy|www)$'
+  exclude_pure_intj: false
+
+metric_definition:
+  name: "MLU_words"
+  formula: "MLU = total_words / total_utterances (per mother)"
+
+targets:
+  ASD:
+    mean: 5.06
+    sd: 0.92
+  TYP:
+    mean: 5.40
+    sd: 0.81
+
+tolerance:
+  absolute_mean: 0.15
+  relative_mean: 0.05
+
+outputs:
+  per_mother_csv: "reports/reproduction/bang_nadig_2015/per_mother_mlu.csv"
+  group_summary_csv: "reports/reproduction/bang_nadig_2015/group_summary.csv"
+  report_md: "reports/reproduction/bang_nadig_2015/bn2015_reproduction_report.md"
