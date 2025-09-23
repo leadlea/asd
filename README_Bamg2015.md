@@ -3,6 +3,9 @@
 英語公開コーパス（TalkBank/CHILDES, ASDBank）を用いた  
 **Bang & Nadig (2015)** 英語サブセット（母親発話）**MLU再現**と、MVP（語用論指標）のプロトタイプです。
 
+## 重要な注記（群の定義）
+本リポジトリで用いる「ASD/TYP（TD）」の群ラベルは子どもの診断群を指します。
+「母親」「母親発話」はASD/TYP児に対する母親の発話（入力）を意味し、母親自身の診断を示すものではありません。
 - 論文: Bang, J. & Nadig, A. (2015), *Autism Research*. DOI: **10.1002/aur.1440**  
   PDF（TalkBank掲載）: https://talkbank.org/asd/access/0docs/Bang2015.pdf
 - MVPレポート: https://leadlea.github.io/asd/ASD_TD_MVP_Report.html
@@ -221,7 +224,7 @@ reports/
 | 解析窓 | CLANの処理に準拠 | `@Bg/@Eg` があれば適用（今回のNadig英語では多くが未記載＝全文対象） | ✅ |
 | しきい値調整 | なし | なし（前処理・集計ルールは固定） | ✅ |
 
-**目標値（英語・母親MLU, Table 2）**  
+**目標値（英語・母親発話（ASD/TYP児への入力）のMLU, Table 2）**  
 ASD = 5.06 (SD 0.92), TYP = 5.40 (SD 0.81)
 
 > 本実装は **strict**（min=1語、相づち含む）と **robust**（min=2語、純相づち除外）を併記。  
@@ -284,7 +287,7 @@ See `LICENSE` (if absent, treat as “code for research demo; no warranty”).
 - 固定設定（SGKF=2, Platt, thr=0.55）: **AUC ≈ 0.762**, **F1 ≈ 0.403**, **BA ≈ 0.638**, **MCC ≈ 0.241**
 - 閾値感度（同条件, thr=0.50）: **F1 ≈ 0.420**, **BA ≈ 0.625**, **MCC ≈ 0.250**
 
-> 注: 上記は `reports/loco_report.json` 等の実行ログに基づく再掲で、外部テストやリーク対策の観点から**fold内最適（F1*）ではなく固定閾値**での数値を主要報告としています。
+> 注: 上記は `reports/loco_report.json` 等の実行ログに基づく再掲で、外部テストやリーク対策の観点から**fold内最適（F1*）ではなく固定閾値**での数値を主要報告としています。本分析の「ASD/TYP」表記は子どもの診断群を指します。母親に対する診断を意味するものではありません。
 
 ### 検算結果との整合性
 - **MLU**: 群差は極小（d≈0.06）。単独のMLUは弁別力が弱く、分類では**MLUに依存しすぎない**設計が妥当。
