@@ -1,174 +1,299 @@
-# ASD/TD — Reproduction & MVP Validation (ASDBank English)
+# ASD / TD — Pragmatics & MLU Reproduction
 
-本READMEは、**同一データに同一解析を適用して先行知見を検算**し、MVP（語用論・語彙指標の組合せ）の妥当性を点検するための実行手順と結果の記録です。  
-データは ASDBank（TalkBank/CHILDES）の **英語 .cha**（Nadig コーパス）を用いています。
+英語公開コーパス（TalkBank/CHILDES, ASDBank）を用いた  
+**Bang & Nadig (2015)** 英語サブセット（母親発話）**MLU再現**と、MVP（語用論指標）のプロトタイプです。
 
----
-
-## TL;DR（結論先出し）
-
-- **子ども発話（CHI）での検算**  
-  - **MLU**: ASD=3.283, TYP=3.227 → *d*=+0.064（差はごく小）  
-  - **TTR**: ASD=0.5615, TYP=0.5017 → *d*=+0.560（中程度）。Welch *t*=1.476, *p*=0.155, 95%CI=[−0.022, 0.141]（方向はASD高だが有意には至らず）  
-  - **NDW（等量化）**: NDW@100 で ASD=54.4, TYP=60.8 → *d*=−0.529（中程度）、Welch *t*=−1.327, *p*=0.201, 95%CI=[−16.32, 3.41]  
-    - 感度: NDW@50 *d*=−0.398、NDW@150 *d*=−0.509（**Nを変えても ASD < TYP が安定**）
-- **示唆**: **MLU単独では差は弱い**一方、**語彙の比率的多様性（TTR）はASDで高め**、**語彙種類の総量（NDW）はASDで少なめ**という相補パターンを確認。  
-  → **複数指標の組合せ**で差を捉える**現MVPの方針は妥当**。
-
-> なお、**母親発話（MOT）のMLU再現**は Bang & Nadig (2015) 英語小計の**検算対象**として別途整備し、数値合わせの調整は行わず「strict（min=1）」を主、感度として「robust（min=2, intj除外）」を併記する方針です。
+- 論文: Bang, J. & Nadig, A. (2015), *Autism Research*. DOI: **10.1002/aur.1440**  
+  PDF（TalkBank掲載）: https://talkbank.org/asd/access/0docs/Bang2015.pdf
+- MVPレポート: https://leadlea.github.io/asd/ASD_TD_MVP_Report.html
 
 ---
 
-## データ・ライセンス上の注意（重要）
+## ✨ What’s new
 
-- **ASDBank/TalkBank の .cha テキストを日本語に翻訳して共有・公開することは規約上できません**。本リポジトリでは**英語 .cha のみ**を解析対象とします。  
-- 実音声（.wav）は未使用。**「音声/プロソディ」は、.cha 上のフィラー・ポーズ記号等から導く代理指標**として扱っています（README/コードにも明示）。
+- `bn2015_dual_run.py` … **strict（min=1）** と **robust（min=2）** を **一括実行**し、  
+  CSV/MDを吐き出し、**docs/** に比較 **HTML** を自動生成
+- `dual_bn2015.yaml` … 設定1ファイルで **両モード**を制御（MVP比較・論文PDFリンク込み）
+- `reproduce/bang_nadig_2015/parse_cha_compute_mlu.py` … 再現用のコア実装（母親UID・多数決集約・%mor優先など）
 
 ---
 
-## 環境と配置
+## 📁 Repository layout
 
-- Python 3.12（3.9+ 推奨）  
-- 依存：`PyYAML`（検定を出す場合は `scipy` も）  
-- ルート直下に `Nadig/` を置き、配下に `.cha` がある想定
-  ```
-  .
-  ├─ Nadig/                     # .cha transcripts（ローカル/非公開）
-  ├─ reproduce/bang_nadig_2015/
-  │   ├─ parse_cha_compute_mlu.py
-  │   ├─ compute_ttr_ndw.py
-  │   ├─ compute_ndw_atN.py
-  │   └─ reproduce_bang_nadig_2015.yaml
-  └─ reports/reproduction/bang_nadig_2015/  # 出力先
-  ```
+```
+.
+├─ Nadig/                          # .cha transcripts（ローカル/非公開推奨）
+├─ docs/
+│   └─ bn2015_reproduction.html    # paper vs strict vs robust vs MVP の比較HTML（自動生成）
+├─ reports/reproduction/bang_nadig_2015/
+│   ├─ group_summary_strict.csv    # strict の集計
+│   ├─ group_summary_robust.csv    # robust の集計
+│   ├─ bn2015_report_strict.md     # strict の短いMDレポート
+│   └─ bn2015_report_robust.md     # robust の短いMDレポート
+├─ reproduce/bang_nadig_2015/
+│   ├─ parse_cha_compute_mlu.py    # MLU計算スクリプト（再現用）
+│   └─ reproduce_bang_nadig_2015.yaml
+├─ bn2015_dual_run.py              # ← 両モード実行＋HTML生成ドライバ
+├─ dual_bn2015.yaml                # ← 1ファイルでstrict/robust制御
+└─ README.md
+```
 
-セットアップ例:
+> **GitHub Pages** を使う場合は、リポジトリ設定で  
+> **Pages → Source: “Deploy from a branch” / Branch: `main` / Folder: `/docs`** を選べば  
+> `docs/bn2015_reproduction.html` がそのまま公開されます。
+
+---
+
+## ⚙️ Setup
+
 ```bash
+python -V               # 3.9+
 python -m venv .venv
-source .venv/bin/activate
-pip install PyYAML scipy  # 検定を出すなら scipy も
+source .venv/bin/activate  # Windows: .venv\Scripts\activate
+pip install -r requirements.txt  # ない場合は pyyaml だけでも動作します
+# pip install pyyaml
 ```
+
+> **データ配置**: `Nadig/` 直下（または `dual_bn2015.yaml` の `transcripts_dir` を変更）
 
 ---
 
-## 今日の作業ログ（時系列）
+## ▶️ Quick run (dual)
 
-### 1) 子ども発話（CHI）で MLU を計算（%mor優先）
-目的：MVP（子ども発話から ASD/TD を判別）の文脈に即して、まず **CHI** を主対象に設定。  
-設定要点：
-- 話者=**CHI**
-- トークン= **%mor を優先**（見つからない発話は**表層語にフォールバック**）
-- 最小発話長=1語（厳格）
-- 言語=英語（`include_language_codes: ["eng"]`, `strict_english_only: false`）
-- GEM 窓は有効にしても **今回の .cha は時刻未記入が多く、実質オフ同等**
+**strict（min=1）** と **robust（min=2）** を連続実行し、比較HTMLを生成します。
 
-実行:
 ```bash
-python reproduce/bang_nadig_2015/parse_cha_compute_mlu.py   --config reproduce/bang_nadig_2015/reproduce_bang_nadig_2015.yaml
+python bn2015_dual_run.py --config dual_bn2015.yaml
 ```
 
-主出力:
-- `reports/.../per_child_mlu.csv`
-- `reports/.../group_summary.csv`
-- `reports/.../bn2015_reproduction_report.md`
-
-要約（CHI/MLU）:
-- ASD=**3.283**（n=13）, TYP=**3.227**（n=25） → **d=+0.064**（差はごく小）
-
----
-
-### 2) 語彙多様性（TTR）と種類語数（NDW）を追加
-目的：MLU単独で差が弱いため、**語彙系の補助指標**で群差を点検。
-
-実行:
-```bash
-# TTR/NDW（総語数ベース）
-python reproduce/bang_nadig_2015/compute_ttr_ndw.py
-
-# 等量化 NDW@N（発話量依存性を抑制）
-python reproduce/bang_nadig_2015/compute_ndw_atN.py --N 50
-python reproduce/bang_nadig_2015/compute_ndw_atN.py --N 100
-python reproduce/bang_nadig_2015/compute_ndw_atN.py --N 150
+出力（抜粋）:
+```
+reports/reproduction/bang_nadig_2015/
+  group_summary_strict.csv
+  group_summary_robust.csv
+  bn2015_report_strict.md
+  bn2015_report_robust.md
+docs/
+  bn2015_reproduction.html
 ```
 
-結果（CHI）:
-- **TTR**: ASD=**0.5615**（n=13）, TYP=**0.5017**（n=25） → **d=+0.560**  
-  Welch *t*=1.476, *p*=0.155, 95%CI=[−0.022, 0.141]
-- **NDW@50**:  ASD=32.6, TYP=35.0 → **d=−0.398**  
-- **NDW@100**: ASD=**54.4**, TYP=**60.8** → **d=−0.529**  
-  Welch *t*=−1.327, *p*=0.201, 95%CI=[−16.32, 3.41]
-- **NDW@150**: ASD=69.4, TYP=79.0 → **d=−0.509**
+---
 
-解釈：
-- **TTRはASDで高め**（比率の多様性）。一方で **NDWはASDで低め**（種類語の総量）  
-- **等量化（NDW@N）でも方向が保たれる** → 量依存性の説明だけでは崩れない相補パターン
+## 🔬 Modes: strict vs robust
+
+- **Strict**（厳密再現）  
+  - `min_utterance_len_tokens = 1`  
+  - `exclude_pure_intj = false`（あいづち等も含める）  
+  - 先行研究の **“同じデータに同じ解析で近い数値”** を目標に提示
+- **Robust**（感度分析）  
+  - `min_utterance_len_tokens = 2`（1語のみの発話を除外）  
+  - `exclude_pure_intj = true`（%mor で intj のみの発話は除外）  
+  - **1語発話/あいづち**によるMLUの下振れを抑止する近似（参考提示）
+
+> **説明の仕方（先生向け）**  
+> 主結果は **strict** を正式な“検算”、**robust** は“近似の頑健性確認”として**別枠**で併記。
 
 ---
 
-### 3) （補助）母親発話（MOT）での B&N (2015) 検算セット
-目的：先生の宿題「**同じデータに同じ解析で同様の数値が出るか**」の確認（母親MLU：英語小計）。  
-方針：
-- **strict（min=1, intj含む）**を主結果、**robust（min=2, intj除外）**は感度として別枠表示
-- **数値合わせの調整は行わない**（ルールは事前固定）
+## 🧪 Reproduction core (MLUw)
 
-（実行スクリプト・HTML出力は別紙 `bn2015_dual_run.py` 等、MOT用に整備。必要時に再掲。）
+- **スピーカ**: 母親（`MOT`）のみ  
+- **集計**: **母親単位**でMLU（語数/発話数）を平均 → 群（ASD/TYP）平均±SD  
+- **トークン**: `%mor` 優先（見つからない発話は表層へフォールバック）  
+- **不要語**: 句読点・コード（`:+` や `&...`、`xxx/yyy/www`）除外  
+- **母親ラベル**: `@ID(CHI)` → `@ID(全体)` → `@Types` の順で ASD/TYP を推定  
+- **母親UID**: `@ID(CHI)[1]=study, [9]=code` を優先し、フォールバック実装  
+- **同一母親の複数セッション**: **多数決**（空ラベルは無視）で群ラベル決定
+
+> `%mor` が取れずにゼロ発話となるセッションは、**表層語でのユニバーサル・バックオフ**で再計算します（セッション丸落ち回避）。
 
 ---
 
-## 再現設定（要点）
+## 🧾 Config: `dual_bn2015.yaml`
 
-`reproduce/bang_nadig_2015/reproduce_bang_nadig_2015.yaml`（抜粋・CHI版）
 ```yaml
-dataset:
-  transcripts_dir: "./Nadig"
-  include_language_codes: ["eng"]
-  include_speakers: ["CHI"]
-  group_labels: ["ASD", "TYP"]
-  strict_english_only: false
-preprocess:
-  use_mor_tokens: true
-  lowercase: true
-  min_utterance_len_tokens: 1
-  exclude_tokens_regex: '^(?:[:+].*|&.*|xxx|yyy|www)$'
-  # GEMウィンドウ指定なし（時刻欠損が多いため実質全発話採用）
+paper:
+  title: "Bang & Nadig (2015) Autism Research — English subset (Mother input)"
+  doi: "10.1002/aur.1440"
+  pdf_url: "https://talkbank.org/asd/access/0docs/Bang2015.pdf"
+
+targets:            # 先生の“検算”元値（Table 2）
+  ASD: { mean: 5.06, sd: 0.92 }
+  TYP: { mean: 5.40, sd: 0.81 }
+
+base:
+  dataset:
+    transcripts_dir: "./Nadig"
+    include_language_codes: ["eng"]
+    include_speakers: ["MOT"]
+    group_labels: ["ASD", "TYP"]
+    strict_english_only: false
+    aggregate_by_mother: true
+  preprocess:
+    use_mor_tokens: true
+    lowercase: true
+    use_gem_window: false
+    min_utterance_len_tokens: 1     # strict基準（robustで上書き）
+    exclude_tokens_regex: '^(?:[:+].*|&.*|xxx|yyy|www)$'
+    exclude_pure_intj: false        # strict基準（robustで上書き）
+  tolerance:
+    absolute_mean: 0.15
+    relative_mean: 0.05
+  outputs_root: "reports/reproduction/bang_nadig_2015"
+
+mvp:                 # あなたのMVPとの比較欄（HTMLに出ます）
+  label: "Your MVP"
+  url: "https://leadlea.github.io/asd/ASD_TD_MVP_Report.html"
+  values:
+    ASD: { mean: null, sd: null }
+    TYP: { mean: null, sd: null }
+
+modes:
+  - name: strict
+    outputs_suffix: "strict"
+    preprocess_overrides:
+      exclude_pure_intj: false
+      min_utterance_len_tokens: 1
+  - name: robust
+    outputs_suffix: "robust"
+    preprocess_overrides:
+      exclude_pure_intj: true
+      min_utterance_len_tokens: 2
+
+docs:
+  html_out: "docs/bn2015_reproduction.html"
 ```
 
-実装の注意点：
-- `%mor` が見つからず0発話になるセッションは**表層語にユニバーサル・バックオフ**  
-- トークンは **英字＋省略形（don’t等）**のみ採用、句読点・コード・フィラー等は除外  
-- 群ラベルは `@ID(CHI) → @ID(全体) → @Types` の順で推定（TYP=TD相当）  
-- 個体UID（子／母）は `@ID` の情報から安定化（重複や空を回避）
+---
+
+## 📊 docs/ HTML の中身
+
+- テーブルで **Paper / Strict / Robust / MVP** を横並び比較
+- ヘッダに **DOI** と **PDFリンク** を表示
+- 使ったルール（min・intj除外など）を明記  
+→ そのまま先生にURLで共有できます（GitHub Pages 推奨）
 
 ---
 
-## 先生への説明ポイント（短文）
+## 📝 Recommended `.gitignore`
 
-- **英語・ASDBank・CHI発話で検算**したところ、**MLU単独は差小**。  
-- **TTRはASDで高め**、**NDWはASDで低め**で、**等量化NDW@Nでも方向が安定**。  
-- よって、**単一指標ではなく複数の語用論・語彙指標の組み合わせ**で差を捉えるMVP方針が妥当。  
-- 日本語展開では指標・前処理が英語と異なるため（終助詞・談話標識・ゼロ代名詞等）、英語での妥当性を基準線として独立に設計・検証します。  
-- ※ **ASDBank の日本語翻訳・共有は不可**（規約上）。英語のみで検算し、日本語は別ルートで最小検証を行います。
+出力と元データは太りやすいので、基本はコミットしないのが無難です。
 
----
+```
+__pycache__/
+*.pyc
+.venv/
+.DS_Store
+Nadig/
+reports/
+*.log
+```
 
-## 参考（出力ファイル）
-
-- `reports/reproduction/bang_nadig_2015/per_child_mlu.csv`  
-- `reports/reproduction/bang_nadig_2015/per_child_ttr_ndw.csv`  
-- `reports/reproduction/bang_nadig_2015/per_child_ndw_at100.csv` ほか NDW@N  
-- `reports/reproduction/bang_nadig_2015/group_summary.csv`  
-- `reports/reproduction/bang_nadig_2015/bn2015_reproduction_report.md`
-
----
-
-## 既知の限界・想定差
-
-- CLANの厳密なMLUw定義と完全一致は保証しない（修復語/maze、縮約の扱い等の境界差）。  
-- Nadig英語 .cha は `@Bg/@Eg`（時刻）未記入が多く、GEM窓の厳密適用は困難（今回は全発話採用に相当）。  
-- サンプル数が小さいため、**効果量中心の記述**とし、統計的有意は探索的に扱う。
+> どうしてもレポート等を残したい場合は、`reports/reproduction/bang_nadig_2015/` の  
+> `group_summary_*.csv` と `bn2015_report_*.md` のみを選んで add してください。
 
 ---
 
-## Citation
-- Bang, J., & Nadig, A. (2015). Autism Research.  
+## 🗒️ Notes for replication write-up
+
+- **本編（strict）**を主結果として提示（min=1、intj除外なし）  
+- **robust**は“1語発話/あいづちの影響を抑えた感度分析”として別枠  
+- `%mor` が見つからずゼロ発話のセッションは、表層語で**バックオフ再計算**  
+- 3セッション（例: `Nadig/120/126/133`）は **有効発話ゼロ**のため欠測（群平均に影響なし）と注記  
+- CLANのMLUwと自作前処理の**境界規則差**（リペア/maze・省略形など）がわずかな差の主因
+
+---
+
+---
+
+## 検算サマリー（Bang & Nadig, 2015：英語・母親 MLU）
+
+### 1) 私のMVPとの検算（整合性の確認ポイント）
+
+| 観点 | 先行研究（Bang & Nadig, 2015） | 本実装（reproduce/bang_nadig_2015） | 整合性 |
+|---|---|---|---|
+| データソース | TalkBank/CHILDES（ASDBank） | 同じ（手元の `Nadig/` の .cha） | ✅ |
+| 言語 | **英語のみ**（フランス語は別分析） | `include_language_codes: ["eng"]`（英語を含むセッションのみ採用） | ✅ |
+| 話者 | **母親（MOT）** | `include_speakers: ["MOT"]` | ✅ |
+| 指標 | **MLU（words/utterance）** | `MLU = total_words / total_utterances`（%morを優先、無い場合は表層語にフォールバック） | ✅ |
+| 集計単位 | **母親ごと**に平均→群平均（ASD/TYP） | `aggregate_by_mother: true`（同一母親の複数回は多数決で群ラベル確定） | ✅ |
+| 群ラベル | ASD vs **TYP**（=TDに相当） | `@ID(CHI) → @ID(全体) → @Types` の順で推定（TYP/TDを同等扱い） | ✅ |
+| 解析窓 | CLANの処理に準拠 | `@Bg/@Eg` があれば適用（今回のNadig英語では多くが未記載＝全文対象） | ✅ |
+| しきい値調整 | なし | なし（前処理・集計ルールは固定） | ✅ |
+
+**目標値（英語・母親MLU, Table 2）**  
+ASD = 5.06 (SD 0.92), TYP = 5.40 (SD 0.81)
+
+> 本実装は **strict**（min=1語、相づち含む）と **robust**（min=2語、純相づち除外）を併記。  
+> **strict**を“検算”の主結果、**robust**を“頑健性の参考”として別枠で提示し、**数値を合わせに行く調整は行わない**方針です。
+
+---
+
+### 2) この比較の有用性（なぜ意味があるか）
+
+- **データと前提が一致**：同じ ASDBank の **英語 .cha**、同じ **母親（MOT）**、同じ **MLUw** を採っているため、  
+  「**同じデータに同じ解析で同程度の数値が出るか**」という“検算”として妥当。
+- **ASD vs TYP の対比が臨床的に解釈しやすい**：B&N (2015) は **群差は小**だが、**母親入力MLUが後の語彙発達に効く**示唆を与える。  
+  MVP側の語用論指標セットに対し、「**入力の豊かさ（MLU）がどこまで寄与するか**」の土台比較になる。
+- **過学習を避けた外的検証**：strict/robust の **事前規定ルール**で算出し、**閾値や事後調整で合わせに行かない**。  
+  ずれが出た場合も**原因（トークナイズ・相づち・語数1発話など）を記述的に追う**だけにとどめ、MVP側の結論に無理な補正をかけない。
+- **日本語展開の足場**：英語で妥当性を押さえてから、**日本語では指標が異なる**（ゼロ代名詞・終助詞など）点を独立に検証できる。  
+  先行の英語結果を**参照線**にしつつ、日本語独自の語用論処理（談話標識・参照表現近似など）に集中できる。
+
+---
+
+### 3) 実行物（再掲）
+
+- `reports/reproduction/bang_nadig_2015/group_summary_*.csv`（strict/robust）  
+- `reports/reproduction/bang_nadig_2015/bn2015_report_*.md`（論文値との比較、OK/NG表示）  
+- `docs/bn2015_reproduction.html`（**Paper / Strict / Robust / MVP** の横並び比較、公開可）
+
+> 乖離が残る場合は、**理由の記述**（例：1語発話比率・%mor の欠落率・相づち頻度）と**感度分析の結果**を添える。  
+> ただし**ルール変更で数値を合わせることはしない**（結論の一貫性を最優先）。
+
+---
+
+## 📄 Citation
+
+If you use this code or results, please cite:
+
+- Bang, J., & Nadig, A. (2015). *Autism Research*. https://doi.org/10.1002/aur.1440  
 - TalkBank/CHILDES (ASDBank) — data licenses and usage terms.
+
+---
+
+## 🧑‍⚖️ License
+
+See `LICENSE` (if absent, treat as “code for research demo; no warranty”).
+
+---
+
+## Comparison with our MVP classifier (ASD vs TYP)
+
+本検算（CHIのMLU/TTR/NDW）は**記述的な群比較**であり、MVPは**多指標の統合に基づく分類**です。両者の整合性と相違点を、現時点の固定設定で要約します。
+
+### モデル設定（固定プリセット）
+- CV: StratifiedGroupKFold **splits=2**
+- 校正: **Platt scaling**
+- 決定しきい値: **0.55**（初回CVスイープでのF1最適点をMVP仮置きとして固定）
+- 代表的特徴（Top5例）: `propernoun_ratio, pronoun_ratio, verb_ratio, discourse_marker_rate, mental_state_rate`
+- 参考: 一部解析では全11特徴版・アブレーションも実施（詳細は `reports/` 参照）
+
+### 成績（ログより抜粋）
+- 内部CVスイープ（fold内最適点）: **F1* = 0.793**, **BA* = 0.800**（参考値；固定0.55とは別）
+- 固定設定（SGKF=2, Platt, thr=0.55）: **AUC ≈ 0.762**, **F1 ≈ 0.403**, **BA ≈ 0.638**, **MCC ≈ 0.241**
+- 閾値感度（同条件, thr=0.50）: **F1 ≈ 0.420**, **BA ≈ 0.625**, **MCC ≈ 0.250**
+
+> 注: 上記は `reports/loco_report.json` 等の実行ログに基づく再掲で、外部テストやリーク対策の観点から**fold内最適（F1*）ではなく固定閾値**での数値を主要報告としています。
+
+### 検算結果との整合性
+- **MLU**: 群差は極小（d≈0.06）。単独のMLUは弁別力が弱く、分類では**MLUに依存しすぎない**設計が妥当。
+- **TTR / NDW**: 比率的多様性（TTR↑）と種類語総量（NDW↓）が**逆方向で中程度の効果**。MVPの**語彙・語用論の複合**（代名詞・固有名/動詞比、談話標識、心的状態語 等）が、この相補パターンを取り込み**総合的な分離力（AUC~0.76）**に寄与していると解釈可能。  
+- **方向の頑健性**: NDW@N で N=50/100/150 と変えても ASD < TYP の方向が保たれ、**特徴選択のロバスト性**を支持。
+
+### 今後の改善フック
+- **運用ポリシー別の閾値**（感度優先/PPV優先）と**一括キャリブレーション**の是非を検討。
+- **層別評価**（年齢/MLU帯/話題）での差分を見て、特徴や重みを**サブグループ最適化**。
+- **日本語版MVP**は英語と前処理/指標が異なるため、英語側で得られた設計原理（単一指標依存を避け、語彙×語用論の複合）を踏襲しつつ**独立検証**を行う。
+
+---
