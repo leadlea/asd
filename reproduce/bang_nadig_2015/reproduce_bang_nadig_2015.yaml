@@ -1,42 +1,46 @@
-paper_title: "Bang & Nadig (2015) Autism Research — English subset (Mother input)"
+paper_title: "Bang & Nadig (2015) — English subset (Child speech: CHI MLU)"
 paper_doi: "10.1002/aur.1448"
+
 notes:
-  - "Target: Table 2 (ENGLISH subset), mother MLU (words/utterance)."
-  - "Use .cha transcripts from ASDBank/CHILDES; keep sessions that include English."
-  - "Speaker = MOT only; aggregation = per mother -> group mean±SD."
-  - "Tokenization: punctuation stripped; codes/filers excluded; alphabetic+contractions only."
-  - "Optional: %mor-based counting to approximate CLAN MLUw (enabled below)."
+  - "検算目的：ASDBank/CHILDES の英語 .cha を用い、子ども（CHI）発話の MLU（words/utterance）で ASD vs TYP の記述統計を確認。"
+  - "英語セッションのみ採用（strict_english_only は任意／本設定では OFF：英語を含めば可）。"
+  - "話者は CHI のみ。集約は『同一 child_uid 内で平均 → 群平均』。"
+  - "トークンは %mor を優先、欠落時は表層語にフォールバック。句読点除去、コード/フィラー（: + & xxx/yyy/www 等）除外。"
+  - "最小発話長は1語（厳格・網羅）。頑健性確認は min_utterance_len_tokens: 2 に一度だけ切り替えて比較。"
+  - "先行論文（B&N, 2015）は母親入力MLUが主対象のため、本設定は“分類器の検算”としてCHI側を独自に算出（数値合わせはしない）。"
 
 dataset:
-  transcripts_dir: "./Nadig"
-  include_language_codes: ["eng"]
-  include_speakers: ["MOT"]     # ← 母親発話に戻す
-  group_labels: ["ASD", "TYP"]
-  strict_english_only: false
-  aggregate_by_mother: true      # ← 母親単位で平均→群平均
+  transcripts_dir: "./Nadig"          # ルート直下の Nadig/ に .cha がある想定
+  include_language_codes: ["eng"]      # 英語を含むセッションのみ
+  include_speakers: ["CHI"]            # 子ども発話のみ
+  group_labels: ["ASD", "TYP"]         # TD/TYP 同等扱い
+  strict_english_only: false           # true にすると純英語セッションのみ
+  aggregate_by_mother: false           # 母親集約は使わない
+  aggregate_by_child: true             # 子どもIDで集約 → 群平均
+
 preprocess:
-  use_mor_tokens: true
-  min_utterance_len_tokens: 2
+  use_mor_tokens: true                 # %mor ベースの語数を優先
+  lowercase: true
+  min_utterance_len_tokens: 2          # 厳格（1語発話も採用）
   exclude_tokens_regex: '^(?:[:+].*|&.*|xxx|yyy|www)$'
-  exclude_pure_intj: false
+  exclude_pure_intj: true             # true にすると intj のみ発話を除外（robust 試験用）
+  alphabetic_only_tokens: true         # 表層フォールバック時に英字＋省略形のみを許可
+  use_gem_window: false                # @Bg/@Eg がある場合のみ ON を検討（Nadig英語は多くが未記載）
 
 metric_definition:
   name: "MLU_words"
-  formula: "MLU = total_words / total_utterances (per mother)"
+  formula: "MLU = total_words / total_utterances (per child, then group)"
 
-targets:
-  ASD:
-    mean: 5.06
-    sd: 0.92
-  TYP:
-    mean: 5.40
-    sd: 0.81
+# 今回は論文の母親MLUではなく CHI MLU のため、外部ターゲット値は設定しない
+targets: {}
 
+# 目標値が無いので自動OK/NG判定もしない（結果は“—”として出力される想定）
 tolerance:
-  absolute_mean: 0.15
-  relative_mean: 0.05
+  absolute_mean: null
+  relative_mean: null
 
 outputs:
-  per_mother_csv: "reports/reproduction/bang_nadig_2015/per_mother_mlu.csv"
+  # ファイル名は分かりやすく child に変更（コード上はキー名 per_mother_csv を流用）
+  per_mother_csv: "reports/reproduction/bang_nadig_2015/per_child_mlu.csv"
   group_summary_csv: "reports/reproduction/bang_nadig_2015/group_summary.csv"
   report_md: "reports/reproduction/bang_nadig_2015/bn2015_reproduction_report.md"

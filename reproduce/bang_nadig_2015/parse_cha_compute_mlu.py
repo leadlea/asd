@@ -108,6 +108,19 @@ def get_mother_uid(lines: List[str], path: Path) -> str:
     # 4) 最後の手段：ファイル名
     return f"MOT::{path.stem}"
 
+def get_child_uid(lines: List[str], path: Path) -> str:
+    """
+    子ども集約用の安定キー。まず CHI の @ID 行全体をUIDとして使う（最も一意性が高い）。
+    無ければ Participants ベース→ファイル名。
+    """
+    for ln in lines[:400]:
+        if ln.startswith("@ID:") and "|CHI|" in ln:
+            return ln.strip()
+    for ln in lines[:300]:
+        if ln.startswith("@Participants:") and "CHI" in ln:
+            return f"PARTS_CHI::{ln.strip()}"
+    return f"CHI::{path.stem}"
+
 # ---------- main-tier iterator ----------
 def iter_main_tier(lines: List[str], speakers: List[str]):
     """yield (idx, speaker, utt_text, (start_ms, end_ms or None)) for main tiers"""
@@ -189,6 +202,7 @@ def compute_mlu_for_file(path: Path, cfg) -> dict:
 
     group = infer_group_from_id(lines)
     mother_uid = get_mother_uid(lines, path)
+    child_uid  = get_child_uid(lines, path)
     bg, eg = get_gem_window(lines) if cfg["preprocess"].get("use_gem_window", False) else (None, None)
 
     total_words = 0
@@ -252,6 +266,7 @@ def compute_mlu_for_file(path: Path, cfg) -> dict:
         "file": str(path),
         "group": group,
         "mother_uid": mother_uid,
+        "child_uid":  child_uid,
         "mlu_words": round(mlu, 6) if total_utts>0 else None,
         "utterances": total_utts,
         "words": total_words,
@@ -323,6 +338,47 @@ def summarize_by_mother_then_group(rows: List[dict], target_groups: List[str]) -
         out.append({"group": g, "n_mothers": n, "mean": round(mean,3) if mean is not None else None, "sd": round(sd,3) if sd is not None else None})
     return out, mother_rows
 
+def summarize_by_child_then_group(rows: List[dict], target_groups: List[str]) -> Tuple[List[dict], List[dict]]:
+    """
+    同一 child_uid の複数ファイルをまず平均 → その後 ASD/TYP 群平均。
+    group は「その子で観測された非空ラベルの多数決」で決める（空は無視）。
+    """
+    by_uid: Dict[str, Dict[str, list]] = defaultdict(lambda: {"groups": [], "mlus": []})
+    for r in rows:
+        uid = r.get("child_uid","")
+        if not uid or r.get("mlu_words") is None:
+            continue
+        g = r.get("group","")
+        if g:
+            by_uid[uid]["groups"].append(g)
+        by_uid[uid]["mlus"].append(r["mlu_words"])
+
+    child_rows = []
+    for uid, info in by_uid.items():
+        if not info["mlus"]:
+            continue
+        mean_mlu = sum(info["mlus"])/len(info["mlus"])
+        group = ""
+        if info["groups"]:
+            cnt = Counter(info["groups"]).most_common()
+            group = cnt[0][0]
+        if not group:
+            continue
+        child_rows.append({"child_uid": uid, "group": group, "mlu_words": mean_mlu})
+
+    out = []
+    for g in target_groups:
+        vals = [r["mlu_words"] for r in child_rows if r.get("group","")==g and r.get("mlu_words") is not None]
+        n = len(vals)
+        mean = (sum(vals)/n) if n else None
+        if n>1:
+            mu = mean
+            sd = (sum((v-mu)**2 for v in vals)/n)**0.5
+        else:
+            sd = None
+        out.append({"group": g, "n_children": n, "mean": round(mean,3) if mean is not None else None, "sd": round(sd,3) if sd is not None else None})
+    return out, child_rows
+
 # ---------- tolerance ----------
 def within_tolerance(val, tgt, abs_tol, rel_tol):
     if val is None or tgt is None:
@@ -354,24 +410,41 @@ def main():
 
     # デバッグ：件数とUID欠損
     grp_cnt = Counter(r.get("group","") for r in results)
-    uid_empty = sum(1 for r in results if not r.get("mother_uid"))
+    mom_uid_empty = sum(1 for r in results if not r.get("mother_uid"))
     uniq_moms = len({r.get("mother_uid","") for r in results if r.get("mother_uid")})
-    print(f"[DEBUG] rows={len(results)} by_group={dict(grp_cnt)}, mother_uid_empty={uid_empty}")
+    uniq_kids = len({r.get("child_uid","") for r in results if r.get("child_uid")})
+    print(f"[DEBUG] rows={len(results)} by_group={dict(grp_cnt)}, mother_uid_empty={mom_uid_empty}")
     print(f"[DEBUG] unique_mother_uids={uniq_moms}")
+    print(f"[DEBUG] unique_child_uids={uniq_kids}")
 
-    # per-file 出力（実体は母親=ファイル1:1の想定でも残す）
+    # per-file 出力（列に child_uid も追加）
     out_per = Path(cfg["outputs"]["per_mother_csv"])
     out_per.parent.mkdir(parents=True, exist_ok=True)
     with open(out_per, "w", newline="", encoding="utf-8") as f:
-        w = csv.DictWriter(f, fieldnames=["file","group","mother_uid","mlu_words","utterances","words","languages","bg","eg"])
+        w = csv.DictWriter(
+            f,
+            fieldnames=["file","group","mother_uid","child_uid","mlu_words","utterances","words","languages","bg","eg"]
+        )
         w.writeheader()
         for r in results:
             w.writerow(r)
 
-    aggregate = cfg["dataset"].get("aggregate_by_mother", False)
+    aggregate_mother = bool(cfg["dataset"].get("aggregate_by_mother", False))
+    aggregate_child  = bool(cfg["dataset"].get("aggregate_by_child", False))
     groups = cfg["dataset"]["group_labels"]
 
-    if aggregate:
+    if aggregate_child:
+        summary, child_rows = summarize_by_child_then_group(results, groups)
+        out_sum = Path(cfg["outputs"]["group_summary_csv"])
+        out_sum.parent.mkdir(parents=True, exist_ok=True)
+        with open(out_sum, "w", newline="", encoding="utf-8") as f:
+            w = csv.DictWriter(f, fieldnames=["group","n_children","mean","sd"])
+            w.writeheader()
+            for row in summary:
+                w.writerow(row)
+        print("[DEBUG] children_by_group = " + str({g: sum(1 for r in child_rows if r['group']==g) for g in groups}))
+        agg_label = "child"
+    elif aggregate_mother:
         summary, mother_rows = summarize_by_mother_then_group(results, groups)
         out_sum = Path(cfg["outputs"]["group_summary_csv"])
         out_sum.parent.mkdir(parents=True, exist_ok=True)
@@ -380,8 +453,8 @@ def main():
             w.writeheader()
             for row in summary:
                 w.writerow(row)
-        # 追加のデバッグ出力（母親レベル件数）
-        print("[DEBUG] mothers_by_group = " + str({g: sum(1 for r in mother_rows if r['group'] == g) for g in groups}))
+        print("[DEBUG] mothers_by_group = " + str({g: sum(1 for r in mother_rows if r['group']==g) for g in groups}))
+        agg_label = "mother"
     else:
         summary = summarize_by_group(results, groups)
         out_sum = Path(cfg["outputs"]["group_summary_csv"])
@@ -391,20 +464,26 @@ def main():
             w.writeheader()
             for row in summary:
                 w.writerow(row)
+        agg_label = "file"
 
     # レポート
-    tgt = cfg["targets"]; abs_tol = cfg["tolerance"]["absolute_mean"]; rel_tol = cfg["tolerance"]["relative_mean"]
+    tgt = cfg.get("targets", {})
+    abs_tol = cfg.get("tolerance", {}).get("absolute_mean")
+    rel_tol = cfg.get("tolerance", {}).get("relative_mean")
+    speakers = ",".join(cfg["dataset"].get("include_speakers", [])) or "(unspecified)"
+
     lines = []
-    lines.append(f"# Reproduction — {cfg['paper_title']}\n")
-    lines.append("**Metric**: Mother MLU (words/utterance)\n")
-    lines.append(f"**Aggregation**: {'per mother -> group' if aggregate else 'per file -> group'}\n")
+    lines.append(f"# Reproduction — {cfg.get('paper_title','(paper)')}\n")
+    lines.append(f"**Metric**: {speakers} MLU (words/utterance)\n")
+    lines.append(f"**Aggregation**: {'per '+agg_label+' -> group'}\n")
     lines.append(f"**Token source**: {'%mor' if cfg['preprocess'].get('use_mor_tokens', False) else 'surface words'}\n")
     lines.append("## Results (ours vs paper)\n")
     for row in summary:
         g = row["group"]; ours_mean = row["mean"]; ours_sd = row["sd"]
-        tgt_mean = tgt.get(g,{}).get("mean"); tgt_sd = tgt.get(g,{}).get("sd")
-        ok = within_tolerance(ours_mean, tgt_mean, abs_tol, rel_tol) if (ours_mean is not None and tgt_mean is not None) else False
-        lines.append(f"- {g}: ours mean={ours_mean}, sd={ours_sd}; paper mean={tgt_mean}, sd={tgt_sd} → {'OK' if ok else 'NG'}")
+        tgt_mean = tgt.get(g,{}).get("mean") if tgt else None
+        tgt_sd   = tgt.get(g,{}).get("sd") if tgt else None
+        ok = within_tolerance(ours_mean, tgt_mean, abs_tol, rel_tol) if (ours_mean is not None and tgt_mean is not None and abs_tol is not None) else False
+        lines.append(f"- {g}: ours mean={ours_mean}, sd={ours_sd}; paper mean={tgt_mean}, sd={tgt_sd} → {'OK' if ok else '—'}")
 
     # Gemの可視化：設定ON/実データのウィンドウ有無
     have_win = sum(1 for r in results if r.get("bg") is not None and r.get("eg") is not None)
@@ -415,7 +494,7 @@ def main():
     lines.append(f"- Gem: setting={'ON' if gem_cfg else 'OFF'}, windows present={have_win}/{total}; timestamps-missing -> included.")
     lines.append("- Language: sessions that include English are kept (strict_english_only may be off).")
     lines.append("- Tokens: punctuation stripped; alphabetic+contractions; fillers/codes dropped. If use_mor_tokens=true, %mor-based counting with surface fallback.")
-    lines.append("- Aggregation: mother-level means when enabled; population SD for descriptives.")
+    lines.append(f"- Aggregation: {agg_label}-level means when enabled; population SD for descriptives.")
     Path(cfg["outputs"]["report_md"]).write_text("\n".join(lines), encoding="utf-8")
 
     print(f"Wrote {out_per}")
@@ -424,7 +503,7 @@ def main():
     print(
         f"Processed {len(results)} files "
         f"(Gem setting: {'ON' if gem_cfg else 'OFF'}, windows present: {have_win}/{total}); "
-        f"aggregation={'mother' if aggregate else 'file'}."
+        f"aggregation={agg_label}."
     )
 
 if __name__ == "__main__":
