@@ -1,181 +1,92 @@
-<!DOCTYPE html>
-<html lang="ja">
+<!doctype html>
+<html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>ASD vs TD — 研究用 会話デモ（HTML+CSS+Mermaid）</title>
+<meta charset="utf-8"/>
+<title>Reproduction — Bang & Nadig (2015) Autism Research — English subset (Mother input)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
 <style>
-  :root{
-    --ink:#111; --muted:#666; --bg:#fff; --card:#f7f7fb; --line:#e6e7ef;
-    --asd:#e23b3b; --td:#0b63ce; --accent:#0aa;
-  }
-  html{scroll-behavior:smooth}
-  body{margin:0; font-family:system-ui,-apple-system,"Hiragino Kaku Gothic ProN",Meiryo,Segoe UI,Roboto,sans-serif;
-       color:var(--ink); background:var(--bg); line-height:1.7}
-  .wrap{max-width:1000px; margin:auto; padding:28px 16px}
-  h1{font-size:28px; margin:0 0 10px}
-  h2{margin:28px 0 12px; font-size:22px}
-  h3{margin:20px 0 10px; font-size:18px}
-  .pill{display:inline-block; font-size:12px; padding:2px 10px; border-radius:16px; margin-left:8px}
-  .pill.asd{background:#fde9ea; color:var(--asd); border:1px solid #f6b8bc}
-  .pill.td{background:#e8f1fb; color:var(--td); border:1px solid #b8d3f6}
-  .card{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:14px 16px; margin:10px 0}
-  .dlg{display:grid; grid-template-columns:64px 1fr; gap:10px; align-items:start; margin:6px 0}
-  .spk{font-weight:600; color:var(--muted)}
-  .utt{background:#fff; border:1px solid var(--line); border-radius:12px; padding:10px 12px}
-  .hint{color:var(--muted); font-size:14px}
-  .notes{border-left:3px solid var(--accent); padding:8px 12px; background:#eefaf9; margin:18px 0; font-size:14px}
-  .grid{display:grid; grid-template-columns:1fr 1fr; gap:14px}
-  .legend{font-size:13px; color:var(--muted)}
-  footer{margin:26px 0 10px; font-size:12px; color:var(--muted)}
-  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace}
+body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;line-height:1.6;margin:32px;}
+h1,h2{margin:0.2em 0;}
+table{border-collapse:collapse;width:100%;margin:16px 0;}
+th,td{border:1px solid #ddd;padding:8px 10px;text-align:center;}
+th{background:#f6f7f9;text-transform:uppercase;letter-spacing:.02em;font-weight:600}
+td:nth-child(1){text-align:left;}
+tbody tr:nth-child(even){background:#fafbfc}
+small,.note{color:#555;}
+.code{font-family:ui-monospace,Consolas,Menlo,monospace;background:#f8f8f8;padding:2px 6px;border-radius:4px;}
+a{color:#145cc0;}
 </style>
 </head>
 <body>
-<div class="wrap">
-  <h1>ASD vs TD — 研究用 会話デモ <span class="pill asd">ASD例</span><span class="pill td">TD例</span></h1>
-  <p class="hint">※学術デモ用の“典型例”。個人差・年齢・場面で大きく変動します。診断目的ではありません。</p>
+  <h1>Reproduction — Bang & Nadig (2015) Autism Research — English subset (Mother input)</h1>
+  <p>Dataset: ASDBank/CHILDES (English subset), Speaker=MOT, aggregation=per mother → group, token=%mor with surface fallback.</p>
+  <p>Paper DOI: <a href="https://doi.org/10.1002/aur.1440" target="_blank">10.1002/aur.1440</a> | PDF: <a href="https://talkbank.org/asd/access/0docs/Bang2015.pdf" target="_blank">open PDF</a></p>
+  <h2>Summary (Mother MLU, words/utterance)</h2>
+  <table>
+    <thead>
+      <tr>
+        <th rowspan="2">Group</th>
+        <th colspan="2">Paper</th>
+        <th colspan="5">Strict</th>
+        <th colspan="5">Robust</th>
+      </tr>
+      <tr>
+        <th>Mean</th><th>SD</th>
+        <th>n</th><th>Mean</th><th>SD</th><th>ΔMean</th><th>ΔSD</th>
+        <th>n</th><th>Mean</th><th>SD</th><th>ΔMean</th><th>ΔSD</th>
+      </tr>
+    </thead>
+    <tbody>
+      
+        <tr>
+          <td>ASD</td>
+          <td>5.06</td>
+          <td>0.92</td>
 
-  <h2 id="scene1">場面1：遠足の感想（母子会話）</h2>
-  <div class="grid">
-    <!-- ASD -->
-    <div class="card">
-      <h3>ASD例 <span class="pill asd">ASD</span></h3>
-      <div class="dlg"><div class="spk">MOT</div><div class="utt">今日の遠足、どうだった？</div></div>
-      <div class="dlg"><div class="spk">CHI</div><div class="utt">えっと… うん。行った。</div></div>
-      <div class="dlg"><div class="spk">MOT</div><div class="utt">どこに行ったの？</div></div>
-      <div class="dlg"><div class="spk">CHI</div><div class="utt">バス。バスで行った。えっと…バス。</div></div>
-      <div class="dlg"><div class="spk">MOT</div><div class="utt">着いてから何した？</div></div>
-      <div class="dlg"><div class="spk">CHI</div><div class="utt">それ、見た。あれも。写真、撮った。</div></div>
-      <div class="dlg"><div class="spk">MOT</div><div class="utt">楽しかった？（どんな気持ちだった？）</div></div>
-      <div class="dlg"><div class="spk">CHI</div><div class="utt">写真、撮った。うん。…お弁当、食べた。</div></div>
-      <div class="dlg"><div class="spk">MOT</div><div class="utt">誰と一緒に食べたの？</div></div>
-      <div class="dlg"><div class="spk">CHI</div><div class="utt">えっと… たかし。たかしと。…たかし。</div></div>
-      <p class="legend">傾向：指示詞多用、談話標識/終助詞少、反復・修復増、心的状態語少。</p>
-    </div>
+          <td>11</td>
+          <td>4.36</td>
+          <td>0.70</td>
+          <td>-0.70</td>
+          <td>-0.22</td>
 
-    <!-- TD -->
-    <div class="card">
-      <h3>TD例 <span class="pill td">TD</span></h3>
-      <div class="dlg"><div class="spk">MOT</div><div class="utt">今日の遠足、どうだった？</div></div>
-      <div class="dlg"><div class="spk">CHI</div><div class="utt">うん、すごく楽しかったよ！ まずバスで水族館に行ったの。</div></div>
-      <div class="dlg"><div class="spk">MOT</div><div class="utt">へえ、何を見たの？</div></div>
-      <div class="dlg"><div class="spk">CHI</div><div class="utt">イルカのショーが一番よかった。びっくりしたけどワクワクしたよ。</div></div>
-      <div class="dlg"><div class="spk">MOT</div><div class="utt">お弁当は？</div></div>
-      <div class="dlg"><div class="spk">CHI</div><div class="utt">たかしと一緒に食べたよ。途中で先生が「写真撮ろう」って言ってね。</div></div>
-      <div class="dlg"><div class="spk">MOT</div><div class="utt">そうなんだ、いい思い出だね。</div></div>
-      <div class="dlg"><div class="spk">CHI</div><div class="utt">うん、また行きたいな。</div></div>
-      <p class="legend">傾向：名詞導入→代名詞の維持、談話標識/終助詞あり、心的状態語あり、拡張応答。</p>
-    </div>
-  </div>
+          <td>11</td>
+          <td>4.90</td>
+          <td>0.68</td>
+          <td>-0.16</td>
+          <td>-0.24</td>
+        </tr>
+        
+        <tr>
+          <td>TYP</td>
+          <td>5.40</td>
+          <td>0.81</td>
 
-  <div class="notes">
-    観察→計量化の対応：<span class="mono">参照維持率</span>（導入/維持/再導入）、<span class="mono">discourse_marker_rate</span>、<span class="mono">終助詞率</span>、<span class="mono">相槌率/無応答率</span>、<span class="mono">repair/disfluency率</span>、<span class="mono">mental_state_rate</span>、<span class="mono">TTR / NDW@N</span>、<span class="mono">MLU</span> など。
-  </div>
+          <td>24</td>
+          <td>4.64</td>
+          <td>0.85</td>
+          <td>-0.76</td>
+          <td>+0.04</td>
 
-  <h2 id="scene2">場面2：なくした鉛筆を探す（共同注意）</h2>
-  <div class="grid">
-    <!-- ASD -->
-    <div class="card">
-      <h3>ASD例 <span class="pill asd">ASD</span></h3>
-      <div class="dlg"><div class="spk">MOT</div><div class="utt">鉛筆、どこで最後に使った？</div></div>
-      <div class="dlg"><div class="spk">CHI</div><div class="utt">机。…机。</div></div>
-      <div class="dlg"><div class="spk">MOT</div><div class="utt">机のどのへん？</div></div>
-      <div class="dlg"><div class="spk">CHI</div><div class="utt">ここ。これ。…ない。</div></div>
-      <div class="dlg"><div class="spk">MOT</div><div class="utt">誰かに貸した？</div></div>
-      <div class="dlg"><div class="spk">CHI</div><div class="utt">ううん。…これ、ちがう。</div></div>
-      <div class="dlg"><div class="spk">MOT</div><div class="utt">じゃあカバンの中は？</div></div>
-      <div class="dlg"><div class="spk">CHI</div><div class="utt">出す。…あ、えっと… うん。…ない。</div></div>
-    </div>
+          <td>24</td>
+          <td>5.38</td>
+          <td>0.82</td>
+          <td>-0.02</td>
+          <td>+0.01</td>
+        </tr>
+        
+    </tbody>
+  </table>
 
-    <!-- TD -->
-    <div class="card">
-      <h3>TD例 <span class="pill td">TD</span></h3>
-      <div class="dlg"><div class="spk">MOT</div><div class="utt">鉛筆、どこで最後に使った？</div></div>
-      <div class="dlg"><div class="spk">CHI</div><div class="utt">勉強机の左の引き出しのとこ。たぶん宿題のあと。</div></div>
-      <div class="dlg"><div class="spk">MOT</div><div class="utt">机の上は？</div></div>
-      <div class="dlg"><div class="spk">CHI</div><div class="utt">上にはないよ。さっきノートを片付けたときに入れたはず。</div></div>
-      <div class="dlg"><div class="spk">MOT</div><div class="utt">カバンの中も見てみようか。</div></div>
-      <div class="dlg"><div class="spk">CHI</div><div class="utt">うん、ちょっと待ってね。…あった！ ポケットの奥に入ってた。</div></div>
-    </div>
-  </div>
-
-  <h2>Mermaid：指標マップ（計量化の対応関係）</h2>
-  <div class="card">
-  <div class="legend">※「太字」は日本語実験の最小セットに入れる予定。</div>
-  <pre class="mermaid">
-flowchart LR
-  A[会話データ（.cha）] --> B{前処理}
-  B -->|英語| C[Token化 / 品詞 / 参照候補]
-  B -->|日本語| C2[形態素解析 / 終助詞辞書 / 参照候補]
-
-  C --> D[語彙多様性<br/>TTR / NDW@N]
-  C2 --> D
-
-  C --> E[談話標識率]
-  C2 --> E2[**終助詞率（ね/よ/よね/かな）**]
-
-  C --> F[参照維持（導入/維持/再導入）]
-  C2 --> F
-
-  C --> G[相槌・無応答（文字列近似）]
-  C --> H[不流暢・修復（uh/um/繰り返し 等）]
-  C --> I[心的状態語率]
-
-  C --> J[MLU（語/発話）]
-  C2 --> J2[MLU-J（形態素/発話）]
-
-  subgraph Composite
-    D & E & E2 & F & G & H & I & J & J2 --> Z[複合スコア（z統合）]
-  end
-  </pre>
-  </div>
-
-  <h2>Mermaid：ターン/発話の違い（場面1の縮約図）</h2>
-  <div class="grid">
-    <div class="card">
-      <div class="legend">ASD（縮約・一部のみ）</div>
-      <pre class="mermaid">
-sequenceDiagram
-  autonumber
-  participant MOT
-  participant CHI
-  MOT->>CHI: どうだった？
-  CHI-->>MOT: うん。行った。
-  MOT->>CHI: どこに？
-  CHI-->>MOT: バス。…バス。
-  MOT->>CHI: 何した？
-  CHI-->>MOT: それ見た。写真、撮った。
-  MOT->>CHI: 気持ちは？
-  CHI-->>MOT: （無回答→）お弁当、食べた。
-      </pre>
-    </div>
-    <div class="card">
-      <div class="legend">TD（縮約・一部のみ）</div>
-      <pre class="mermaid">
-sequenceDiagram
-  autonumber
-  participant MOT
-  participant CHI
-  MOT->>CHI: どうだった？
-  CHI-->>MOT: すごく楽しかったよ。水族館に行ったの。
-  MOT->>CHI: 何を見た？
-  CHI-->>MOT: イルカのショー。びっくりしたけどワクワク。
-  MOT->>CHI: お弁当は？
-  CHI-->>MOT: たかしと一緒。先生が写真撮ろうって。
-      </pre>
-    </div>
-  </div>
-
-  <footer>
-    © Research demo snippet — HTML+CSS+Mermaid. そのままGitHub Pages等に配置可。Mermaidの表示には下記スクリプトが必要です。
-  </footer>
-</div>
-
-<!-- Mermaid -->
-<script type="module">
-  import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs";
-  mermaid.initialize({ startOnLoad: true, securityLevel: "loose", fontFamily: "system-ui" });
-</script>
+  <h2>Notes</h2>
+  <ul>
+    <li><span class="code">Strict</span>: <span class="code">min_utterance_len_tokens=1</span>, <span class="code">exclude_pure_intj=false</span>（厳密再現）。</li>
+    <li><span class="code">Robust</span>: <span class="code">min_utterance_len_tokens=2</span>, <span class="code">exclude_pure_intj=true</span>（1語発話/あいづち歪みの感度分析）。</li>
+    <li>Speaker filter: <span class="code">include_speakers=["MOT"]</span>（母親入力のみを集計）。母親発話が1行もないセッション（例：<span class="code">120.cha</span>、<span class="code">126.cha</span>、<span class="code">133.cha</span>）は自動的に除外され、ログでは <span class="code">dropped-all-utterances</span> と表示されます。</li>
+    <li>Gem window: <span class="code">ON</span>, 
+        No-timestamp utterances: <span class="code">dropped</span>.</li>
+    <li>Group summaries (CSV): 
+        <a href="reports/reproduction/bang_nadig_2015/group_summary_strict.csv" target="_blank">strict</a> · 
+        <a href="reports/reproduction/bang_nadig_2015/group_summary_robust.csv" target="_blank">robust</a></li>
+  </ul>
 </body>
 </html>

@@ -29,3 +29,6 @@ Providence/
 reports/corpus_manifest.csv
 reports/baseline_report.json
 reports/figures/top_features.png
+
+# local backups
+*.bak

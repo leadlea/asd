@@ -162,10 +162,14 @@ def compute_mlu_for_file(path: Path, cfg) -> dict:
     total_words = 0; total_utts  = 0
     use_mor = bool(cfg["preprocess"].get("use_mor_tokens", False))
     exclude_pure_intj = bool(cfg["preprocess"].get("exclude_pure_intj", False))
+    drop_no_ts = bool(cfg["preprocess"].get("drop_no_timestamp_when_gems", False))
 
     for idx, spk, utt, tspan in iter_main_tier(lines, cfg["dataset"]["include_speakers"]):
-        if cfg["preprocess"].get("use_gem_window", False) and not in_gem_range(tspan, bg, eg):
-            continue
+        if cfg["preprocess"].get("use_gem_window", False):
+            if (tspan is None and drop_no_ts):
+                continue
+            if not in_gem_range(tspan, bg, eg):
+                continue
         toks = []
         if use_mor:
             mor_raw = None
@@ -195,8 +199,11 @@ def compute_mlu_for_file(path: Path, cfg) -> dict:
     if total_utts == 0:
         toks_total = utts_total = 0
         for idx, spk, utt, tspan in iter_main_tier(lines, cfg["dataset"]["include_speakers"]):
-            if cfg["preprocess"].get("use_gem_window", False) and not in_gem_range(tspan, bg, eg):
-                continue
+            if cfg["preprocess"].get("use_gem_window", False):
+                if (tspan is None and drop_no_ts):
+                    continue
+                if not in_gem_range(tspan, bg, eg):
+                    continue
             toks = tokenize(utt, lowercase=cfg["preprocess"].get("lowercase", True))
             toks = [t for t in toks if is_valid_token(t, cfg)]
             if len(toks) >= cfg["preprocess"].get("min_utterance_len_tokens", 1):
@@ -250,10 +257,15 @@ def summarize_by_mother_then_group(rows: List[dict], target_groups: List[str]):
         vals = [r["mlu_words"] for r in mother_rows if r.get("group","")==g and r.get("mlu_words") is not None]
         n = len(vals); mean = (sum(vals)/n) if n else None
         if n>1:
-            mu = mean; sd = (sum((v-mu)**2 for v in vals)/n)**0.5
+            mu = mean; sd = (sum((v-mu)**2 for v in vals)/(n-1))**0.5  # unbiased SD
         else:
             sd = None
-        out.append({"group": g, "n_mothers": n, "mean": round(mean,3) if mean is not None else None, "sd": round(sd,3) if sd is not None else None})
+        out.append({
+            "group": g,
+            "n_mothers": n,
+            "mean": round(mean,3) if mean is not None else None,
+            "sd": round(sd,3) if sd is not None else None
+        })
     return out, mother_rows
 
 # ---------- helpers ----------
@@ -279,16 +291,19 @@ def run_once(cfg):
     files = [p for p in root.rglob("*.cha") if p.is_file()]
     if not files:
         raise SystemExit("No .cha files found under transcripts_dir")
-    results = []
+    results, skipped = [], Counter()
     for p in files:
         r = compute_mlu_for_file(p, cfg)
-        if "skip_reason" not in r: results.append(r)
+        if "skip_reason" in r:
+            skipped[r["skip_reason"]] += 1
+        else:
+            results.append(r)
 
     grp_cnt = Counter(r.get("group","") for r in results)
     uid_empty = sum(1 for r in results if not r.get("mother_uid"))
     uniq_moms = len({r.get("mother_uid","") for r in results if r.get("mother_uid")})
     print(f"[DEBUG] rows={len(results)} by_group={dict(grp_cnt)}, mother_uid_empty={uid_empty}")
-    print(f"[DEBUG] unique_mother_uids={uniq_moms}")
+    print(f"[DEBUG] unique_mother_uids={uniq_moms}  skipped={dict(skipped)}")
 
     out_per = Path(cfg["outputs"]["per_mother_csv"]); out_per.parent.mkdir(parents=True, exist_ok=True)
     with open(out_per, "w", newline="", encoding="utf-8") as f:
@@ -322,8 +337,10 @@ def run_once(cfg):
     have_win = sum(1 for r in results if r.get("bg") is not None and r.get("eg") is not None)
     total    = len(results)
     gem_cfg  = bool(cfg["preprocess"].get("use_gem_window"))
+    drop_no_ts = bool(cfg["preprocess"].get("drop_no_timestamp_when_gems", False))
     lines.append("\n## Notes")
-    lines.append(f"- Gem: setting={'ON' if gem_cfg else 'OFF'}, windows present={have_win}/{total}; timestamps-missing → included.")
+    lines.append(f"- Gem: setting={'ON' if gem_cfg else 'OFF'}, windows present={have_win}/{total}; "
+                 f"no-timestamp utterances: {'dropped' if drop_no_ts else 'included'}.")
     Path(cfg["outputs"]["report_md"]).write_text("\n".join(lines), encoding="utf-8")
 
     print(f"Wrote {out_per}")
@@ -333,39 +350,47 @@ def run_once(cfg):
     return summary
 
 # ---------- HTML ----------
-def build_html(doc_path: Path, cfg_base: dict, paper: dict, targets: dict, strict_summary: list, robust_summary: list, mvp: dict):
-    # index by group
+def build_html(doc_path: Path, cfg_base: dict, paper: dict, targets: dict,
+               strict_summary: list, robust_summary: list, mvp: dict):
     def by_group(rows):
         return {r["group"]: r for r in rows}
     strict = by_group(strict_summary)
     robust = by_group(robust_summary)
 
-    # MVP values (optional)
-    mvp_vals = (mvp or {}).get("values", {}) if mvp else {}
-    mvp_url  = (mvp or {}).get("url", "")
-    mvp_label= (mvp or {}).get("label","MVP")
-
     groups = cfg_base["dataset"]["group_labels"]
-    # build table rows
+    outputs_root = cfg_base.get("outputs_root", "reports/reproduction/bang_nadig_2015")
+    strict_csv = f"{outputs_root}/group_summary_strict.csv"
+    robust_csv = f"{outputs_root}/group_summary_robust.csv"
+
+    def f2(x):
+        return ("" if x is None else (f"{x:.2f}" if isinstance(x,(int,float)) else x))
+
+    def delta(a, b):
+        if a is None or b is None: return ""
+        return f"{(a-b):+.2f}"
+
     trs = []
     for g in groups:
         t_mean = targets.get(g,{}).get("mean"); t_sd = targets.get(g,{}).get("sd")
         s = strict.get(g, {"n_mothers": None, "mean": None, "sd": None})
         r = robust.get(g, {"n_mothers": None, "mean": None, "sd": None})
-        mv = mvp_vals.get(g, {"mean": None, "sd": None})
         tr = f"""
         <tr>
           <td>{g}</td>
-          <td>{t_mean if t_mean is not None else ''}</td>
-          <td>{t_sd if t_sd is not None else ''}</td>
+          <td>{f2(t_mean)}</td>
+          <td>{f2(t_sd)}</td>
+
           <td>{s.get('n_mothers','')}</td>
-          <td>{s.get('mean','')}</td>
-          <td>{s.get('sd','')}</td>
+          <td>{f2(s.get('mean'))}</td>
+          <td>{f2(s.get('sd'))}</td>
+          <td>{delta(s.get('mean'), t_mean)}</td>
+          <td>{delta(s.get('sd'), t_sd)}</td>
+
           <td>{r.get('n_mothers','')}</td>
-          <td>{r.get('mean','')}</td>
-          <td>{r.get('sd','')}</td>
-          <td>{'' if mv.get('mean') is None else mv.get('mean')}</td>
-          <td>{'' if mv.get('sd') is None else mv.get('sd')}</td>
+          <td>{f2(r.get('mean'))}</td>
+          <td>{f2(r.get('sd'))}</td>
+          <td>{delta(r.get('mean'), t_mean)}</td>
+          <td>{delta(r.get('sd'), t_sd)}</td>
         </tr>
         """
         trs.append(tr)
@@ -380,9 +405,11 @@ def build_html(doc_path: Path, cfg_base: dict, paper: dict, targets: dict, stric
 body{{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;line-height:1.6;margin:32px;}}
 h1,h2{{margin:0.2em 0;}}
 table{{border-collapse:collapse;width:100%;margin:16px 0;}}
-th,td{{border:1px solid #ddd;padding:8px;text-align:center;}}
-th{{background:#f6f7f9;}}
-small, .note{{color:#555;}}
+th,td{{border:1px solid #ddd;padding:8px 10px;text-align:center;}}
+th{{background:#f6f7f9;text-transform:uppercase;letter-spacing:.02em;font-weight:600}}
+td:nth-child(1){{text-align:left;}}
+tbody tr:nth-child(even){{background:#fafbfc}}
+small,.note{{color:#555;}}
 .code{{font-family:ui-monospace,Consolas,Menlo,monospace;background:#f8f8f8;padding:2px 6px;border-radius:4px;}}
 a{{color:#145cc0;}}
 </style>
@@ -395,17 +422,15 @@ a{{color:#145cc0;}}
   <table>
     <thead>
       <tr>
-        <th>Group</th>
-        <th>Paper mean</th>
-        <th>Paper sd</th>
-        <th>Strict n</th>
-        <th>Strict mean</th>
-        <th>Strict sd</th>
-        <th>Robust n</th>
-        <th>Robust mean</th>
-        <th>Robust sd</th>
-        <th>{mvp_label} mean</th>
-        <th>{mvp_label} sd</th>
+        <th rowspan="2">Group</th>
+        <th colspan="2">Paper</th>
+        <th colspan="5">Strict</th>
+        <th colspan="5">Robust</th>
+      </tr>
+      <tr>
+        <th>Mean</th><th>SD</th>
+        <th>n</th><th>Mean</th><th>SD</th><th>ΔMean</th><th>ΔSD</th>
+        <th>n</th><th>Mean</th><th>SD</th><th>ΔMean</th><th>ΔSD</th>
       </tr>
     </thead>
     <tbody>
@@ -417,7 +442,12 @@ a{{color:#145cc0;}}
   <ul>
     <li><span class="code">Strict</span>: <span class="code">min_utterance_len_tokens=1</span>, <span class="code">exclude_pure_intj=false</span>（厳密再現）。</li>
     <li><span class="code">Robust</span>: <span class="code">min_utterance_len_tokens=2</span>, <span class="code">exclude_pure_intj=true</span>（1語発話/あいづち歪みの感度分析）。</li>
-    <li>MVP report: <a href="{mvp_url}" target="_blank">{mvp_url}</a></li>
+    <li>Speaker filter: <span class="code">include_speakers=["MOT"]</span>（母親入力のみを集計）。母親発話が1行もないセッション（例：<span class="code">120.cha</span>、<span class="code">126.cha</span>、<span class="code">133.cha</span>）は自動的に除外され、ログでは <span class="code">dropped-all-utterances</span> と表示されます。</li>
+    <li>Gem window: <span class="code">{'ON' if cfg_base.get('preprocess',{}).get('use_gem_window', False) else 'OFF'}</span>, 
+        No-timestamp utterances: <span class="code">{'dropped' if cfg_base.get('preprocess',{}).get('drop_no_timestamp_when_gems', False) else 'included'}</span>.</li>
+    <li>Group summaries (CSV): 
+        <a href="{strict_csv}" target="_blank">strict</a> · 
+        <a href="{robust_csv}" target="_blank">robust</a></li>
   </ul>
 </body>
 </html>
@@ -431,7 +461,11 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--config", required=True, help="dual YAML config")
     args = ap.parse_args()
-    cfg_all = yaml.safe_load(open(args.config, "r", encoding="utf-8"))
+    with open(args.config, "r", encoding="utf-8") as f:
+        cfg_all = yaml.safe_load(f)
+    for k in ("paper","targets","base","modes"):
+        if k not in cfg_all:
+            raise SystemExit(f"[ERROR] Missing key in YAML: {k}")
 
     paper   = cfg_all["paper"]
     targets = cfg_all["targets"]

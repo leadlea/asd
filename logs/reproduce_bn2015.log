@@ -1,0 +1,25 @@
+
+===== Running mode: strict =====
+[DEBUG] dropped-all-utterances: Nadig/133.cha
+[DEBUG] dropped-all-utterances: Nadig/126.cha
+[DEBUG] dropped-all-utterances: Nadig/120.cha
+[DEBUG] rows=38 by_group={'TYP': 25, 'ASD': 13}, mother_uid_empty=0
+[DEBUG] unique_mother_uids=38  skipped={}
+[DEBUG] mothers_by_group = {'ASD': 11, 'TYP': 24}
+Wrote reports/reproduction/bang_nadig_2015/per_mother_mlu_strict.csv
+Wrote reports/reproduction/bang_nadig_2015/group_summary_strict.csv
+Wrote reports/reproduction/bang_nadig_2015/bn2015_report_strict.md
+Processed 38 files (Gem setting: ON, windows present: 0/38); aggregation=mother.
+
+===== Running mode: robust =====
+[DEBUG] dropped-all-utterances: Nadig/133.cha
+[DEBUG] dropped-all-utterances: Nadig/126.cha
+[DEBUG] dropped-all-utterances: Nadig/120.cha
+[DEBUG] rows=38 by_group={'TYP': 25, 'ASD': 13}, mother_uid_empty=0
+[DEBUG] unique_mother_uids=38  skipped={}
+[DEBUG] mothers_by_group = {'ASD': 11, 'TYP': 24}
+Wrote reports/reproduction/bang_nadig_2015/per_mother_mlu_robust.csv
+Wrote reports/reproduction/bang_nadig_2015/group_summary_robust.csv
+Wrote reports/reproduction/bang_nadig_2015/bn2015_report_robust.md
+Processed 38 files (Gem setting: ON, windows present: 0/38); aggregation=mother.
+Wrote docs/Compare.html
