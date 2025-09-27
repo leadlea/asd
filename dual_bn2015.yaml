@@ -55,3 +55,6 @@ modes:
 # 生成するHTML
 docs:
   html_out: "docs/Compare.html"
+  publish_csv: true                 # 追加: CSVをdocs配下にミラー公開
+  csv_public_dir: "docs/assets/bn2015"  # 追加: 公開先ディレクトリ
+
