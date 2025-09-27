@@ -3,30 +3,31 @@ paper:
   doi: "10.1002/aur.1440"     # TalkBankの案内に基づくDOI
   pdf_url: "https://talkbank.org/asd/access/0docs/Bang2015.pdf"   # 公開PDF
 
-# 先生の“検算”の元値（Table 2, English subset, mother MLU）
+# 先生の“検算”の元値（Table 2, English subset, Mother MLU）
 targets:
   ASD: { mean: 5.06, sd: 0.92 }
   TYP: { mean: 5.40, sd: 0.81 }
 
-# 片方でも一致判定の幅（お好みで）
+# 共通設定（Single Source for data/preprocess/tolerance）
 base:
   dataset:
-    transcripts_dir: "./Nadig"
-    include_language_codes: ["eng"]
-    include_speakers: ["MOT"]
+    transcripts_dir: "./Nadig"         # Nadig英語 .cha のルート
+    include_language_codes: ["eng"]    # 言語フィルタ
+    include_speakers: ["MOT"]          # 母親入力のみ
     group_labels: ["ASD", "TYP"]
-    strict_english_only: false
+    strict_english_only: true          # 英語セッション限定（混在事故防止）
     aggregate_by_mother: true
   preprocess:
-    use_mor_tokens: true
+    use_mor_tokens: true               # %morベースで語数を安定化
     lowercase: true
-    use_gem_window: false        # Nadig の @Bg/@Eg は 9分目安。必要なら true
-    min_utterance_len_tokens: 1  # strict基準（robustで上書き）
+    use_gem_window: true               # B&Nは @Bg/@Eg ≈ 9分 → 既定ON
+    drop_no_timestamp_when_gems: true  # Gems時は無TS発話を除外（厳密寄り）
+    min_utterance_len_tokens: 1        # strict基準（robustで上書き）
     exclude_tokens_regex: '^(?:[:+].*|&.*|xxx|yyy|www)$'
-    exclude_pure_intj: false     # strict基準（robustで上書き）
+    exclude_pure_intj: false           # strict基準（robustで上書き）
   tolerance:
-    absolute_mean: 0.15
-    relative_mean: 0.05
+    absolute_mean: 0.15                # mean一致の許容（絶対）
+    relative_mean: 0.05                # mean一致の許容（相対）
   outputs_root: "reports/reproduction/bang_nadig_2015"
 
 # MVP（比較用にリンク・値を載せたい場合はここに）
@@ -53,4 +54,4 @@ modes:
 
 # 生成するHTML
 docs:
-  html_out: "docs/bn2015_reproduction.html"
+  html_out: "docs/Compare.html"
