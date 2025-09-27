@@ -15,6 +15,7 @@ tbody tr:nth-child(even){background:#fafbfc}
 small,.note{color:#555;}
 .code{font-family:ui-monospace,Consolas,Menlo,monospace;background:#f8f8f8;padding:2px 6px;border-radius:4px;}
 a{color:#145cc0;}
+footer{margin-top:28px;color:#555}
 </style>
 </head>
 <body>
@@ -81,12 +82,13 @@ a{color:#145cc0;}
   <ul>
     <li><span class="code">Strict</span>: <span class="code">min_utterance_len_tokens=1</span>, <span class="code">exclude_pure_intj=false</span>（厳密再現）。</li>
     <li><span class="code">Robust</span>: <span class="code">min_utterance_len_tokens=2</span>, <span class="code">exclude_pure_intj=true</span>（1語発話/あいづち歪みの感度分析）。</li>
-    <li>Speaker filter: <span class="code">include_speakers=["MOT"]</span>（母親入力のみを集計）。母親発話が1行もないセッション（例：<span class="code">120.cha</span>、<span class="code">126.cha</span>、<span class="code">133.cha</span>）は自動的に除外され、ログでは <span class="code">dropped-all-utterances</span> と表示されます。</li>
     <li>Gem window: <span class="code">ON</span>, 
         No-timestamp utterances: <span class="code">dropped</span>.</li>
     <li>Group summaries (CSV): 
-        <a href="reports/reproduction/bang_nadig_2015/group_summary_strict.csv" target="_blank">strict</a> · 
-        <a href="reports/reproduction/bang_nadig_2015/group_summary_robust.csv" target="_blank">robust</a></li>
+        <a href="assets/bn2015/group_summary_strict.csv" download>strict</a> · 
+        <a href="assets/bn2015/group_summary_robust.csv" download>robust</a></li>
   </ul>
+
+  <footer><small>Generated on 2025-09-27 21:57, commit 0c8e634</small></footer>
 </body>
 </html>
