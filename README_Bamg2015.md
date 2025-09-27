@@ -14,7 +14,6 @@
 
 - 論文: Bang, J. & Nadig, A. (2015), *Autism Research*. DOI: **10.1002/aur.1440**  
   PDF（TalkBank掲載）: https://talkbank.org/asd/access/0docs/Bang2015.pdf
-- MVPレポート: https://leadlea.github.io/asd/ASD_TD_MVP_Report.html
 
 ---
 
