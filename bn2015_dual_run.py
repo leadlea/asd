@@ -15,6 +15,9 @@ from typing import List, Tuple, Dict
 from collections import defaultdict, Counter
 import copy, yaml
 
+# 追加
+import os, shutil, subprocess, datetime
+
 # ---------- regex helpers ----------
 WHITES   = re.compile(r"\s+")
 WORD_RX  = re.compile(r"^[A-Za-z]+(?:'[A-Za-z]+)?$")
@@ -351,16 +354,14 @@ def run_once(cfg):
 
 # ---------- HTML ----------
 def build_html(doc_path: Path, cfg_base: dict, paper: dict, targets: dict,
-               strict_summary: list, robust_summary: list, mvp: dict):
+               strict_summary: list, robust_summary: list,
+               csv_href_strict: str, csv_href_robust: str):
     def by_group(rows):
         return {r["group"]: r for r in rows}
     strict = by_group(strict_summary)
     robust = by_group(robust_summary)
 
     groups = cfg_base["dataset"]["group_labels"]
-    outputs_root = cfg_base.get("outputs_root", "reports/reproduction/bang_nadig_2015")
-    strict_csv = f"{outputs_root}/group_summary_strict.csv"
-    robust_csv = f"{outputs_root}/group_summary_robust.csv"
 
     def f2(x):
         return ("" if x is None else (f"{x:.2f}" if isinstance(x,(int,float)) else x))
@@ -412,6 +413,7 @@ tbody tr:nth-child(even){{background:#fafbfc}}
 small,.note{{color:#555;}}
 .code{{font-family:ui-monospace,Consolas,Menlo,monospace;background:#f8f8f8;padding:2px 6px;border-radius:4px;}}
 a{{color:#145cc0;}}
+footer{{margin-top:28px;color:#555}}
 </style>
 </head>
 <body>
@@ -442,13 +444,14 @@ a{{color:#145cc0;}}
   <ul>
     <li><span class="code">Strict</span>: <span class="code">min_utterance_len_tokens=1</span>, <span class="code">exclude_pure_intj=false</span>（厳密再現）。</li>
     <li><span class="code">Robust</span>: <span class="code">min_utterance_len_tokens=2</span>, <span class="code">exclude_pure_intj=true</span>（1語発話/あいづち歪みの感度分析）。</li>
-    <li>Speaker filter: <span class="code">include_speakers=["MOT"]</span>（母親入力のみを集計）。母親発話が1行もないセッション（例：<span class="code">120.cha</span>、<span class="code">126.cha</span>、<span class="code">133.cha</span>）は自動的に除外され、ログでは <span class="code">dropped-all-utterances</span> と表示されます。</li>
     <li>Gem window: <span class="code">{'ON' if cfg_base.get('preprocess',{}).get('use_gem_window', False) else 'OFF'}</span>, 
         No-timestamp utterances: <span class="code">{'dropped' if cfg_base.get('preprocess',{}).get('drop_no_timestamp_when_gems', False) else 'included'}</span>.</li>
     <li>Group summaries (CSV): 
-        <a href="{strict_csv}" target="_blank">strict</a> · 
-        <a href="{robust_csv}" target="_blank">robust</a></li>
+        <a href="{csv_href_strict}" download>strict</a> · 
+        <a href="{csv_href_robust}" download>robust</a></li>
   </ul>
+
+  <footer><small>Generated on {now_iso()}, commit {git_short_commit()}</small></footer>
 </body>
 </html>
 """
@@ -456,28 +459,35 @@ a{{color:#145cc0;}}
     doc_path.write_text(html, encoding="utf-8")
     print(f"Wrote {doc_path}")
 
+# ---------- build helper ----------
+def git_short_commit() -> str:
+    try:
+        out = subprocess.check_output(["git", "rev-parse", "--short", "HEAD"], stderr=subprocess.DEVNULL)
+        return out.decode("utf-8").strip()
+    except Exception:
+        return "unknown"
+
+def now_iso() -> str:
+    return datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+
 # ---------- main ----------
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--config", required=True, help="dual YAML config")
     args = ap.parse_args()
-    with open(args.config, "r", encoding="utf-8") as f:
-        cfg_all = yaml.safe_load(f)
-    for k in ("paper","targets","base","modes"):
-        if k not in cfg_all:
-            raise SystemExit(f"[ERROR] Missing key in YAML: {k}")
+    cfg_all = yaml.safe_load(open(args.config, "r", encoding="utf-8"))
 
     paper   = cfg_all["paper"]
     targets = cfg_all["targets"]
     base    = cfg_all["base"]
     modes   = cfg_all["modes"]
-    mvp     = cfg_all.get("mvp", {})
 
     summaries = {}
+    group_csv_paths = {}  # 追加: 各モードの group_summary CSV のフルパス
+
     for m in modes:
         mode_name = m["name"]
         cfg_mode = deep_merge(base, {"preprocess": m.get("preprocess_overrides", {})})
-        # set outputs per mode
         root = base.get("outputs_root", "reports/reproduction/bang_nadig_2015")
         suffix = m.get("outputs_suffix", mode_name)
         cfg_mode["paper"] = paper
@@ -488,14 +498,34 @@ def main():
             "group_summary_csv": f"{root}/group_summary_{suffix}.csv",
             "report_md": f"{root}/bn2015_report_{suffix}.md",
         }
+        group_csv_paths[mode_name] = cfg_mode["outputs"]["group_summary_csv"]  # 追加
         print(f"\n===== Running mode: {mode_name} =====")
         summaries[mode_name] = run_once(cfg_mode)
 
-    # build docs HTML
-    docs_path = Path(cfg_all.get("docs", {}).get("html_out", "docs/bn2015_reproduction.html"))
+    # ---- CSVをdocs配下にミラーして、HTMLから相対リンクで参照 ----
+    docs_cfg = cfg_all.get("docs", {})
+    docs_path = Path(docs_cfg.get("html_out", "docs/bn2015_reproduction.html"))
+
+    strict_csv_src = Path(group_csv_paths.get("strict", ""))
+    robust_csv_src = Path(group_csv_paths.get("robust", ""))
+
+    csv_href_strict = csv_href_robust = ""
+    if docs_cfg.get("publish_csv", False) and docs_cfg.get("csv_public_dir"):
+        public_dir = Path(docs_cfg["csv_public_dir"])
+        public_dir.mkdir(parents=True, exist_ok=True)
+        strict_pub = public_dir / strict_csv_src.name
+        robust_pub = public_dir / robust_csv_src.name
+        if strict_csv_src.exists(): shutil.copy2(strict_csv_src, strict_pub)
+        if robust_csv_src.exists(): shutil.copy2(robust_csv_src, robust_pub)
+        # HTMLからの相対パスに変換
+        csv_href_strict = os.path.relpath(strict_pub, start=docs_path.parent)
+        csv_href_robust = os.path.relpath(robust_pub, start=docs_path.parent)
+
+    # ---- HTML生成（リンクとフッター情報つき） ----
     strict_summary = summaries.get("strict", [])
     robust_summary = summaries.get("robust", [])
-    build_html(docs_path, base, paper, targets, strict_summary, robust_summary, mvp)
+    build_html(docs_path, base, paper, targets, strict_summary, robust_summary,
+               csv_href_strict, csv_href_robust)
 
 if __name__ == "__main__":
     main()
