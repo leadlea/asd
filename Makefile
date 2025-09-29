@@ -61,3 +61,20 @@ show_repro:
 # 4) 再現物クリーン
 clean_repro:
 	rm -rf $(REPRO_DIR) $(REPRO_HTML) $(REPRO_LOG)
+# ==== Pragmatics add-on (non-invasive) ====
+PRAG_MOD  := src/features/pragmatics_basic.py
+PRAG_IN   := data/interim/utterances.csv
+PRAG_OUT  := data/processed/pragmatics_basic.csv
+DASH_HTML := docs/bn2015_dashboard.html
+
+pragmatics_basic:
+	python $(PRAG_MOD) --in_csv $(PRAG_IN) --out_csv $(PRAG_OUT)
+
+dashboard_plus:  ## requires reproduce_bn2015 to have produced dyads/desc/ttest
+	python make_dashboard.py \
+		--dyads $(REPRO_DIR)/dyads.csv \
+		--desc $(REPRO_DIR)/table3_descriptives_en.csv \
+		--ttest $(REPRO_DIR)/table2_en_ttests.csv \
+		--out $(DASH_HTML) \
+		--prag $(PRAG_OUT)
+	@echo "Wrote $(DASH_HTML) (add-on section included if $(PRAG_OUT) exists)"

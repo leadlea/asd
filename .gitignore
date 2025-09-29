@@ -1,34 +1,22 @@
-# ---- secrets / env
-.venv/
-.env
-__pycache__/
+# virtual env / caches
+.venv*/ 
+__pycache__/ 
+*.pyc
+
+# local / large outputs
+out/
+reports/
+tmp_*/ 
+*.xlsx
+
+# raw & processed data are NOT tracked (we keep just a placeholder)
+data/*
+!data/README.md
+!data/processed/.gitkeep
+
+# editor backups / macOS
+*~ 
 .DS_Store
 
-# ---- raw data (絶対に公開しない)
-data/raw/
-data/raw_mvp/
-data/interim/
-data/processed/
-data/audio/
-
-# ---- unpacked corpora folders（誤って直置きした場合に備え）
-Brown/
-Sachs/
-Nadig/
-Rollins/
-Flusberg/
-Providence/
-
-# ---- file types to avoid
-*.cha
-*.wav
-*.zip
-*.gz
-
-# ---- generated artifacts（必要なら後で外す）
-reports/corpus_manifest.csv
-reports/baseline_report.json
-reports/figures/top_features.png
-
-# local backups
-*.bak
+# accidental copies (日本語の「コピー」など)
+*コピー*

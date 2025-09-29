@@ -58,3 +58,19 @@ docs:
   publish_csv: true                 # 追加: CSVをdocs配下にミラー公開
   csv_public_dir: "docs/assets/bn2015"  # 追加: 公開先ディレクトリ
 
+features:
+  pragmatics_basic:
+    enabled: true
+    module: src/features/pragmatics_basic.py
+    input: data/interim/utterances.csv
+    output: data/processed/pragmatics_basic.csv
+    speakers: [CHI, MOT]
+    normalize:
+      per100w: [ms_v, ms_a, ms_n, ms_total]
+      per100utt: [dm_fill, dm_contrast, dm_causal, dm_shift]
+    rates_per_utt: [q_all, q_wh, q_yn]
+assemble:
+  join:
+    - base: data/processed/core_metrics.csv   # 既存（MLU/TTR/NDW@N等）
+    - add:  data/processed/pragmatics_basic.csv
+      on: speaker
