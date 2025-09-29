@@ -1,0 +1,72 @@
+<!doctype html><meta charset='utf-8'>
+
+<style>
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, "Hiragino Kaku Gothic ProN", Meiryo, sans-serif; margin:24px; }
+h1 { font-size: 22px; margin: 0 0 12px; }
+h2 { font-size: 18px; margin: 18px 0 8px; }
+h3 { font-size: 16px; margin: 12px 0 6px; }
+.muted { color: #777; }
+.tbl { border-collapse: collapse; width: 100%; margin: 6px 0 16px; font-size: 13px; }
+.tbl th, .tbl td { border: 1px solid #ddd; padding: 6px 8px; text-align: right; }
+.tbl th { background: #f6f6f6; text-align: center; }
+.tbl td:first-child, .tbl th:first-child { text-align: left; }
+.small { font-size: 12px; }
+.bad { background: #ffe5e5; }
+.good { background: #e8f7e8; }
+.note { font-size: 12px; color:#555; margin: 6px 0 14px; }
+.kbd { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; background:#f3f3f3; border:1px solid #ddd; padding:0 4px; border-radius:3px; }
+.hr { height:1px; background:#eee; margin:18px 0; }
+</style>
+
+<h1>BN2015 再現ダッシュボード（英語）</h1>
+<div class="muted small">このページは毎回CSVを読み直して再生成されます（make_dashboard.py 内に調整も内蔵）。</div>
+<div class="note">T3 available: <span class="kbd">False</span></div>
+<h2>Figure 1: Input MLU (T2) × MCDI % Spoken (T3)</h2>
+<div class="muted">T3（MCDI %spoken）が未提供のため、Figure 1 を省略しました。</div>
+<div class="note">T3 がない場合は注意文を表示します。</div>
+<div class="hr"></div>
+<h2>Summary</h2>
+<h3>Counts by language × group</h3>
+<table class="tbl">
+<thead><tr><th>language</th><th>diagnostic_group</th><th>n</th></tr></thead>
+<tbody>
+<tr><td>EN</td><td>ASD</td><td>11</td></tr>
+<tr><td>EN</td><td>TYP</td><td>11</td></tr>
+</tbody></table>
+<div class="hr"></div>
+<h2>Group Comparison (EN, ASD vs TYP)</h2>
+<h3>EN Welch t-tests (ASD vs TYP)</h3>
+<div class="muted">（データなし）</div>
+<div class="hr"></div>
+<h2>Descriptives (EN)</h2>
+<h3>EN Descriptives</h3>
+<div class="muted">（データなし）</div>
+<div class="hr"></div>
+<h2>Paper Comparison (EN)</h2>
+<h3>Paper vs Ours (EN) — Table 1 metrics</h3>
+<div class="muted">Descriptives not available (missing columns: group/column/mean/sd).</div>
+<h3>Paper vs Ours (EN) — Table 2 metrics</h3>
+<div class="muted">Descriptives not available (missing columns: group/column/mean/sd).</div>
+<div class="hr"></div>
+<h2>Pragmatics Basic — Questions / Discourse Markers / Mental-state</h2>
+<table class="tbl">
+<thead><tr><th>Metric</th><th>CHI</th><th>MOT</th></tr></thead>
+<tbody>
+<tr><td>Questions (All) — per utter</td><td>0.099</td><td></td></tr>
+<tr><td>WH Questions — per utter</td><td>0.058</td><td></td></tr>
+<tr><td>Yes/No Questions — per utter</td><td>0.041</td><td></td></tr>
+<tr><td>DM: Fill — /100 utt</td><td>1.527</td><td></td></tr>
+<tr><td>DM: Contrast — /100 utt</td><td>0.414</td><td></td></tr>
+<tr><td>DM: Causal — /100 utt</td><td>0.623</td><td></td></tr>
+<tr><td>DM: Shift — /100 utt</td><td>0.003</td><td></td></tr>
+<tr><td>Mental-state (Total) — /100 w</td><td>1.05</td><td></td></tr>
+</tbody></table>
+<div class="hr"></div>
+<h3>Source CSVs</h3>
+<table class="tbl">
+<thead><tr><th>file</th><th>path</th></tr></thead>
+<tbody>
+<tr><td>table2_en_ttests.csv</td><td>table2_en_ttests.csv</td></tr>
+<tr><td>table3_descriptives_en.csv</td><td>table3_descriptives_en.csv</td></tr>
+<tr><td>dyads.csv</td><td>dyads.9min.ndw_strict.patched.csv</td></tr>
+</tbody></table>
