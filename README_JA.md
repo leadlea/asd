@@ -76,11 +76,20 @@ python make_dashboard.py   --dyads dyads.bn2015.full.csv   --desc  out/bn2015/ta
 - 例（ヘッダ）:  
   `metric,mean_ASD,sd_ASD,n_ASD,mean_TYP,sd_TYP,n_TYP,hedges_g,se,ci95_lo,ci95_hi`
 
-## 出典・クレジット
-- **Bang, J. Y., & Nadig, A. (2015)**. *Maternal input…*（英語コーパス／T2再現のベース）  
-- **TalkBank Nadig corpus**: <https://talkbank.org/asd/access/English/Nadig.html>  
-- **レビュー論文（3本）**: ASD の言語・語用論/韻律/意味などの総説。**本ダッシュボードの語用論指標は、これらの要約に基づく**。  
-  （※ DOI/正式書誌情報は後で追記予定）
+### 出典・クレジット
+
+- Bang, J. Y., & Nadig, A. (2015). Maternal input …（英語コーパス／T2再現のベース）
+  - TalkBank Nadig corpus: <https://talkbank.org/asd/access/English/Nadig.html>
+
+- **レビュー論文（3本）** — 本ダッシュボードの語用論指標は、これらの総説の要約に基づいて決定。
+  1. **Schaeffer, J., Abd El-Raziq, M., Castroviejo, E., et al. (2023).** Language in autism: domains, profiles and co-occurring conditions. *Journal of Neural Transmission*, 130, 433–457.  
+     DOI: <https://doi.org/10.1007/s00702-023-02592-y>  
+
+  2. **Alasmari, M., Alduais, A., & Qasem, F. (2024).** Language competency in autism: a scientometric review. *Frontiers in Psychiatry*, 15:1338776.  
+     DOI: <https://doi.org/10.3389/fpsyt.2024.1338776>  
+
+  3. **Vogindroukas, I., Stankova, M., Chelas, E.-N., & Proedrou, A. (2022).** Language and Speech Characteristics in Autism. *Neuropsychiatric Disease and Treatment*, 18, 2367–2377.  
+     DOI: <https://doi.org/10.2147/NDT.S331987>  
 
 ## ライセンス / データ取り扱い
 - このリポジトリの **コードは MIT ライセンス** を想定。データは含めません。
