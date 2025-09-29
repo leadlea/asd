@@ -11,19 +11,15 @@ h3 { font-size: 16px; margin: 12px 0 6px; }
 .tbl th { background: #f6f6f6; text-align: center; }
 .tbl td:first-child, .tbl th:first-child { text-align: left; }
 .small { font-size: 12px; }
-.bad { background: #ffe5e5; }
-.good { background: #e8f7e8; }
 .note { font-size: 12px; color:#555; margin: 6px 0 14px; }
-.kbd { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; background:#f3f3f3; border:1px solid #ddd; padding:0 4px; border-radius:3px; }
 .hr { height:1px; background:#eee; margin:18px 0; }
+.kbd { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; background:#f3f3f3; border:1px solid #ddd; padding:0 4px; border-radius:3px; }
 </style>
 
 <h1>BN2015 再現ダッシュボード（英語）</h1>
-<div class="muted small">このページは毎回CSVを読み直して再生成されます（make_dashboard.py 内に調整も内蔵）。</div>
-<div class="note">T3 available: <span class="kbd">False</span></div>
+<div class="note">このページは make_dashboard.py で再生成されます。</div>
 <h2>Figure 1: Input MLU (T2) × MCDI % Spoken (T3)</h2>
-<div class="muted">T3（MCDI %spoken）が未提供のため、Figure 1 を省略しました。</div>
-<div class="note">T3 がない場合は注意文を表示します。</div>
+<div class="muted">T3 は列はありますが、数値が欠損のためプロットできません。</div>
 <div class="hr"></div>
 <h2>Summary</h2>
 <h3>Counts by language × group</h3>
@@ -36,30 +32,91 @@ h3 { font-size: 16px; margin: 12px 0 6px; }
 <div class="hr"></div>
 <h2>Group Comparison (EN, ASD vs TYP)</h2>
 <h3>EN Welch t-tests (ASD vs TYP)</h3>
-<div class="muted">（データなし）</div>
+<table class="tbl">
+<thead><tr><th>measure</th><th>column</th><th>n_ASD</th><th>mean_ASD</th><th>sd_ASD</th><th>n_TYP</th><th>mean_TYP</th><th>sd_TYP</th><th>t_Welch</th><th>p_value</th><th>cohen_d</th></tr></thead>
+<tbody>
+<tr><td>Tokens</td><td>input_word_tokens</td><td>11</td><td>772</td><td>328.935</td><td>11</td><td>1958.455</td><td>866.986</td><td>-4.244</td><td>0.001</td><td>-1.809</td></tr>
+<tr><td>Types</td><td>input_word_types</td><td>11</td><td>223.273</td><td>51.159</td><td>11</td><td>377.273</td><td>82.88</td><td>-5.244</td><td>0.0</td><td>-2.236</td></tr>
+<tr><td>MLU</td><td>input_mlu</td><td>11</td><td>4.747</td><td>0.737</td><td>11</td><td>3.961</td><td>0.136</td><td>3.476</td><td>0.005</td><td>1.482</td></tr>
+<tr><td>Utterances</td><td>input_num_utterances</td><td>11</td><td>158.909</td><td>65.867</td><td>11</td><td>503.727</td><td>231.379</td><td>-4.754</td><td>0.001</td><td>-2.027</td></tr>
+<tr><td>VOCD_D</td><td>input_D</td><td>0</td><td></td><td></td><td>0</td><td></td><td></td><td></td><td></td><td></td></tr>
+<tr><td>ChildTypes</td><td>T2_child_word_types</td><td>11</td><td>95</td><td>45.721</td><td>11</td><td>296.273</td><td>72.461</td><td>-7.791</td><td>0.0</td><td>-3.322</td></tr>
+</tbody></table>
 <div class="hr"></div>
 <h2>Descriptives (EN)</h2>
-<h3>EN Descriptives</h3>
-<div class="muted">（データなし）</div>
+<table class="tbl">
+<thead><tr><th>group</th><th>column</th><th>n</th><th>mean</th><th>sd</th><th>range</th></tr></thead>
+<tbody>
+<tr><td>ASD</td><td>T2_age_months</td><td>11</td><td>46.273</td><td>15.988</td><td>(31.00, 78.00)</td></tr>
+<tr><td>TYP</td><td>T2_age_months</td><td>11</td><td>20.364</td><td>1.69</td><td>(18.00, 23.00)</td></tr>
+<tr><td>ASD</td><td>T2_child_word_types</td><td>11</td><td>95</td><td>45.721</td><td>(5.00, 161.00)</td></tr>
+<tr><td>TYP</td><td>T2_child_word_types</td><td>11</td><td>296.273</td><td>72.461</td><td>(162.00, 440.00)</td></tr>
+<tr><td>ASD</td><td>input_D</td><td>0</td><td></td><td></td><td>—</td></tr>
+<tr><td>TYP</td><td>input_D</td><td>0</td><td></td><td></td><td>—</td></tr>
+<tr><td>ASD</td><td>input_mlu</td><td>11</td><td>4.747</td><td>0.737</td><td>(3.50, 5.54)</td></tr>
+<tr><td>TYP</td><td>input_mlu</td><td>11</td><td>3.961</td><td>0.136</td><td>(3.74, 4.23)</td></tr>
+<tr><td>ASD</td><td>input_num_utterances</td><td>11</td><td>158.909</td><td>65.867</td><td>(74.00, 293.00)</td></tr>
+<tr><td>TYP</td><td>input_num_utterances</td><td>11</td><td>503.727</td><td>231.379</td><td>(210.00, 804.00)</td></tr>
+<tr><td>ASD</td><td>input_word_tokens</td><td>11</td><td>772</td><td>328.935</td><td>(352.00, 1262.00)</td></tr>
+<tr><td>TYP</td><td>input_word_tokens</td><td>11</td><td>1958.455</td><td>866.986</td><td>(942.00, 3223.00)</td></tr>
+<tr><td>ASD</td><td>input_word_types</td><td>11</td><td>223.273</td><td>51.159</td><td>(143.00, 301.00)</td></tr>
+<tr><td>TYP</td><td>input_word_types</td><td>11</td><td>377.273</td><td>82.88</td><td>(256.00, 554.00)</td></tr>
+</tbody></table>
 <div class="hr"></div>
 <h2>Paper Comparison (EN)</h2>
-<h3>Paper vs Ours (EN) — Table 1 metrics</h3>
-<div class="muted">Descriptives not available (missing columns: group/column/mean/sd).</div>
-<h3>Paper vs Ours (EN) — Table 2 metrics</h3>
-<div class="muted">Descriptives not available (missing columns: group/column/mean/sd).</div>
-<div class="hr"></div>
-<h2>Pragmatics Basic — Questions / Discourse Markers / Mental-state</h2>
+<h3>Paper vs Ours — Table 1 metrics</h3>
 <table class="tbl">
-<thead><tr><th>Metric</th><th>CHI</th><th>MOT</th></tr></thead>
+<thead><tr><th>measure</th><th>group</th><th>mine_mean</th><th>paper_mean</th><th>Δmean</th><th>Δmean%</th><th>mine_sd</th><th>paper_sd</th><th>Δsd</th><th>Δsd%</th></tr></thead>
 <tbody>
-<tr><td>Questions (All) — per utter</td><td>0.099</td><td></td></tr>
-<tr><td>WH Questions — per utter</td><td>0.058</td><td></td></tr>
-<tr><td>Yes/No Questions — per utter</td><td>0.041</td><td></td></tr>
-<tr><td>DM: Fill — /100 utt</td><td>1.527</td><td></td></tr>
-<tr><td>DM: Contrast — /100 utt</td><td>0.414</td><td></td></tr>
-<tr><td>DM: Causal — /100 utt</td><td>0.623</td><td></td></tr>
-<tr><td>DM: Shift — /100 utt</td><td>0.003</td><td></td></tr>
-<tr><td>Mental-state (Total) — /100 w</td><td>1.05</td><td></td></tr>
+<tr><td>T2_child_word_types</td><td>ASD</td><td>95.0</td><td>48.46</td><td>46.54</td><td>96.04</td><td>45.721</td><td>42.48</td><td>3.24</td><td>7.63</td></tr>
+<tr><td>T2_child_word_types</td><td>TYP</td><td>296.273</td><td>59.0</td><td>237.27</td><td>402.16</td><td>72.461</td><td>34.36</td><td>38.1</td><td>110.89</td></tr>
+<tr><td>T2_age_months</td><td>ASD</td><td>46.273</td><td>61.89</td><td>-15.62</td><td>-25.23</td><td>15.988</td><td>10.99</td><td>5.0</td><td>45.48</td></tr>
+<tr><td>T2_age_months</td><td>TYP</td><td>20.364</td><td>32.3</td><td>-11.94</td><td>-36.95</td><td>1.69</td><td>8.43</td><td>-6.74</td><td>-79.96</td></tr>
+</tbody></table>
+<h3>Paper vs Ours — Table 2 metrics</h3>
+<table class="tbl">
+<thead><tr><th>measure</th><th>group</th><th>mine_mean</th><th>paper_mean</th><th>Δmean</th><th>Δmean%</th><th>mine_sd</th><th>paper_sd</th><th>Δsd</th><th>Δsd%</th></tr></thead>
+<tbody>
+<tr><td>input_word_tokens</td><td>ASD</td><td>772.0</td><td>664.64</td><td>107.36</td><td>16.15</td><td>328.935</td><td>328.94</td><td>0.0</td><td>0.0</td></tr>
+<tr><td>input_word_tokens</td><td>TYP</td><td>1958.455</td><td>1126.36</td><td>832.09</td><td>73.87</td><td>866.986</td><td>222.29</td><td>644.7</td><td>290.02</td></tr>
+<tr><td>input_word_types</td><td>ASD</td><td>223.273</td><td>142.64</td><td>80.63</td><td>56.53</td><td>51.159</td><td>29.8</td><td>21.36</td><td>71.67</td></tr>
+<tr><td>input_word_types</td><td>TYP</td><td>377.273</td><td>146.46</td><td>230.81</td><td>157.59</td><td>82.88</td><td>39.37</td><td>43.51</td><td>110.51</td></tr>
+<tr><td>input_mlu</td><td>ASD</td><td>4.747</td><td>4.75</td><td>0.0</td><td>-0.07</td><td>0.737</td><td>0.92</td><td>-0.18</td><td>-19.88</td></tr>
+<tr><td>input_mlu</td><td>TYP</td><td>3.961</td><td>5.4</td><td>-1.44</td><td>-26.65</td><td>0.136</td><td>0.81</td><td>-0.67</td><td>-83.17</td></tr>
+<tr><td>input_num_utterances</td><td>ASD</td><td>158.909</td><td>112.36</td><td>46.55</td><td>41.43</td><td>65.867</td><td>58.62</td><td>7.25</td><td>12.36</td></tr>
+<tr><td>input_num_utterances</td><td>TYP</td><td>503.727</td><td>112.36</td><td>391.37</td><td>348.32</td><td>231.379</td><td>37.43</td><td>193.95</td><td>518.17</td></tr>
+</tbody></table>
+<div class="hr"></div>
+<h2>Pragmatics (CHI) — ASD vs TYP</h2>
+<div class='note'>Nadig英語（100番台）、偶数=ASD/奇数=TYP。BN2015で使用した 11/11 subject のみを集計。指標の単位: per utter / per 100 utt / per 100 w。</div>
+<div class='note'>Contrast は CHI では低頻度です。辞書（but/however/though/although/yet/whereas/instead/but then/even so/on the other hand/in contrast/nevertheless/nonetheless/still）で探索済み。0 は“未検出”=実測ゼロを意味します。</div>
+<table class="tbl">
+<thead><tr><th>Metric</th><th>ASD</th><th>TYP</th></tr></thead>
+<tbody>
+<tr><td>n_dyads</td><td>11</td><td>11</td></tr>
+<tr><td>Questions (All) — per utter</td><td>0.041937</td><td>0.069182</td></tr>
+<tr><td>WH Questions — per utter</td><td>0.014116</td><td>0.021819</td></tr>
+<tr><td>Yes/No Questions — per utter</td><td>0.027821</td><td>0.047363</td></tr>
+<tr><td>DM: Fill — /100 utt</td><td>1.594021</td><td>1.204327</td></tr>
+<tr><td>DM: Contrast — /100 utt</td><td>0.0</td><td>2.636173</td></tr>
+<tr><td>DM: Causal — /100 utt</td><td>0.996509</td><td>1.144594</td></tr>
+<tr><td>DM: Shift — /100 utt</td><td>0.0</td><td>0.0</td></tr>
+<tr><td>Mental-state (Total) — /100 w</td><td>0.837432</td><td>0.706792</td></tr>
+</tbody></table>
+<div class="hr"></div>
+<h2>Pragmatics — Meta metrics (ASD vs TYP)</h2>
+<div class='note'>各指標の mean/sd/n と Hedges g（Hedges' g）, 95%CI を CSV そのまま掲載します。</div>
+<table class="tbl">
+<thead><tr><th>metric</th><th>mean_ASD</th><th>sd_ASD</th><th>n_ASD</th><th>mean_TYP</th><th>sd_TYP</th><th>n_TYP</th><th>hedges_g</th><th>se</th><th>ci95_lo</th><th>ci95_hi</th></tr></thead>
+<tbody>
+<tr><td>q_all_rate</td><td>0.042</td><td>0.057</td><td>11</td><td>0.069</td><td>0.047</td><td>11</td><td>-0.502</td><td>0.434</td><td>-1.352</td><td>0.348</td></tr>
+<tr><td>q_wh_rate</td><td>0.014</td><td>0.018</td><td>11</td><td>0.022</td><td>0.026</td><td>11</td><td>-0.329</td><td>0.43</td><td>-1.17</td><td>0.513</td></tr>
+<tr><td>q_yn_rate</td><td>0.028</td><td>0.044</td><td>11</td><td>0.047</td><td>0.034</td><td>11</td><td>-0.476</td><td>0.433</td><td>-1.325</td><td>0.373</td></tr>
+<tr><td>dm_fill_per100utt</td><td>1.594</td><td>2.598</td><td>11</td><td>1.204</td><td>1.906</td><td>11</td><td>0.165</td><td>0.427</td><td>-0.673</td><td>1.002</td></tr>
+<tr><td>dm_contrast_per100utt</td><td>0.0</td><td>0.0</td><td>11</td><td>2.636</td><td>3.473</td><td>11</td><td>-1.033</td><td>0.457</td><td>-1.928</td><td>-0.138</td></tr>
+<tr><td>dm_causal_per100utt</td><td>0.997</td><td>1.452</td><td>11</td><td>1.145</td><td>2.726</td><td>11</td><td>-0.065</td><td>0.427</td><td>-0.901</td><td>0.771</td></tr>
+<tr><td>dm_shift_per100utt</td><td>0.0</td><td>0.0</td><td>11</td><td>0.0</td><td>0.0</td><td>11</td><td></td><td></td><td></td><td></td></tr>
+<tr><td>ms_total_per100w</td><td>0.837</td><td>0.731</td><td>11</td><td>0.707</td><td>0.863</td><td>11</td><td>0.157</td><td>0.427</td><td>-0.68</td><td>0.994</td></tr>
 </tbody></table>
 <div class="hr"></div>
 <h3>Source CSVs</h3>
@@ -68,5 +125,7 @@ h3 { font-size: 16px; margin: 12px 0 6px; }
 <tbody>
 <tr><td>table2_en_ttests.csv</td><td>table2_en_ttests.csv</td></tr>
 <tr><td>table3_descriptives_en.csv</td><td>table3_descriptives_en.csv</td></tr>
-<tr><td>dyads.csv</td><td>dyads.9min.ndw_strict.patched.csv</td></tr>
+<tr><td>dyads.csv</td><td>dyads.bn2015.full.csv</td></tr>
+<tr><td>pragmatics_child_group.csv</td><td>pragmatics_child_group.csv</td></tr>
+<tr><td>pragmatics_meta.csv</td><td>pragmatics_meta.csv</td></tr>
 </tbody></table>
