@@ -36,4 +36,4 @@
 - 子NDW：**CHIのみ**／**フィラー除外**／**9分窓**（@Bg〜@Eg）。  
 - ビルド時は **desc/ttestを必ずdyadsから再生成**（先祖返り防止）。
 
-Contact: Lead lea 合同会社 / 福原 玄
+Contact: 合同会社 Lead lea  / 福原 玄
