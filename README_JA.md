@@ -112,7 +112,7 @@ python ./make_dashboard_with_provenance.py   --dyads dyads.9min.ndw_strict.csv  
 
 ---
 
-## 検証ログ例（あなたの実行）
+## 検証ログ例
 ```
 ASD=11 / TYP=11
 
