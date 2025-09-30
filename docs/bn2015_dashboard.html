@@ -19,7 +19,7 @@ h3 { font-size: 16px; margin: 12px 0 6px; }
 <h1>BN2015 再現ダッシュボード（英語）</h1>
 <div class="note">このページは make_dashboard.py で再生成されます。</div>
 <h2>Figure 1: Input MLU (T2) × MCDI % Spoken (T3)</h2>
-<div class="muted">T3 は列はありますが、数値が欠損のためプロットできません。</div>
+<div class="muted">T3（MCDI %spoken）または input_mlu が未提供のため、Figure 1 を省略します。</div>
 <div class="hr"></div>
 <h2>Summary</h2>
 <h3>Counts by language × group</h3>
@@ -125,7 +125,21 @@ h3 { font-size: 16px; margin: 12px 0 6px; }
 <tbody>
 <tr><td>table2_en_ttests.csv</td><td>table2_en_ttests.csv</td></tr>
 <tr><td>table3_descriptives_en.csv</td><td>table3_descriptives_en.csv</td></tr>
-<tr><td>dyads.csv</td><td>dyads.bn2015.full.csv</td></tr>
-<tr><td>pragmatics_child_group.csv</td><td>pragmatics_child_group.csv</td></tr>
-<tr><td>pragmatics_meta.csv</td><td>pragmatics_meta.csv</td></tr>
+<tr><td>dyads.csv</td><td>dyads.9min.ndw_strict.csv</td></tr>
+<tr><td>pragmatics_child_group.csv</td><td></td></tr>
+<tr><td>pragmatics_meta.csv</td><td></td></tr>
 </tbody></table>
+<!-- provenance block auto-inserted -->
+<hr/>
+<div style="font-family: ui-sans-serif, system-ui; font-size: 12px; color: #555;">
+  <b>Built:</b> 2025-09-30 13:58:54<br/>
+  <b>Dyads:</b> dyads.9min.ndw_strict.csv (md5:8ac1907a7a)<br/>
+  <b>Desc:</b> table3_descriptives_en.csv (md5:0d022794ed)<br/>
+  <b>T-test:</b> table2_en_ttests.csv (md5:1fda451619)<br/>
+  <details style="margin-top:6px;"><summary>Group means snapshot (from dyads)</summary>
+  <pre style="white-space:pre-wrap;">| diagnostic_group   |   input_word_tokens |   input_mlu |   T2_child_word_types |
+|:-------------------|--------------------:|------------:|----------------------:|
+| ASD                |              664.64 |        5.06 |                 69.09 |
+| TYP                |              606.09 |        5.66 |                 75    |</pre>
+  </details>
+</div>
