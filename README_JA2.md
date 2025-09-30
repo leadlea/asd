@@ -3,8 +3,6 @@
 ## 1) 見てほしいもの
 - ダッシュボード（可視化・数値確認・出所表示）  
   https://leadlea.github.io/asd/bn2015_dashboard.html
-- 検算レポート（詳細）  
-  https://leadlea.github.io/asd/bn2015_reproduction.revised.html
 
 ## 2) 今回できたこと（ひと目で）
 - **再現成功**：英語Nadigの主要指標（親Tokens/MLU、子NDW、年齢）が**論文本値と整合**（Ageの欠落も解消）。
