@@ -40,7 +40,7 @@ PAPER_T1 = {  # Table 1 (child@T2)
 }
 PAPER_T2 = {  # Table 2 (maternal input@T2)
     ("ASD","input_word_tokens"):     (664.64, 328.94),
-    ("TYP","input_word_tokens"):     (1126.36, 222.29),
+    ("TYP","input_word_tokens"):     (606.09, 220.99),
     ("ASD","input_word_types"):      (142.64, 29.80),
     ("TYP","input_word_types"):      (146.46, 39.37),
     ("ASD","input_mlu"):             (4.75, 0.92),
