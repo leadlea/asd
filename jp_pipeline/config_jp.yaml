@@ -1,0 +1,20 @@
+# JP pipeline config
+corpus_dir: "./MiiPro"             # path to directory containing .cha subfolders (Nanami/Asato/Tomito/...)
+tiers:
+  child: ["CHI"]
+  parent: ["MOT","MOM","FAT","FTH","FA","PAR"]
+window:
+  mode: "auto"                     # "auto" -> prefer timestamps if available else utterance_count
+  minutes: 9
+  assume_session_minutes: 70       # used only when timestamps are absent
+tokenizer:
+  primary: "fugashi_unidic"        # lemma based on UniDic (short unit words)
+  fallback: "sudachipy_full_C"     # SudachiPy dict_full mode C for OOV/normalization
+lexicon:
+  filler_path: "./jp_pipeline/fillers_ja.txt"
+output:
+  outdir: "./out/jp"
+  dashboard_html: "docs/jp_miipro_dashboard.html"
+filters:
+  min_utt_child: 20
+  drop_if_below_min_child_utts: true
