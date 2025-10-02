@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>ASD 音声MVP ダッシュボード（Nanami / TYP）</title>
+<style>
+  :root {
+    --bg:#ffffff; --card:#ffffff; --muted:#6b7280; --text:#111827; --accent:#2563eb;
+    --chi:#16a34a; --mot:#f59e0b; --warn:#dc2626; --border:#e5e7eb;
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; padding:24px; font:14px/1.6 system-ui, -apple-system, Segoe UI, Roboto, 'Hiragino Sans', 'Noto Sans JP', Arial, sans-serif; background:var(--bg); color:var(--text); }
+  h1 { font-size:28px; margin:0 0 8px 0; }
+  h2 { font-size:18px; margin:24px 0 8px 0; color:#1f2937; }
+  p.lead { color:#374151; margin:6px 0 18px 0; }
+  .wrap { max-width:1200px; margin:0 auto; }
+  .row { display:grid; grid-template-columns: 1fr 1fr; gap:16px; }
+  .card { background:var(--card); border:1px solid var(--border); border-radius:14px; padding:16px; box-shadow:0 1px 2px rgba(0,0,0,.04); }
+  .muted { color:var(--muted); }
+  .btn { background:var(--accent); color:#fff; padding:8px 12px; border-radius:10px; border:1px solid var(--accent); font-weight:600; cursor:pointer; }
+  .btn-outline { background:#fff; color:var(--accent); border:1px solid var(--accent); }
+  table { width:100%; border-collapse:collapse; margin-top:8px; }
+  th, td { padding:8px 10px; border-bottom:1px solid var(--border); text-align:right; white-space:nowrap;}
+  th { color:#111827; font-weight:700; text-align:left; }
+  td.label { text-align:left; }
+  .pill { display:inline-block; padding:2px 8px; border-radius:999px; font-weight:700; font-size:12px; border:1px solid transparent; }
+  .pill-chi { background:#ecfdf5; color:var(--chi); border-color:#bbf7d0; }
+  .pill-mot { background:#fff7ed; color:var(--mot); border-color:#fed7aa; }
+  .bar { position:relative; height:14px; background:#f3f4f6; border-radius:7px; overflow:hidden; border:1px solid var(--border); }
+  .bar > span { position:absolute; top:0; left:0; height:100%; background:linear-gradient(90deg, var(--accent), #60a5fa); }
+  .kvs { display:grid; grid-template-columns: repeat(3, 1fr); gap:12px; margin-top:8px; }
+  .kv { background:#ffffff; border:1px solid var(--border); padding:12px; border-radius:10px; box-shadow:0 1px 1px rgba(0,0,0,.03); }
+  .kv .t { font-size:12px; color:#6b7280; }
+  .kv .v { font:600 22px/1.2 ui-sans-serif, system-ui; margin-top:2px; }
+  .footnote { font-size:12px; color:#6b7280; }
+  .right { text-align:right; }
+  .small { font-size:12px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>ASD 音声MVP ダッシュボード（Nanami / TYP）</h1>
+  <p class="lead">MiiPro/Nanami（TYP）の *_gpu セッションを統合し、CHI/MOT 指標を横断表示しています。各行の「開く」から詳細レポート（report.html）に遷移できます。</p>
+
+  <div class="card">
+    <h2>1. 概況（山下先生向け説明）</h2>
+    <div class="row">
+      <div>
+        <div class="kvs">
+          <div class="kv"><div class="t">セッション数</div><div class="v">8</div></div>
+          <div class="kv"><div class="t">総トークン数（CHI / MOT）</div><div class="v">1,192 / 3,607</div></div>
+          <div class="kv"><div class="t">平均MLU（CHI / MOT）</div><div class="v">7.45 / 33.36</div></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="small">
+          本ダッシュボードは、日本語TYPコーパス（MiiPro/Nanami）の母子対話音声から、
+          <b>Whisper-small(GPU)</b> による自動文字起こしと、<b>F0クラスタ（高F0=CHI）</b>による話者割当を行い、
+          発話/語用論/韻律の主要指標を自動集計したものです。近接する短文の復唱や重複は自動で折り畳み、
+          公平性のため中央9分窓にクリップして可視化しています（MVP仕様）。
+          臨床評価用途では、追加の手動検証・精緻化を推奨します。
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>2. セッション別サマリー</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Session</th>
+          <th class="right">CHI 発話/Token/MLU</th>
+          <th class="right">MOT 発話/Token/MLU</th>
+          <th class="right">Token比 CHI/MOT</th>
+          <th class="right">F0 平均 (CHI/MOT)</th>
+          <th class="right">質問率 % (CHI/MOT)</th>
+          <th class="right">Echoes / NearDups</th>
+          <th class="right">レポート</th>
+        </tr>
+      </thead>
+      <tbody>
+        
+        <tr>
+          <td class="label"><b>10129</b></td>
+          <td><span class="pill pill-chi">CHI</span> 34 / 482 / 14.18</td>
+          <td><span class="pill pill-mot">MOT</span> 23 / 143 / 6.22</td>
+          <td><div class="bar" title="3.37"><span style="width:200.0%"></span></div></td>
+          <td>269.24 / 241.79</td>
+          <td>0.00 / 0.00</td>
+          <td>18 / 2</td>
+          <td><a class="btn btn-outline small" href="./10129_gpu/report.html" target="_blank">開く</a></td>
+        </tr>
+        
+        <tr>
+          <td class="label"><b>10225</b></td>
+          <td><span class="pill pill-chi">CHI</span> 3 / 16 / 5.33</td>
+          <td><span class="pill pill-mot">MOT</span> 5 / 247 / 49.40</td>
+          <td><div class="bar" title="0.06"><span style="width:6.477732793522267%"></span></div></td>
+          <td>279.41 / 201.20</td>
+          <td>0.00 / 0.00</td>
+          <td>3 / 3</td>
+          <td><a class="btn btn-outline small" href="./10225_gpu/report.html" target="_blank">開く</a></td>
+        </tr>
+        
+        <tr>
+          <td class="label"><b>10421</b></td>
+          <td><span class="pill pill-chi">CHI</span> 22 / 101 / 4.59</td>
+          <td><span class="pill pill-mot">MOT</span> 42 / 546 / 13.00</td>
+          <td><div class="bar" title="0.18"><span style="width:18.4981684981685%"></span></div></td>
+          <td>425.79 / 325.07</td>
+          <td>4.55 / 7.14</td>
+          <td>7 / 1</td>
+          <td><a class="btn btn-outline small" href="./10421_gpu/report.html" target="_blank">開く</a></td>
+        </tr>
+        
+        <tr>
+          <td class="label"><b>10622</b></td>
+          <td><span class="pill pill-chi">CHI</span> 11 / 107 / 9.73</td>
+          <td><span class="pill pill-mot">MOT</span> 31 / 530 / 17.10</td>
+          <td><div class="bar" title="0.20"><span style="width:20.18867924528302%"></span></div></td>
+          <td>422.47 / 297.58</td>
+          <td>9.09 / 35.48</td>
+          <td>4 / 0</td>
+          <td><a class="btn btn-outline small" href="./10622_gpu/report.html" target="_blank">開く</a></td>
+        </tr>
+        
+        <tr>
+          <td class="label"><b>10928</b></td>
+          <td><span class="pill pill-chi">CHI</span> 34 / 127 / 3.74</td>
+          <td><span class="pill pill-mot">MOT</span> 44 / 672 / 15.27</td>
+          <td><div class="bar" title="0.19"><span style="width:18.898809523809522%"></span></div></td>
+          <td>497.10 / 385.81</td>
+          <td>17.65 / 15.91</td>
+          <td>5 / 3</td>
+          <td><a class="btn btn-outline small" href="./10928_gpu/report.html" target="_blank">開く</a></td>
+        </tr>
+        
+        <tr>
+          <td class="label"><b>11025</b></td>
+          <td><span class="pill pill-chi">CHI</span> 43 / 284 / 6.60</td>
+          <td><span class="pill pill-mot">MOT</span> 45 / 529 / 11.76</td>
+          <td><div class="bar" title="0.54"><span style="width:53.68620037807184%"></span></div></td>
+          <td>408.10 / 319.41</td>
+          <td>20.93 / 35.56</td>
+          <td>6 / 0</td>
+          <td><a class="btn btn-outline small" href="./11025_gpu/report.html" target="_blank">開く</a></td>
+        </tr>
+        
+        <tr>
+          <td class="label"><b>20213</b></td>
+          <td><span class="pill pill-chi">CHI</span> 8 / 46 / 5.75</td>
+          <td><span class="pill pill-mot">MOT</span> 10 / 339 / 33.90</td>
+          <td><div class="bar" title="0.14"><span style="width:13.569321533923304%"></span></div></td>
+          <td>384.07 / 309.29</td>
+          <td>0.00 / 0.00</td>
+          <td>1 / 1</td>
+          <td><a class="btn btn-outline small" href="./20213_gpu/report.html" target="_blank">開く</a></td>
+        </tr>
+        
+        <tr>
+          <td class="label"><b>20319</b></td>
+          <td><span class="pill pill-chi">CHI</span> 3 / 29 / 9.67</td>
+          <td><span class="pill pill-mot">MOT</span> 5 / 601 / 120.20</td>
+          <td><div class="bar" title="0.05"><span style="width:4.825291181364393%"></span></div></td>
+          <td>333.31 / 272.18</td>
+          <td>0.00 / 0.00</td>
+          <td>5 / 0</td>
+          <td><a class="btn btn-outline small" href="./20319_gpu/report.html" target="_blank">開く</a></td>
+        </tr>
+        
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>3. CHI vs MOT の可視化（Token 比）</h2>
+    
+        <div style="display:grid;grid-template-columns:110px 1fr 60px;gap:10px;align-items:center;margin:8px 0;">
+          <div class="muted small">10129</div>
+          <div class="bar"><span style="width:200.0%"></span></div>
+          <div class="right small">3.37</div>
+        </div>
+        
+        <div style="display:grid;grid-template-columns:110px 1fr 60px;gap:10px;align-items:center;margin:8px 0;">
+          <div class="muted small">10225</div>
+          <div class="bar"><span style="width:6.477732793522267%"></span></div>
+          <div class="right small">0.06</div>
+        </div>
+        
+        <div style="display:grid;grid-template-columns:110px 1fr 60px;gap:10px;align-items:center;margin:8px 0;">
+          <div class="muted small">10421</div>
+          <div class="bar"><span style="width:18.4981684981685%"></span></div>
+          <div class="right small">0.18</div>
+        </div>
+        
+        <div style="display:grid;grid-template-columns:110px 1fr 60px;gap:10px;align-items:center;margin:8px 0;">
+          <div class="muted small">10622</div>
+          <div class="bar"><span style="width:20.18867924528302%"></span></div>
+          <div class="right small">0.20</div>
+        </div>
+        
+        <div style="display:grid;grid-template-columns:110px 1fr 60px;gap:10px;align-items:center;margin:8px 0;">
+          <div class="muted small">10928</div>
+          <div class="bar"><span style="width:18.898809523809522%"></span></div>
+          <div class="right small">0.19</div>
+        </div>
+        
+        <div style="display:grid;grid-template-columns:110px 1fr 60px;gap:10px;align-items:center;margin:8px 0;">
+          <div class="muted small">11025</div>
+          <div class="bar"><span style="width:53.68620037807184%"></span></div>
+          <div class="right small">0.54</div>
+        </div>
+        
+        <div style="display:grid;grid-template-columns:110px 1fr 60px;gap:10px;align-items:center;margin:8px 0;">
+          <div class="muted small">20213</div>
+          <div class="bar"><span style="width:13.569321533923304%"></span></div>
+          <div class="right small">0.14</div>
+        </div>
+        
+        <div style="display:grid;grid-template-columns:110px 1fr 60px;gap:10px;align-items:center;margin:8px 0;">
+          <div class="muted small">20319</div>
+          <div class="bar"><span style="width:4.825291181364393%"></span></div>
+          <div class="right small">0.05</div>
+        </div>
+        
+    <div class="footnote">バーは CHI/MOT の Token 比（&gt;1 で CHI が多い）を示します。</div>
+  </div>
+
+  <div class="card">
+    <h2>方法と前提（要約）</h2>
+    <ul class="small">
+      <li>対象: <code>*_gpu</code> のみ（GPU実行で得たセッション）</li>
+      <li>データ: CHILDES <b>MiiPro/Nanami</b>（TYP）各 mp3</li>
+      <li>ASR: OpenAI Whisper <code>small</code>（GPU）、日本語固定、温度=0、Beam=5</li>
+      <li>話者: F0 と RMS による2クラスタ → 高F0側を CHI、低F0側を MOT</li>
+      <li>重複処理: 隣接の短文復唱（echo）・近傍重複（near dup）を類似度しきいで折り畳み</li>
+      <li>集計: 発話数、Token数、MLU、F0、発話間隔、質問率、談話標識/心的語彙（100語当たり）など</li>
+      <li>ウィンドウ: 全体から中央 9分相当を抽出（比較の公平性）</li>
+      <li>注意: 本MVPは自動処理を前提。研究報告・臨床応用には人手確認を併用</li>
+    </ul>
+  </div>
+
+</div>
+</body>
+</html>
