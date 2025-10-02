@@ -1,0 +1,3 @@
+role,n_utts,n_tokens,n_types,mlu,mean_turn_len,turn_latency_mean
+CHI,3,29,17,9.666666666666666,10.333333333333334,0.0
+MOT,5,601,124,120.2,101.4,0.3333333333333333
