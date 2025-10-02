@@ -1,25 +1,7 @@
 # ASD-JP Audio MVP (mp3) — 9分窓 × Diarization × ASR × Prosody
 
 このREADMEは、**mp3 等の音声**から最小構成で **会話・音声解析のMVP** を作るための実装方針と再現コマンドをまとめたものです。
-目的は、NCNP/国リハとの共同研究に向けて、**英語コーパスで構築した指標**（Tokens/Types/MLU、語用論）を**音声由来でも算出**できることを示し、将来の日本語ASDデータに水平展開することです。
-
----
-
-## 0) すぐ直すべき既知差分（ダッシュボード）
-- **Bang & Nadig (2015) の TYP（EN）input_word_tokens の論文本値は *606.09*** です（Table 2）。
-  - 現在ダッシュボードの `paper_mean` に **1126.36** が入っている箇所は **誤り**のため修正対象です。
-  - ours（606.09 近傍）とは一致しているので、**パイプラインは正しい／表示の参照値のみ修正**でOK。
-
-**修正例（生成前に適用）**
-```bash
-# 例: paper値を保持するCSV/JSONを更新（実データ構造に合わせて）
-# sed -i '' 's/1126\.36/606.09/g' path/to/paper_values.csv
-
-# 再生成（英語再現パイプライン）
-python ./make_en_desc_ttests_from_dyads.py --dyads dyads.9min.ndw_strict.csv --outdir out/bn2015
-python ./make_dashboard_with_provenance.py --dyads dyads.9min.ndw_strict.csv   --desc out/bn2015/table3_descriptives_en.csv   --ttest out/bn2015/table2_en_ttests.csv   --out docs/bn2015_dashboard.html --orig ./make_dashboard.py
-```
-> 以後のMVPは **音声**から同等指標を出す実装です。
+目的は共同研究に向けて、**英語コーパスで構築した指標**（Tokens/Types/MLU、語用論）を**音声由来でも算出**できることを示し、将来の日本語ASDデータに水平展開することです。
 
 ---
 
@@ -86,7 +68,7 @@ out/audio/sample/
 
 ---
 
-## 5) データ受領チェックリスト（国リハ向け初回）
+## 5) データ受領チェックリスト（初回）
 - 音声: **16 kHz/16bit/mono** 推奨（ステレオ可; 解析時にmono化）
 - 話者: **母子2話者**中心、重なり発話はそのまま（MVPでは重なりは除外/短縮）
 - メタ: `session_id, child_id, child_age_months, session_minutes, notes`
