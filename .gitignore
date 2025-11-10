@@ -42,3 +42,24 @@ out/audio/Nanami/*_gpu/**
 !out/audio/Nanami/*_gpu/duplicates.csv
 !out/audio/Nanami/Nanami_summary.csv
 !out/audio/Nanami/Nanami_dashboard.html
+
+# === Nanami outputs allowlist (pushしたい成果物を明示的に許可) ===
+# まず out/ 以下は全部無視
+/out/**
+
+# そこから Nanami 配下だけ再許可（親ディレクトリから順に！）
+!/out/audio/
+!/out/audio/Nanami/
+!/out/audio/Nanami/*_gpu/
+
+# 各 *_gpu セッションの主要CSV/HTMLを許可
+!/out/audio/Nanami/*_gpu/report.html
+!/out/audio/Nanami/*_gpu/turns.csv
+!/out/audio/Nanami/*_gpu/prosody.csv
+!/out/audio/Nanami/*_gpu/pragmatics.csv
+!/out/audio/Nanami/*_gpu/echoes.csv
+!/out/audio/Nanami/*_gpu/duplicates.csv
+
+# まとめのダッシュボードとサマリーを許可
+!/out/audio/Nanami/Nanami_dashboard.html
+!/out/audio/Nanami/Nanami_summary.csv

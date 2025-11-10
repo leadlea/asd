@@ -3,22 +3,10 @@
 
 """
 Nanami / TYP ダッシュボード生成スクリプト（*_gpu フォルダのみ対象 / 白背景UI）
-- 入力: <root> 配下の各セッションフォルダ（ ** *_gpu ** のみ対象）
-        例: /.../out/audio/Nanami/10129_gpu/
-             ├─ turns.csv / prosody.csv / pragmatics.csv
-             ├─ echoes.csv / duplicates.csv（あれば件数カウント）
-             └─ report.html（あれば file:// リンクで遷移）
-- 出力:
-  1) サマリーCSV: <root>/Nanami_summary.csv
-  2) HTMLダッシュボード: --out で指定（省略時は <root>/Nanami_dashboard.html）
-
-使い方:
-  python build_nanami_dashboard.py --root "/Users/you/cpsy/out/audio/Nanami"
-  # 出力先指定
-  python build_nanami_dashboard.py --root "/home/ubuntu/cpsy/out/audio/Nanami" --out "/home/ubuntu/cpsy/out/Nanami_dashboard.html"
+GitHub Pages公開向けに、レポートへのリンクを file:// または 相対パス(./<sess>/report.html) で出力できます。
 """
 
-import os, sys, argparse, glob, urllib.parse
+import sys, argparse, glob, urllib.parse
 from pathlib import Path
 import pandas as pd
 
@@ -37,9 +25,8 @@ def to_file_uri(p: Path) -> str:
     except Exception:
         return ""
 
-def build_dashboard(root: Path, out_html: Path, title: str = "ASD 音声MVP ダッシュボード（Nanami / TYP）") -> None:
+def build_dashboard(root: Path, out_html: Path, title: str, link_mode: str) -> None:
     root = root.resolve()
-    # ★ *_gpu ディレクトリのみ集計対象にする
     sess_dirs = sorted([Path(p) for p in glob.glob(str(root / "*_gpu")) if Path(p).is_dir()])
 
     rows = []
@@ -64,8 +51,14 @@ def build_dashboard(root: Path, out_html: Path, title: str = "ASD 音声MVP ダ�
             except Exception:
                 return default
 
+        if link_mode == "pages":
+            report_href = f"./{d.name}/report.html" if report.exists() else ""
+        else:
+            report_href = to_file_uri(report) if report.exists() else ""
+
         data = {
             "session": d.name.replace("_gpu",""),  # 表示用
+            "sess_dir": d.name,
             "chi_utts":  tmap.get("CHI", {}).get("n_utts", 0),
             "mot_utts":  tmap.get("MOT", {}).get("n_utts", 0),
             "chi_tokens":tmap.get("CHI", {}).get("n_tokens", 0),
@@ -78,7 +71,7 @@ def build_dashboard(root: Path, out_html: Path, title: str = "ASD 音声MVP ダ�
             "mot_q":     g(gmap, "MOT", "question_rate", 0.0),
             "echoes":    0 if echoes is None else len(echoes.index),
             "near_dups": 0 if dups is None else len(dups.index),
-            "report_uri": to_file_uri(report) if report.exists() else "",
+            "report_uri": report_href,
         }
         rows.append(data)
 
@@ -88,13 +81,11 @@ def build_dashboard(root: Path, out_html: Path, title: str = "ASD 音声MVP ダ�
     df = pd.DataFrame(rows).sort_values("session")
     df["token_ratio_chi_mot"] = df["chi_tokens"] / df["mot_tokens"].replace(0, 1)
 
-    # 保存1: サマリーCSV
     summary_csv = root / "Nanami_summary.csv"
     df_out = df[["session","chi_utts","mot_utts","chi_tokens","mot_tokens","chi_mlu","mot_mlu","chi_f0","mot_f0","chi_q","mot_q","echoes","near_dups","token_ratio_chi_mot","report_uri"]]
     df_out.to_csv(summary_csv, index=False, float_format="%.6f")
     print(f"[ok] wrote summary CSV: {summary_csv}")
 
-    # KPI
     k_sessions = len(df)
     k_tokens_chi = int(df["chi_tokens"].sum())
     k_tokens_mot = int(df["mot_tokens"].sum())
@@ -109,10 +100,11 @@ def build_dashboard(root: Path, out_html: Path, title: str = "ASD 音声MVP ダ�
         except Exception:
             return "—"
 
-    # テーブル行
     tr_html = []
     for _, r in df.iterrows():
         width_pct = min(200.0, max(0.0, float(r["token_ratio_chi_mot"]) * 100.0))
+        link_html = (f'<a class="btn btn-outline small" href="{r["report_uri"]}" target="_blank">開く</a>'
+                     if r["report_uri"] else '<span class="muted small">—</span>')
         tr_html.append(f"""
         <tr>
           <td class="label"><b>{r['session']}</b></td>
@@ -122,11 +114,10 @@ def build_dashboard(root: Path, out_html: Path, title: str = "ASD 音声MVP ダ�
           <td>{h(r['chi_f0'])} / {h(r['mot_f0'])}</td>
           <td>{h(float(r['chi_q'])*100)} / {h(float(r['mot_q'])*100)}</td>
           <td>{int(r['echoes'])} / {int(r['near_dups'])}</td>
-          <td>{('<a class="btn btn-outline small" href="'+r['report_uri']+'" target="_blank">開く</a>') if r['report_uri'] else '<span class="muted small">—</span>'}</td>
+          <td>{link_html}</td>
         </tr>
         """)
 
-    # バー可視化
     bars_html = []
     for _, r in df.iterrows():
         width_pct = min(200.0, max(0.0, float(r["token_ratio_chi_mot"]) * 100.0))
@@ -138,7 +129,6 @@ def build_dashboard(root: Path, out_html: Path, title: str = "ASD 音声MVP ダ�
         </div>
         """)
 
-    # 白背景のライトテーマ
     html = f"""<!doctype html>
 <html lang="ja">
 <head>
@@ -259,6 +249,7 @@ def main():
     ap.add_argument("--root", required=True, help="*_gpu セッションフォルダが並ぶディレクトリ（例: /Users/you/cpsy/out/audio/Nanami）")
     ap.add_argument("--out", default=None, help="出力HTMLパス（省略時は <root>/Nanami_dashboard.html）")
     ap.add_argument("--title", default="ASD 音声MVP ダッシュボード（Nanami / TYP）")
+    ap.add_argument("--link_mode", choices=["file","pages"], default="file", help="report.htmlへのリンク方式: file=ローカル, pages=相対リンク")
     args = ap.parse_args()
 
     root = Path(args.root)
@@ -268,7 +259,7 @@ def main():
     out_html = Path(args.out) if args.out else (root / "Nanami_dashboard.html")
     out_html.parent.mkdir(parents=True, exist_ok=True)
 
-    build_dashboard(root, out_html, args.title)
+    build_dashboard(root, out_html, args.title, args.link_mode)
 
 if __name__ == "__main__":
     main()
