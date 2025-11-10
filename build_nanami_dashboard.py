@@ -3,20 +3,42 @@
 
 """
 Nanami / TYP ダッシュボード生成スクリプト（*_gpu フォルダのみ対象 / 白背景UI）
-GitHub Pages公開向けに、レポートへのリンクを file:// または 相対パス(./<sess>/report.html) で出力できます。
+GitHub Pages 公開向けに、report.html へのリンクを
+ - pages: 出力HTMLからの相対パス
+ - file : file:// スキーム
+で出力できます。
+
+【変更点】
+- 空CSV（duplicates.csv / echoes.csv など）は警告なくスキップ（0件扱い）
+- ルート直下に Nanami_summary.csv を出力
 """
 
-import sys, argparse, glob, urllib.parse
+import sys
+import argparse
+import glob
+import urllib.parse
 from pathlib import Path
-import pandas as pd
+from datetime import datetime
 
-def read_csv_safe(path: Path):
-    if path.exists():
-        try:
-            return pd.read_csv(path)
-        except Exception as e:
-            print(f"[warn] CSV 読み込み失敗: {path}: {e}", file=sys.stderr)
-    return pd.DataFrame()
+import pandas as pd
+from pandas.errors import EmptyDataError
+
+
+# --------- utils ---------
+def read_csv_quiet(path: Path) -> pd.DataFrame:
+    """
+    空/欠損/壊れたCSVは DataFrame() を返し、警告は出さない。
+    """
+    try:
+        if not path.exists() or path.stat().st_size == 0:
+            return pd.DataFrame()
+        return pd.read_csv(path)
+    except (EmptyDataError, OSError, UnicodeDecodeError, ValueError):
+        return pd.DataFrame()
+    except Exception:
+        # 予期しないエラーでもダッシュボード生成は継続
+        return pd.DataFrame()
+
 
 def to_file_uri(p: Path) -> str:
     try:
@@ -25,19 +47,31 @@ def to_file_uri(p: Path) -> str:
     except Exception:
         return ""
 
+
+def fmt_num(x, digits=2, integer=False) -> str:
+    try:
+        if integer:
+            return f"{int(round(float(x))):,}"
+        return f"{float(x):,.{digits}f}"
+    except Exception:
+        return "—"
+
+
+# --------- core ---------
 def build_dashboard(root: Path, out_html: Path, title: str, link_mode: str) -> None:
     root = root.resolve()
     sess_dirs = sorted([Path(p) for p in glob.glob(str(root / "*_gpu")) if Path(p).is_dir()])
 
     rows = []
     for d in sess_dirs:
-        turns = read_csv_safe(d / "turns.csv")
-        pros  = read_csv_safe(d / "prosody.csv")
-        prag  = read_csv_safe(d / "pragmatics.csv")
-        echoes = read_csv_safe(d / "echoes.csv")
-        dups   = read_csv_safe(d / "duplicates.csv")
+        turns = read_csv_quiet(d / "turns.csv")
+        pros  = read_csv_quiet(d / "prosody.csv")
+        prag  = read_csv_quiet(d / "pragmatics.csv")
+        echoes = read_csv_quiet(d / "echoes.csv")
+        dups   = read_csv_quiet(d / "duplicates.csv")
         report = d / "report.html"
 
+        # 主要CSVがすべて空ならスキップ
         if turns.empty and pros.empty and prag.empty:
             continue
 
@@ -45,9 +79,10 @@ def build_dashboard(root: Path, out_html: Path, title: str, link_mode: str) -> N
         pmap = {r["role"]: r for _, r in pros.iterrows()} if not pros.empty else {}
         gmap = {r["role"]: r for _, r in prag.iterrows()} if not prag.empty else {}
 
-        def g(m, r, k, default=None):
+        def get_num(m, role, key, default=0.0):
             try:
-                return float(m.get(r, {}).get(k, default))
+                v = m.get(role, {}).get(key, default)
+                return float(v)
             except Exception:
                 return default
 
@@ -56,21 +91,25 @@ def build_dashboard(root: Path, out_html: Path, title: str, link_mode: str) -> N
         else:
             report_href = to_file_uri(report) if report.exists() else ""
 
+        # echoes / near_dups は空CSVなら 0
+        echoes_n = 0 if echoes is None or echoes.empty else len(echoes.index)
+        dups_n   = 0 if dups is None or dups.empty else len(dups.index)
+
         data = {
-            "session": d.name.replace("_gpu",""),  # 表示用
+            "session": d.name.replace("_gpu", ""),  # 表示用
             "sess_dir": d.name,
             "chi_utts":  tmap.get("CHI", {}).get("n_utts", 0),
             "mot_utts":  tmap.get("MOT", {}).get("n_utts", 0),
-            "chi_tokens":tmap.get("CHI", {}).get("n_tokens", 0),
-            "mot_tokens":tmap.get("MOT", {}).get("n_tokens", 0),
-            "chi_mlu":   tmap.get("CHI", {}).get("mlu", 0.0),
-            "mot_mlu":   tmap.get("MOT", {}).get("mlu", 0.0),
-            "chi_f0":    pmap.get("CHI", {}).get("f0_mean", 0.0),
-            "mot_f0":    pmap.get("MOT", {}).get("f0_mean", 0.0),
-            "chi_q":     g(gmap, "CHI", "question_rate", 0.0),
-            "mot_q":     g(gmap, "MOT", "question_rate", 0.0),
-            "echoes":    0 if echoes is None else len(echoes.index),
-            "near_dups": 0 if dups is None else len(dups.index),
+            "chi_tokens": tmap.get("CHI", {}).get("n_tokens", 0),
+            "mot_tokens": tmap.get("MOT", {}).get("n_tokens", 0),
+            "chi_mlu":    tmap.get("CHI", {}).get("mlu", 0.0),
+            "mot_mlu":    tmap.get("MOT", {}).get("mlu", 0.0),
+            "chi_f0":     pmap.get("CHI", {}).get("f0_mean", 0.0),
+            "mot_f0":     pmap.get("MOT", {}).get("f0_mean", 0.0),
+            "chi_q":      get_num(gmap, "CHI", "question_rate", 0.0),
+            "mot_q":      get_num(gmap, "MOT", "question_rate", 0.0),
+            "echoes":     echoes_n,
+            "near_dups":  dups_n,
             "report_uri": report_href,
         }
         rows.append(data)
@@ -79,56 +118,62 @@ def build_dashboard(root: Path, out_html: Path, title: str, link_mode: str) -> N
         raise SystemExit(f"[error] *_gpu の対象フォルダが見つかりませんでした: {root}")
 
     df = pd.DataFrame(rows).sort_values("session")
-    df["token_ratio_chi_mot"] = df["chi_tokens"] / df["mot_tokens"].replace(0, 1)
+    # 0除算ガード
+    denom = df["mot_tokens"].replace(0, 1)
+    df["token_ratio_chi_mot"] = pd.to_numeric(df["chi_tokens"], errors="coerce").fillna(0) / pd.to_numeric(denom, errors="coerce").fillna(1)
 
+    # Summary CSV
     summary_csv = root / "Nanami_summary.csv"
-    df_out = df[["session","chi_utts","mot_utts","chi_tokens","mot_tokens","chi_mlu","mot_mlu","chi_f0","mot_f0","chi_q","mot_q","echoes","near_dups","token_ratio_chi_mot","report_uri"]]
+    df_out = df[
+        ["session", "chi_utts", "mot_utts", "chi_tokens", "mot_tokens",
+         "chi_mlu", "mot_mlu", "chi_f0", "mot_f0", "chi_q", "mot_q",
+         "echoes", "near_dups", "token_ratio_chi_mot", "report_uri"]
+    ]
     df_out.to_csv(summary_csv, index=False, float_format="%.6f")
     print(f"[ok] wrote summary CSV: {summary_csv}")
 
-    k_sessions = len(df)
-    k_tokens_chi = int(df["chi_tokens"].sum())
-    k_tokens_mot = int(df["mot_tokens"].sum())
-    k_mlu_chi = float(df["chi_mlu"].mean())
-    k_mlu_mot = float(df["mot_mlu"].mean())
+    # 概況値
+    k_sessions = int(len(df))
+    k_tokens_chi = int(pd.to_numeric(df["chi_tokens"], errors="coerce").fillna(0).sum())
+    k_tokens_mot = int(pd.to_numeric(df["mot_tokens"], errors="coerce").fillna(0).sum())
+    k_mlu_chi = float(pd.to_numeric(df["chi_mlu"], errors="coerce").fillna(0).mean())
+    k_mlu_mot = float(pd.to_numeric(df["mot_mlu"], errors="coerce").fillna(0).mean())
 
-    def h(x, digits=2, integer=False):
-        try:
-            if integer:
-                return f"{int(round(float(x))):,}"
-            return f"{float(x):,.{digits}f}"
-        except Exception:
-            return "—"
-
+    # テーブル行
     tr_html = []
     for _, r in df.iterrows():
-        width_pct = min(200.0, max(0.0, float(r["token_ratio_chi_mot"]) * 100.0))
+        ratio = float(r["token_ratio_chi_mot"]) if pd.notna(r["token_ratio_chi_mot"]) else 0.0
+        width_pct = max(0.0, min(200.0, ratio * 100.0))
         link_html = (f'<a class="btn btn-outline small" href="{r["report_uri"]}" target="_blank">開く</a>'
                      if r["report_uri"] else '<span class="muted small">—</span>')
         tr_html.append(f"""
         <tr>
           <td class="label"><b>{r['session']}</b></td>
-          <td><span class="pill pill-chi">CHI</span> {h(r['chi_utts'],0,True)} / {h(r['chi_tokens'],0,True)} / {h(r['chi_mlu'])}</td>
-          <td><span class="pill pill-mot">MOT</span> {h(r['mot_utts'],0,True)} / {h(r['mot_tokens'],0,True)} / {h(r['mot_mlu'])}</td>
-          <td><div class="bar" title="{h(r['token_ratio_chi_mot'])}"><span style="width:{width_pct}%"></span></div></td>
-          <td>{h(r['chi_f0'])} / {h(r['mot_f0'])}</td>
-          <td>{h(float(r['chi_q'])*100)} / {h(float(r['mot_q'])*100)}</td>
+          <td><span class="pill pill-chi">CHI</span> {fmt_num(r['chi_utts'],0,True)} / {fmt_num(r['chi_tokens'],0,True)} / {fmt_num(r['chi_mlu'])}</td>
+          <td><span class="pill pill-mot">MOT</span> {fmt_num(r['mot_utts'],0,True)} / {fmt_num(r['mot_tokens'],0,True)} / {fmt_num(r['mot_mlu'])}</td>
+          <td><div class="bar" title="{fmt_num(ratio)}"><span style="width:{width_pct}%"></span></div></td>
+          <td>{fmt_num(r['chi_f0'])} / {fmt_num(r['mot_f0'])}</td>
+          <td>{fmt_num(float(r['chi_q'])*100)} / {fmt_num(float(r['mot_q'])*100)}</td>
           <td>{int(r['echoes'])} / {int(r['near_dups'])}</td>
           <td>{link_html}</td>
         </tr>
         """)
 
+    # 比率バー群
     bars_html = []
     for _, r in df.iterrows():
-        width_pct = min(200.0, max(0.0, float(r["token_ratio_chi_mot"]) * 100.0))
+        ratio = float(r["token_ratio_chi_mot"]) if pd.notna(r["token_ratio_chi_mot"]) else 0.0
+        width_pct = max(0.0, min(200.0, ratio * 100.0))
         bars_html.append(f"""
         <div style="display:grid;grid-template-columns:110px 1fr 60px;gap:10px;align-items:center;margin:8px 0;">
           <div class="muted small">{r['session']}</div>
           <div class="bar"><span style="width:{width_pct}%"></span></div>
-          <div class="right small">{h(r['token_ratio_chi_mot'])}</div>
+          <div class="right small">{fmt_num(ratio)}</div>
         </div>
         """)
 
+    # HTML
+    generated_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     html = f"""<!doctype html>
 <html lang="ja">
 <head>
@@ -141,7 +186,7 @@ def build_dashboard(root: Path, out_html: Path, title: str, link_mode: str) -> N
     --chi:#16a34a; --mot:#f59e0b; --warn:#dc2626; --border:#e5e7eb;
   }}
   * {{ box-sizing: border-box; }}
-  body {{ margin:0; padding:24px; font:14px/1.6 system-ui, -apple-system, Segoe UI, Roboto, 'Hiragino Sans', 'Noto Sans JP', Arial, sans-serif; background:var(--bg); color:var(--text); }}
+  body {{ margin:0; padding:24px; font:14px/1.6 system-ui,-apple-system,Segoe UI,Roboto,'Hiragino Sans','Noto Sans JP',Arial,sans-serif; background:var(--bg); color:var(--text); }}
   h1 {{ font-size:28px; margin:0 0 8px 0; }}
   h2 {{ font-size:18px; margin:24px 0 8px 0; color:#1f2937; }}
   p.lead {{ color:#374151; margin:6px 0 18px 0; }}
@@ -167,12 +212,15 @@ def build_dashboard(root: Path, out_html: Path, title: str, link_mode: str) -> N
   .footnote {{ font-size:12px; color:#6b7280; }}
   .right {{ text-align:right; }}
   .small {{ font-size:12px; }}
+  .meta {{ color:#6b7280; font-size:12px; margin-top:6px; }}
 </style>
 </head>
 <body>
 <div class="wrap">
   <h1>{title}</h1>
   <p class="lead">MiiPro/Nanami（TYP）の *_gpu セッションを統合し、CHI/MOT 指標を横断表示しています。各行の「開く」から詳細レポート（report.html）に遷移できます。</p>
+
+  <div class="meta">Generated at: {generated_at}</div>
 
   <div class="card">
     <h2>1. 概況（山下先生向け説明）</h2>
@@ -181,7 +229,7 @@ def build_dashboard(root: Path, out_html: Path, title: str, link_mode: str) -> N
         <div class="kvs">
           <div class="kv"><div class="t">セッション数</div><div class="v">{k_sessions}</div></div>
           <div class="kv"><div class="t">総トークン数（CHI / MOT）</div><div class="v">{k_tokens_chi:,} / {k_tokens_mot:,}</div></div>
-          <div class="kv"><div class="t">平均MLU（CHI / MOT）</div><div class="v">{h(k_mlu_chi)} / {h(k_mlu_mot)}</div></div>
+          <div class="kv"><div class="t">平均MLU（CHI / MOT）</div><div class="v">{fmt_num(k_mlu_chi)} / {fmt_num(k_mlu_mot)}</div></div>
         </div>
       </div>
       <div class="card">
@@ -244,12 +292,13 @@ def build_dashboard(root: Path, out_html: Path, title: str, link_mode: str) -> N
     out_html.write_text(html, encoding="utf-8")
     print(f"[ok] wrote dashboard HTML: {out_html}")
 
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--root", required=True, help="*_gpu セッションフォルダが並ぶディレクトリ（例: /Users/you/cpsy/out/audio/Nanami）")
     ap.add_argument("--out", default=None, help="出力HTMLパス（省略時は <root>/Nanami_dashboard.html）")
     ap.add_argument("--title", default="ASD 音声MVP ダッシュボード（Nanami / TYP）")
-    ap.add_argument("--link_mode", choices=["file","pages"], default="file", help="report.htmlへのリンク方式: file=ローカル, pages=相対リンク")
+    ap.add_argument("--link_mode", choices=["file", "pages"], default="file", help="report.html へのリンク方式: file=ローカル, pages=相対リンク")
     args = ap.parse_args()
 
     root = Path(args.root)
@@ -260,6 +309,7 @@ def main():
     out_html.parent.mkdir(parents=True, exist_ok=True)
 
     build_dashboard(root, out_html, args.title, args.link_mode)
+
 
 if __name__ == "__main__":
     main()
