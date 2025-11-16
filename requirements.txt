@@ -1,4 +1,12 @@
-pandas==2.2.2
-numpy==1.26.4
-scikit-learn==1.4.2
-PyYAML==6.0.2
+librosa
+soundfile
+audioread
+webrtcvad
+openai-whisper
+fugashi[unidic-lite]
+resampy
+scipy
+scikit-learn
+numpy
+pandas
+PyYAML

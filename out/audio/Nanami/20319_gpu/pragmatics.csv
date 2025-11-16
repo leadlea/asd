@@ -1,3 +1,0 @@
-n_utts,n_tokens,n_types,mlu,question_rate,dm_per_100t,mental_per_100t,role
-3,29,17,9.666666666666666,0.0,0.0,0.0,CHI
-5,601,124,120.2,0.0,2.6622296173044924,0.0,MOT

@@ -1,4 +1,0 @@
-keep_role,drop_role,keep_start,keep_end,drop_start,drop_end,keep_text,drop_text
-CHI,MOT,264.0,266.0,267.0,269.0,帽子を人間さんにかぶせてて,帽子を人間さんにかぶせてて
-MOT,CHI,449.0,450.0,451.0,452.0,バス,バス
-MOT,CHI,513.0,514.0,515.0,516.0,ガガ,ガガ

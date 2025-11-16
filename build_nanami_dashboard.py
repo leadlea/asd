@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 """
-Nanami / TYP ダッシュボード生成スクリプト（*_gpu フォルダのみ対象 / 白背景UI）
+Nanami / TYP ダッシュボード生成スクリプト（セッションフォルダを統合 / 白背景UI）
 GitHub Pages 公開向けに、report.html へのリンクを
  - pages: 出力HTMLからの相対パス
  - file : file:// スキーム
@@ -11,6 +11,7 @@ GitHub Pages 公開向けに、report.html へのリンクを
 【変更点】
 - 空CSV（duplicates.csv / echoes.csv など）は警告なくスキップ（0件扱い）
 - ルート直下に Nanami_summary.csv を出力
+- もともと *_gpu ディレクトリのみ対象だったが、root 配下の全ディレクトリを対象に緩和
 """
 
 import sys
@@ -60,7 +61,12 @@ def fmt_num(x, digits=2, integer=False) -> str:
 # --------- core ---------
 def build_dashboard(root: Path, out_html: Path, title: str, link_mode: str) -> None:
     root = root.resolve()
-    sess_dirs = sorted([Path(p) for p in glob.glob(str(root / "*_gpu")) if Path(p).is_dir()])
+
+    # ★変更ポイント：
+    #   以前は "*_gpu" のみ対象だったが、現在の 10129 / 10225 などのディレクトリも拾うように
+    sess_dirs = sorted(
+        [Path(p) for p in glob.glob(str(root / "*")) if Path(p).is_dir()]
+    )
 
     rows = []
     for d in sess_dirs:
@@ -96,7 +102,7 @@ def build_dashboard(root: Path, out_html: Path, title: str, link_mode: str) -> N
         dups_n   = 0 if dups is None or dups.empty else len(dups.index)
 
         data = {
-            "session": d.name.replace("_gpu", ""),  # 表示用
+            "session": d.name.replace("_gpu", ""),  # 表示用（*_gpu が付いていても落とす）
             "sess_dir": d.name,
             "chi_utts":  tmap.get("CHI", {}).get("n_utts", 0),
             "mot_utts":  tmap.get("MOT", {}).get("n_utts", 0),
@@ -115,7 +121,7 @@ def build_dashboard(root: Path, out_html: Path, title: str, link_mode: str) -> N
         rows.append(data)
 
     if not rows:
-        raise SystemExit(f"[error] *_gpu の対象フォルダが見つかりませんでした: {root}")
+        raise SystemExit(f"[error] セッションフォルダが見つかりませんでした: {root}")
 
     df = pd.DataFrame(rows).sort_values("session")
     # 0除算ガード
@@ -125,9 +131,17 @@ def build_dashboard(root: Path, out_html: Path, title: str, link_mode: str) -> N
     # Summary CSV
     summary_csv = root / "Nanami_summary.csv"
     df_out = df[
-        ["session", "chi_utts", "mot_utts", "chi_tokens", "mot_tokens",
-         "chi_mlu", "mot_mlu", "chi_f0", "mot_f0", "chi_q", "mot_q",
-         "echoes", "near_dups", "token_ratio_chi_mot", "report_uri"]
+        [
+            "session",
+            "chi_utts", "mot_utts",
+            "chi_tokens", "mot_tokens",
+            "chi_mlu", "mot_mlu",
+            "chi_f0", "mot_f0",
+            "chi_q", "mot_q",
+            "echoes", "near_dups",
+            "token_ratio_chi_mot",
+            "report_uri",
+        ]
     ]
     df_out.to_csv(summary_csv, index=False, float_format="%.6f")
     print(f"[ok] wrote summary CSV: {summary_csv}")
@@ -144,9 +158,13 @@ def build_dashboard(root: Path, out_html: Path, title: str, link_mode: str) -> N
     for _, r in df.iterrows():
         ratio = float(r["token_ratio_chi_mot"]) if pd.notna(r["token_ratio_chi_mot"]) else 0.0
         width_pct = max(0.0, min(200.0, ratio * 100.0))
-        link_html = (f'<a class="btn btn-outline small" href="{r["report_uri"]}" target="_blank">開く</a>'
-                     if r["report_uri"] else '<span class="muted small">—</span>')
-        tr_html.append(f"""
+        link_html = (
+            f'<a class="btn btn-outline small" href="{r["report_uri"]}" target="_blank">開く</a>'
+            if r["report_uri"]
+            else '<span class="muted small">—</span>'
+        )
+        tr_html.append(
+            f"""
         <tr>
           <td class="label"><b>{r['session']}</b></td>
           <td><span class="pill pill-chi">CHI</span> {fmt_num(r['chi_utts'],0,True)} / {fmt_num(r['chi_tokens'],0,True)} / {fmt_num(r['chi_mlu'])}</td>
@@ -157,20 +175,23 @@ def build_dashboard(root: Path, out_html: Path, title: str, link_mode: str) -> N
           <td>{int(r['echoes'])} / {int(r['near_dups'])}</td>
           <td>{link_html}</td>
         </tr>
-        """)
+        """
+        )
 
     # 比率バー群
     bars_html = []
     for _, r in df.iterrows():
         ratio = float(r["token_ratio_chi_mot"]) if pd.notna(r["token_ratio_chi_mot"]) else 0.0
         width_pct = max(0.0, min(200.0, ratio * 100.0))
-        bars_html.append(f"""
+        bars_html.append(
+            f"""
         <div style="display:grid;grid-template-columns:110px 1fr 60px;gap:10px;align-items:center;margin:8px 0;">
           <div class="muted small">{r['session']}</div>
           <div class="bar"><span style="width:{width_pct}%"></span></div>
           <div class="right small">{fmt_num(ratio)}</div>
         </div>
-        """)
+        """
+        )
 
     # HTML
     generated_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -218,7 +239,7 @@ def build_dashboard(root: Path, out_html: Path, title: str, link_mode: str) -> N
 <body>
 <div class="wrap">
   <h1>{title}</h1>
-  <p class="lead">MiiPro/Nanami（TYP）の *_gpu セッションを統合し、CHI/MOT 指標を横断表示しています。各行の「開く」から詳細レポート（report.html）に遷移できます。</p>
+  <p class="lead">MiiPro/Nanami（TYP）のセッションフォルダ群から、CHI/MOT 指標を横断表示しています。各行の「開く」から詳細レポート（report.html）に遷移できます。</p>
 
   <div class="meta">Generated at: {generated_at}</div>
 
@@ -274,12 +295,12 @@ def build_dashboard(root: Path, out_html: Path, title: str, link_mode: str) -> N
   <div class="card">
     <h2>方法と前提（要約）</h2>
     <ul class="small">
-      <li>対象: <code>*_gpu</code> のみ（GPU実行で得たセッション）</li>
+      <li>対象: <code>root</code> 配下の各セッションフォルダ（例: 10129, 10225, ...）</li>
       <li>データ: CHILDES <b>MiiPro/Nanami</b>（TYP）各 mp3</li>
-      <li>ASR: OpenAI Whisper <code>small</code>（GPU）、日本語固定、温度=0、Beam=5</li>
+      <li>ASR: OpenAI Whisper <code>small</code>（GPU/CPU）、日本語固定</li>
       <li>話者: F0 と RMS による2クラスタ → 高F0側を CHI、低F0側を MOT</li>
       <li>重複処理: 隣接の短文復唱（echo）・近傍重複（near dup）を類似度しきいで折り畳み</li>
-      <li>集計: 発話数、Token数、MLU、F0、発話間隔、質問率、談話標識/心的語彙（100語当たり）など</li>
+      <li>集計: 発話数、Token数、MLU、F0、質問率、Echoes/NearDups など</li>
       <li>ウィンドウ: 全体から中央 9分相当を抽出（比較の公平性）</li>
       <li>注意: 本MVPは自動処理を前提。研究報告・臨床応用には人手確認を併用</li>
     </ul>
@@ -295,10 +316,26 @@ def build_dashboard(root: Path, out_html: Path, title: str, link_mode: str) -> N
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--root", required=True, help="*_gpu セッションフォルダが並ぶディレクトリ（例: /Users/you/cpsy/out/audio/Nanami）")
-    ap.add_argument("--out", default=None, help="出力HTMLパス（省略時は <root>/Nanami_dashboard.html）")
-    ap.add_argument("--title", default="ASD 音声MVP ダッシュボード（Nanami / TYP）")
-    ap.add_argument("--link_mode", choices=["file", "pages"], default="file", help="report.html へのリンク方式: file=ローカル, pages=相対リンク")
+    ap.add_argument(
+        "--root",
+        required=True,
+        help="セッションフォルダが並ぶディレクトリ（例: /Users/you/cpsy/out/audio/Nanami）",
+    )
+    ap.add_argument(
+        "--out",
+        default=None,
+        help="出力HTMLパス（省略時は <root>/Nanami_dashboard.html）",
+    )
+    ap.add_argument(
+        "--title",
+        default="ASD 音声MVP ダッシュボード（Nanami / TYP）",
+    )
+    ap.add_argument(
+        "--link_mode",
+        choices=["file", "pages"],
+        default="file",
+        help="report.html へのリンク方式: file=ローカル, pages=相対リンク",
+    )
     args = ap.parse_args()
 
     root = Path(args.root)
