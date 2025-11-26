@@ -19,7 +19,7 @@ detail_path      = csv_dir / "nanami_compare_detail.csv"
 totals_path      = csv_dir / "nanami_compare_totals.csv"
 
 # 出力先 (GitHub Pages 用に web 配下に出す想定)
-web_dir = ROOT / "web"
+web_dir = ROOT / "docs"
 web_dir.mkdir(parents=True, exist_ok=True)
 html_path = web_dir / "nanami_compare.html"
 
