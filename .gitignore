@@ -63,3 +63,8 @@ out/audio/Nanami/*_gpu/**
 # まとめのダッシュボードとサマリーを許可
 !/out/audio/Nanami/Nanami_dashboard.html
 !/out/audio/Nanami/Nanami_summary.csv
+# === Nanami raw audio / F0 outputs は Git 管理しない ===
+audio/
+out_f0/
+*.mp3
+

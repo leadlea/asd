@@ -1,157 +1,154 @@
+# audio_mvp/diarize.py
 
-import numpy as np, librosa, webrtcvad
+from __future__ import annotations
 
-def _merge_frames(frames, max_gap=0.2):
-    segs=[]; cur=None
-    for (st,ed,is_sp,r,e) in frames:
-        if is_sp:
-            if cur is None: cur=[st,ed,[r],[e]]
-            elif st-cur[1] <= max_gap: cur[1]=ed; cur[2].append(r); cur[3].append(e)
-            else: segs.append(cur); cur=[st,ed,[r],[e]]
-    if cur is not None: segs.append(cur)
-    return segs
+import os
+from typing import List, Dict
 
-def _segments_from_labels(frames, labels, offset):
-    out=[]; cur=None
-    for (st,ed,is_sp,r,e), lab in zip(frames, labels):
-        if not is_sp or lab is None:
-            if cur is not None: out.append(cur); cur=None
-            continue
-        spk = f"S{int(lab)+1}"
-        if cur is None:
-            cur={"start":st,"end":ed,"f0s":[e] if e>0 else [],"rms":[r],"speaker":spk}
-        elif cur["speaker"]==spk and st-cur["end"]<=0.15:
-            cur["end"]=ed; cur["rms"].append(r); 
-            if e>0: cur["f0s"].append(e)
-        else:
-            out.append(cur)
-            cur={"start":st,"end":ed,"f0s":[e] if e>0 else [],"rms":[r],"speaker":spk}
-    if cur is not None: out.append(cur)
-    for s in out:
-        s["start"] += offset; s["end"] += offset
-        s["rms"] = float(np.mean(s["rms"])) if s["rms"] else 0.0
-        s["f0"]  = float(np.median(s["f0s"])) if s["f0s"] else 0.0
-        del s["f0s"]
-    return out
+import librosa
+import numpy as np
 
-def diarize_two_speakers(audio_path):
-    # 1) 音声ロード
-    y, sr = librosa.load(audio_path, sr=None, mono=True)
+try:
+    from pyannote.audio import Pipeline
+except Exception:
+    Pipeline = None  # pyannote.audio が無い環境でも import だけ通す
 
-    # 2) 長尺対策：中央12分だけでダイアライズ
-    dur = librosa.get_duration(y=y, sr=sr)
-    offset = 0.0
-    if dur > 12*60:
-        offset = max(0.0, dur/2 - 6*60)
-        s = int(offset*sr); e = s + int(12*60*sr)
-        y = y[s:e]
 
-    # 3) F0: YIN（高速・堅牢）
-    hop = int(sr*0.02)  # 20ms
-    frame_length = 1024
-    try:
-        f0_series = librosa.yin(y, fmin=110.0, fmax=800.0,
-                                frame_length=frame_length, hop_length=hop)
-        f0_series = np.nan_to_num(f0_series)
-    except Exception:
-        f0_series = np.zeros(max(1, int(len(y)/hop)+1))
+_PIPELINE = None
 
-    # 4) RMS
-    rms = librosa.feature.rms(y=y, frame_length=frame_length, hop_length=hop).ravel()
 
-    # 5) VAD（16k/20ms）
-    import resampy
-    y16 = librosa.resample(y, orig_sr=sr, target_sr=16000)
-    sr16 = 16000
-    vad = webrtcvad.Vad(2)
-    frame_ms = 20
-    step = int(sr16*frame_ms/1000.0)
-    nbytes = 2
-    pcm = np.clip(y16*32767.0, -32768, 32767).astype(np.int16).tobytes()
+def _get_pipeline():
+    """グローバルに 1 回だけ pyannote Pipeline をロード"""
+    global _PIPELINE
 
-    frames=[]
-    n_chunks = int(len(y16) / step)
-    for i in range(n_chunks):
-        st = i*(frame_ms/1000.0); ed = st + (frame_ms/1000.0)
-        st16 = i*step; ed16 = st16 + step
-        chunk = pcm[st16*nbytes:ed16*nbytes]
+    if Pipeline is None:
+        print("[diarize] pyannote.audio がインストールされていないため、ダイアライズをスキップします。")
+        return None
+
+    if _PIPELINE is not None:
+        return _PIPELINE
+
+    # HF_TOKEN or HUGGINGFACE_TOKEN 環境変数を優先
+    token = os.environ.get("HF_TOKEN") or os.environ.get("HUGGINGFACE_TOKEN")
+
+    if token:
+        _PIPELINE = Pipeline.from_pretrained(
+            "pyannote/speaker-diarization-3.1",
+            token=token,
+        )
+    else:
+        # huggingface-cli login 済みなら token=True でも認証される
+        _PIPELINE = Pipeline.from_pretrained(
+            "pyannote/speaker-diarization-3.1",
+            token=True,
+        )
+
+    # デバイス設定（例: cpu / mps / cuda）
+    device = os.environ.get("PYANNOTE_DEVICE")
+    if device:
         try:
-            is_sp = vad.is_speech(chunk, sample_rate=sr16)
-        except Exception:
-            is_sp = False
-        k = int(round(st * sr / hop)); k = max(0, min(k, len(rms)-1))
-        e = float(f0_series[k] if k < len(f0_series) else 0.0)
-        frames.append((st,ed,is_sp,float(rms[k]),e))
+            import torch
 
-    # 6) 通常セグメント化 → KMeans=2
-    segs = _merge_frames(frames)
-    feats=[]
-    for st,ed,rs,es in segs:
-        f0m = float(np.median([x for x in es if x>0])) if es else 0.0
-        rm  = float(np.mean(rs)) if rs else 0.0
-        feats.append((st,ed,rm,f0m))
-    if not feats:
+            _PIPELINE.to(torch.device(device))
+            print(f"[diarize] pyannote pipeline loaded on {device}")
+        except Exception as e:  # noqa: BLE001
+            print(f"[diarize] WARNING: failed to move pipeline to {device}: {e}")
+
+    return _PIPELINE
+
+
+def diarize_two_speakers(audio_path: str) -> List[Dict]:
+    """
+    入力: mp3/wav ファイルパス
+    出力: [{"start": float, "end": float, "speaker": "S1|S2", "f0": float, "rms": float}, ...]
+    """
+    pipeline = _get_pipeline()
+    if pipeline is None:
         return []
 
-    X = np.array([[f[3], f[2]] for f in feats], dtype=float)  # [f0, rms]
-    try:
-        from sklearn.cluster import KMeans
-        labels = KMeans(n_clusters=2, n_init=10, random_state=0).fit_predict(X)
-    except Exception:
-        labels = np.arange(len(feats)) % 2
+    import torch
 
-    # 7) 片寄り検出
-    uniq = np.unique(labels)
-    degenerate = False
-    if len(uniq) < 2:
-        degenerate = True
+    # ---- 1) librosa で 16kHz モノラル読み込み（pyannote 3.1/4.x の想定に合わせる）----
+    y, sr = librosa.load(audio_path, sr=16000, mono=True)
+    if y.ndim == 1:
+        waveform = torch.from_numpy(y).unsqueeze(0)  # (1, time)
     else:
-        dur_by = []
-        for lab in [0,1]:
-            dur = sum(ed-st for (st,ed,_,_), lb in zip(feats, labels) if lb==lab)
-            dur_by.append(dur)
-        total = sum(dur_by)
-        if total>0 and max(dur_by)/total >= 0.9:
-            degenerate = True
+        waveform = torch.from_numpy(y)
 
-    if not degenerate:
-        out=[]
-        for lab,(st,ed,rm,f0m) in zip(labels,feats):
-            out.append({"start":float(st+offset), "end":float(ed+offset),
-                        "f0":float(f0m), "rms":float(rm), "speaker":f"S{int(lab)+1}"})
-        out.sort(key=lambda z: z["start"])
-        # 近接同ラベル結合
-        merged=[]
-        for seg in out:
-            if merged and seg["speaker"]==merged[-1]["speaker"] and seg["start"]-merged[-1]["end"]<=0.15:
-                merged[-1]["end"]=seg["end"]
-            else:
-                merged.append(seg)
-        return merged
+    # ---- 2) DiarizeOutput を取得し、中の Annotation を取り出す ----
+    # 4.x 系では pipeline(...) は DiarizeOutput を返し、
+    # .speaker_diarization に Annotation が入っている:contentReference[oaicite:2]{index=2}
+    out = pipeline({"waveform": waveform, "sample_rate": sr})
+    ann = out.speaker_diarization  # <- コイツに対して itertracks する
 
-    # 8) fallback：speechフレームを直接ラベリング
-    sp_idx = [i for i,f in enumerate(frames) if f[2]]  # is_sp True のフレーム index
-    if sp_idx:
-        f0vals = np.array([frames[i][4] for i in sp_idx])  # ← 修正：f0 は frames[i][4]
-        nz = f0vals[f0vals>0]
-        labels_frames = [None]*len(frames)
-        if nz.size >= 20 and (np.percentile(nz, 75) - np.percentile(nz, 25)) >= 30.0:
-            thr = float(np.median(nz))
-            for i in sp_idx:
-                e = frames[i][4]
-                lab = 0 if e < thr else 1
-                labels_frames[i] = lab
+    # ---- 3) ラベルごとの総発話時間からメイン 2 話者を決めて S1/S2 に割当 ----
+    durations: Dict[str, float] = {}
+    for turn, _, label in ann.itertracks(yield_label=True):
+        durations[label] = durations.get(label, 0.0) + float(turn.end - turn.start)
+
+    if not durations:
+        return []
+
+    labels_sorted = sorted(durations.items(), key=lambda kv: kv[1], reverse=True)
+    main_labels = [lab for lab, _ in labels_sorted[:2]]
+    if len(main_labels) == 1:
+        # 念のため 1 話者しか見つからなかった場合も S1/S2 を埋める
+        main_labels = [main_labels[0], main_labels[0]]
+
+    label_to_S = {main_labels[0]: "S1", main_labels[1]: "S2"}
+
+    # ---- 4) 各区間ごとに F0 と RMS を計算（assign_roles_by_f0_stats 用）----
+    hop = int(sr * 0.02)  # 20ms
+    segments: List[Dict] = []
+
+    for turn, _, label in ann.itertracks(yield_label=True):
+        if label not in label_to_S:
+            continue
+
+        s0, s1 = float(turn.start), float(turn.end)
+        a = max(0, int(s0 * sr))
+        b = min(len(y), int(s1 * sr))
+
+        if b <= a:
+            f0_med = 0.0
+            rms_mean = 0.0
         else:
-            # F0で割れない→交互割当（長い沈黙>0.5sで話者切替）
-            last_end = None; cur_lab = 0
-            for i in sp_idx:
-                st,ed = frames[i][0], frames[i][1]
-                if last_end is None or st - last_end > 0.5:
-                    cur_lab = 1 - cur_lab
-                labels_frames[i] = cur_lab
-                last_end = ed
+            yi = y[a:b]
 
-        out = _segments_from_labels(frames, labels_frames, offset)
-        return out
+            # F0 (YIN)
+            try:
+                f0 = librosa.yin(
+                    yi,
+                    fmin=110.0,
+                    fmax=800.0,
+                    frame_length=1024,
+                    hop_length=hop,
+                )
+                f0 = np.nan_to_num(f0)
+                f0_med = float(np.median(f0[f0 > 0])) if np.any(f0 > 0) else 0.0
+            except Exception:  # noqa: BLE001
+                f0_med = 0.0
 
-    return []
+            # RMS
+            try:
+                rms = librosa.feature.rms(
+                    y=yi,
+                    frame_length=1024,
+                    hop_length=hop,
+                ).ravel()
+                rms_mean = float(np.mean(rms)) if len(rms) else 0.0
+            except Exception:  # noqa: BLE001
+                rms_mean = 0.0
+
+        segments.append(
+            {
+                "start": s0,
+                "end": s1,
+                "speaker": label_to_S[label],
+                "f0": f0_med,
+                "rms": rms_mean,
+            }
+        )
+
+    segments.sort(key=lambda d: d["start"])
+    return segments
