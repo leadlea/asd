@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <title>Nanami Pragmatics Dashboard の見方と談話指標カタログの運用方法</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root {
+      --bg: #ffffff;
+      --text: #000000;
+      --accent-border: #dddddd;
+      --muted: #666666;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+      font-size: 20px;
+      line-height: 1.7;
+    }
+
+    .page {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 32px 24px 80px;
+    }
+
+    h1, h2, h3 {
+      margin: 0 0 12px;
+      font-weight: 700;
+      line-height: 1.3;
+    }
+
+    h1 {
+      font-size: 32px;
+      margin-bottom: 8px;
+    }
+
+    h2 {
+      font-size: 26px;
+      margin-top: 32px;
+    }
+
+    h3 {
+      font-size: 22px;
+      margin-top: 24px;
+    }
+
+    p {
+      margin: 0 0 10px;
+    }
+
+    ul {
+      margin: 8px 0 16px 24px;
+      padding: 0;
+    }
+
+    li {
+      margin-bottom: 4px;
+    }
+
+    .subtitle {
+      font-size: 18px;
+      color: var(--muted);
+      margin-bottom: 24px;
+    }
+
+    .box {
+      border: 1px solid var(--accent-border);
+      border-radius: 10px;
+      padding: 18px 20px;
+      margin-top: 18px;
+    }
+
+    .box-title {
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .two-column {
+      display: grid;
+      grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+      gap: 24px;
+      margin-top: 16px;
+    }
+
+    .callout {
+      border-left: 4px solid var(--text);
+      padding-left: 14px;
+      margin: 18px 0;
+      font-size: 19px;
+    }
+
+    code {
+      font-size: 18px;
+      padding: 2px 4px;
+      background: #f5f5f5;
+      border-radius: 4px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+      font-size: 18px;
+    }
+
+    th, td {
+      border: 1px solid var(--accent-border);
+      padding: 6px 8px;
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      background: #f5f5f5;
+      font-weight: 600;
+    }
+
+    .diagram {
+      margin-top: 24px;
+      border: 1px solid var(--accent-border);
+      border-radius: 10px;
+      padding: 16px;
+      background: #fafafa;
+    }
+
+    .small-note {
+      font-size: 16px;
+      color: var(--muted);
+      margin-top: 6px;
+    }
+
+    @media (max-width: 900px) {
+      body {
+        font-size: 18px;
+      }
+      h1 {
+        font-size: 26px;
+      }
+      h2 {
+        font-size: 22px;
+      }
+      h3 {
+        font-size: 20px;
+      }
+      .two-column {
+        grid-template-columns: minmax(0, 1fr);
+      }
+    }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <h1>Nanami Pragmatics Dashboard の見方と<br>談話指標カタログの運用方法</h1>
+  <p class="subtitle">
+    国立精神・神経医療研究センター（NCNP）&nbsp;共同研究向け説明資料（ドラフト）
+  </p>
+
+  <!-- 1. 概要 -->
+  <h2>1. Nanami Pragmatics Dashboard の位置づけ</h2>
+
+  <div class="box">
+    <div class="box-title">目的</div>
+    <ul>
+      <li>母子（CHI）と保護者（MOT）の会話から、<strong>語用論・談話の特徴を定量化</strong>する。</li>
+      <li>ASD など発達特性との関連を検討するための、<strong>指標探索用の試験的ダッシュボード</strong>。</li>
+      <li>将来的には CSJ / CEJC など他コーパスとの比較や、臨床スコアとの連関分析に拡張することを想定。</li>
+    </ul>
+    <div class="box-title">用語</div>
+    <ul>
+      <li><strong>CHI</strong>：Child（子ども話者）。</li>
+      <li><strong>MOT</strong>：Mother（母親・養育者）。</li>
+      <li>
+        <strong>BOTH</strong>：
+        セッション内の CHI と MOT の発話を合わせた
+        <strong>「会話全体」</strong>の値。例えば BASIC_TOKENS_PER_TURN では、
+        <br/>
+        <code>
+          BOTH = (CHI の全トークン数 + MOT の全トークン数) / (CHI のターン数 + MOT のターン数)
+        </code>
+      </li>
+    </ul>
+    <div class="box-title">前提データ</div>
+    <ul>
+      <li>ターン情報（<code>turns.csv</code>）: 話者ごとのターン数・トークン数など。</li>
+      <li>セグメント情報（<code>segments.csv / segments_pragmatics</code>）: 終助詞、談話標識などのタグ。</li>
+      <li>集計結果（<code>nanami_metric_results.csv</code>）: 各セッション × 発話者の指標を 1 行にまとめたテーブル。</li>
+    </ul>
+  </div>
+
+  <!-- 2. ダッシュボード構成 -->
+  <h2>2. ダッシュボードの構成と見方</h2>
+
+  <div class="two-column">
+    <div>
+      <h3>2-1. セッション別トークン密度ビュー</h3>
+      <div class="box">
+        <div class="box-title">① セッション別トークン密度（CHI / MOT / BOTH）</div>
+        <ul>
+          <li>横軸：1ターンあたりの平均トークン数（tokens/turn）。</li>
+          <li>緑・青・オレンジのバーがそれぞれ CHI / MOT / BOTH を表す。</li>
+          <li>各行が 1 セッション（例：10129_0）。40 tokens/turn 以上はバーをクリップして表示。</li>
+          <li>
+            <strong>解釈のポイント：</strong>
+            極端に長い・短いセッションや、CHI と MOT のバランスが偏っているセッションをすぐに把握できる。
+            「BOTH」で見ると、そのセッション全体の“しゃべりの重さ”がひと目でわかる。
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <div>
+      <h3>2-2. BASIC_TOKENS_PER_TURN 記述統計カード</h3>
+      <div class="box">
+        <div class="box-title">② CHI / MOT / BOTH の min / max / mean / median</div>
+        <ul>
+          <li>CHI / MOT / BOTH それぞれについて、min / max / mean / median を表示。</li>
+          <li>
+            さらにカード下部に <strong>細いレンジバー</strong> を追加し、
+            <ul>
+              <li>バーの塗り部分：そのロールの <strong>min〜max の範囲</strong></li>
+              <li>黒い ●：median（中央値）</li>
+              <li>白い ◇：mean（平均値）</li>
+            </ul>
+          </li>
+          <li>
+            スケールは 3 ロール共通で、
+            BASIC_TOKENS_PER_TURN 全体の最小値〜最大値に正規化して配置している。
+            これにより、<strong>MOT の方が全体的に長いレンジにいる</strong> などの違いが一目でわかる。
+          </li>
+          <li>
+            <strong>使い方：</strong>
+            <ul>
+              <li>CHI / MOT / BOTH のレンジがどのくらい重なっているか。</li>
+              <li>median と mean のズレ（右寄り・左寄り）から、分布の歪みの方向をざっくり把握。</li>
+            </ul>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="two-column">
+    <div>
+      <h3>2-3. 精神医学に関連する語用論・プロソディ指標サマリ</h3>
+      <div class="box">
+        <div class="box-title">③ CHI / MOT 2 段表示の指標テーブル</div>
+        <ul>
+          <li>各行：セッション × 発話者（CHI または MOT）。</li>
+          <li>
+            各列：<code>TT_GAP_MEAN, TT_OVERLAP_RATE, FILLER_RATE,
+            SFP_NEGOTIATING_RATE, QUESTION_RATE, SPEECH_RATE, PAUSE_RATIO, F0_SD</code>。
+          </li>
+          <li>1セルの中に「CHI xx.xx / MOT yy.yy」を 2 段で表示し、話者間の差を一望できる。</li>
+          <li>単位：
+            <ul>
+              <li>TT_GAP_MEAN：秒</li>
+              <li>TT_OVERLAP_RATE：%（ターンの何割にオーバーラップがあるか）</li>
+              <li>FILLER_RATE：フィラー出現数 / 100 トークン</li>
+              <li>SPEECH_RATE：モーラ / 秒 など</li>
+            </ul>
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <div>
+      <h3>2-4. 指標 × セッション ヒートマップ</h3>
+      <div class="box">
+        <div class="box-title">④ CHI / MOT 別ヒートマップ</div>
+        <ul>
+          <li>縦軸：指標（metric_id）。横軸：session_id。</li>
+          <li>色の濃さ：各「指標 × 話者」で min–max 正規化した値。</li>
+          <li>
+            濃い色ほど、その話者・指標において値が高いセッション。
+            「どのセッションが相対的に目立つか」を視覚的に確認するためのビュー。
+          </li>
+          <li>CHI 版と MOT 版を並べることで、話者ごとのパターン差が一目でわかる。</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="callout">
+    ダッシュボード全体は、「どのセッションがどの指標において特徴的か」を直感的に眺めるための
+    <strong>探索的ツール（exploratory tool）</strong> として設計しています。<br>
+    統計検定やモデル化に入る前に、「目で見て気になる候補」を洗い出す段階で使う想定です。
+  </div>
+
+  <!-- 3. カタログの役割 -->
+  <h2>3. 談話指標カタログ（pragmatics_index_catalog.csv）の役割</h2>
+
+  <p>
+    <code>config/pragmatics_index_catalog.csv</code> は、Nanami / CSJ / CEJC 全体で共通に使う
+    <strong>「談話・語用論指標のカタログ（辞書）」</strong> です。
+    ダッシュボードに出てくる各 metric はすべてこのカタログで定義されます。
+  </p>
+
+  <div class="box">
+    <div class="box-title">主なカラム例</div>
+    <table>
+      <thead>
+        <tr>
+          <th>カラム名</th>
+          <th>役割</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>metric_id</code></td>
+          <td>一意な ID（例：<code>BASIC_TOKENS_PER_TURN</code>, <code>TT_GAP_MEAN</code>）。コードやダッシュボードで参照。</td>
+        </tr>
+        <tr>
+          <td><code>metric_group</code></td>
+          <td>「基礎量」「終助詞」「談話標識」「流暢性」「質問」など、大まかなカテゴリ。</td>
+        </tr>
+        <tr>
+          <td><code>metric_name_ja / metric_name_en</code></td>
+          <td>日本語/英語での指標名。資料や論文でそのまま利用可能。</td>
+        </tr>
+        <tr>
+          <td><code>level</code></td>
+          <td><code>speaker_session</code> など、集計の単位（話者×セッションなのか、ダイアド単位なのか等）。</td>
+        </tr>
+        <tr>
+          <td><code>unit</code></td>
+          <td><code>float</code>, <code>ratio</code>, <code>Hz</code>, <code>msec</code> など、値のスケールと解釈。</td>
+        </tr>
+        <tr>
+          <td><code>description_ja</code></td>
+          <td>簡単な説明（臨床家・研究者が直感的に理解できるレベルの文章）。</td>
+        </tr>
+        <tr>
+          <td><code>formal_definition</code></td>
+          <td>数式レベルの定義（例：<code>n_tokens / n_utts</code>）。再現性の担保用。</td>
+        </tr>
+        <tr>
+          <td><code>target_role</code></td>
+          <td>CHI / MOT / BOTH / DYAD など、この指標をどの話者に対して計算するか。</td>
+        </tr>
+        <tr>
+          <td><code>requires_tables</code> / <code>requires_columns</code></td>
+          <td>どのテーブルのどのカラムがあれば計算できるかを明示。</td>
+        </tr>
+        <tr>
+          <td><code>requires_annotation</code> / <code>annotation_type</code></td>
+          <td>終助詞や談話標識など、タグ付けが必要な指標かどうか。</td>
+        </tr>
+        <tr>
+          <td><code>corpus_sources</code></td>
+          <td>Nanami / CSJ / CEJC など、どのコーパスで利用予定か。</td>
+        </tr>
+        <tr>
+          <td><code>status_nanami</code> ほか</td>
+          <td><code>idea</code>, <code>planned</code>, <code>needs_annotation</code>, <code>ready</code> など実装状況。</td>
+        </tr>
+      </tbody>
+    </table>
+    <p class="small-note">
+      例：<code>BASIC_TOKENS_PER_TURN</code> は Nanami / CSJ / CEJC すべてで <code>ready</code>。
+      <code>SFP_ALL_RATE</code> は Nanami では <code>needs_annotation</code>（終助詞タグ付けが前提）など。
+    </p>
+  </div>
+
+  <!-- 4. カタログ運用フロー -->
+  <h2>4. カタログの運用フロー</h2>
+
+  <p>
+    新しい談話指標や ASD と関連しそうな特徴を思いついたときは、<strong>まずカタログに 1 行追加</strong>し、
+    その後で Nanami 側の実装・ダッシュボード反映を進める、というフローを想定しています。
+  </p>
+
+  <div class="diagram">
+    <pre class="mermaid">
+flowchart TD
+  A["指標アイデア<br/>(談話・ASDに関係しそうな特徴)"]
+  B["カタログに登録<br/>(metric_id, 定義, 必要データ, corpus)"]
+  C["アノテーション/前処理の設計<br/>(例: 終助詞タグ, 談話標識タグ)"]
+  D["Nanami で実装<br/>(テーブル・カラム追加, 集計スクリプト)"]
+  E["metric_results.csv に出力"]
+  F["ダッシュボードに追加・可視化"]
+  G["臨床的妥当性の検証<br/>(ASD群 vs 対照群, 症状スコアとの関連など)"]
+
+  A --> B --> C --> D --> E --> F --> G
+  G --> A
+    </pre>
+    <p class="small-note">
+      ※ 図は、指標アイデアからダッシュボード提示・臨床的解釈までを 1 サイクルとして回し、
+      妥当な指標だけを残していくイメージです。
+    </p>
+  </div>
+
+  <div class="box">
+    <div class="box-title">運用上のルール（案）</div>
+    <ul>
+      <li>ASD との関連がありそう、あるいは臨床的に解釈しやすい特徴だけをカタログに登録する。</li>
+      <li>実装前の指標は <code>status_nanami = "idea"</code> や <code>"needs_annotation"</code> として区別。</li>
+      <li>Nanami で実装し、値が安定して取れるようになったら <code>"ready"</code> に更新。</li>
+      <li>CSJ / CEJC への展開状況も <code>status_CSJ</code>, <code>status_CEJC</code> で管理。</li>
+      <li>論文化の際は、このカタログをそのまま「付録表」として添付することで、定義の再現性を担保。</li>
+    </ul>
+  </div>
+
+  <!-- 5. まとめ -->
+  <h2>5. まとめ：MTGで相談したいポイント（例）</h2>
+
+  <ul>
+    <li>現状ダッシュボードに載せている指標のうち、<strong>臨床的に特に重要そうなもの</strong>の優先度付け。</li>
+    <li>ASD の病態理解に向けて、今後追加すべき指標候補（例：視線・ジェスチャー情報との統合など）。</li>
+    <li>CSJ / CEJC を用いたベースライン構築と、Nanami データとの比較の設計。</li>
+    <li>共同研究としての次フェーズ（ML 解析・症状スコアとの関連分析）の進め方。</li>
+  </ul>
+
+</div>
+
+<!-- Mermaid.js 読み込み -->
+<script type="module">
+  import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs";
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: "base",
+    themeVariables: {
+      primaryColor: "#ffffff",
+      primaryTextColor: "#000000",
+      primaryBorderColor: "#000000",
+      lineColor: "#000000",
+      secondaryColor: "#ffffff",
+      tertiaryColor: "#ffffff"
+    }
+  });
+</script>
+</body>
+</html>
