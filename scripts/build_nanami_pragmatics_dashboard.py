@@ -23,21 +23,25 @@ def load_results(results_path: Path) -> pd.DataFrame:
 # ========= BASIC_TOKENS_PER_TURN 部分 =========
 
 def load_basic_tokens_summary(df: pd.DataFrame) -> pd.DataFrame:
+    """BASIC_TOKENS_PER_TURN を CHI / MOT / BOTH ごとに pivot した表を作る。"""
     sub = df[df["metric_id"] == "BASIC_TOKENS_PER_TURN"].copy()
-    pivot = sub.pivot_table(
-        index="session_id", columns="speaker_role", values="value"
-    )
-    # ソートと列の揃え
+    pivot = sub.pivot_table(index="session_id", columns="speaker_role", values="value")
+
+    # session_id でソート
     pivot = pivot.sort_index(key=lambda idx: idx.astype(str).astype(int))
+
+    # CHI / MOT / BOTH の列をそろえる（欠けていたら NaN を入れる）
     for col in ["CHI", "MOT", "BOTH"]:
         if col not in pivot.columns:
             pivot[col] = float("nan")
+
     pivot = pivot[["CHI", "MOT", "BOTH"]]
     pivot = pivot.reset_index()
     return pivot
 
 
 def compute_stats_for_roles(df_pivot: pd.DataFrame) -> Dict[str, Dict[str, float]]:
+    """各 role ごとの min / max / mean / median を計算。"""
     stats: Dict[str, Dict[str, float]] = {}
     for role in ["CHI", "MOT", "BOTH"]:
         if role not in df_pivot.columns:
@@ -55,7 +59,8 @@ def compute_stats_for_roles(df_pivot: pd.DataFrame) -> Dict[str, Dict[str, float
 
 
 def build_tokens_rows_html(pivot_df: pd.DataFrame, max_display: float = 40.0) -> str:
-    rows_html = []
+    """セッション別トークン密度テーブルの HTML を生成。"""
+    rows_html: List[str] = []
 
     for _, row in pivot_df.iterrows():
         sid = str(row["session_id"])
@@ -77,50 +82,85 @@ def build_tokens_rows_html(pivot_df: pd.DataFrame, max_display: float = 40.0) ->
 
         rows_html.append(
             f"""
-          <tr>
-            <td class="sid">{sid}</td>
+            <tr>
+              <td class="sid">{sid}</td>
 
-            <td class="value">
-              <div class="label">CHI</div>
-              <div class="num">{fmt(chi)}</div>
-            </td>
-            <td class="bar-cell">
-              <div class="bar-track"><div class="bar chi" style="width:{chi_w:.1f}%;"></div></div>
-            </td>
+              <td class="value">
+                <div class="label">CHI</div>
+                <div class="num">{fmt(chi)}</div>
+              </td>
+              <td class="bar-cell">
+                <div class="bar-track"><div class="bar chi" style="width:{chi_w:.1f}%;"></div></div>
+              </td>
 
-            <td class="value">
-              <div class="label">MOT</div>
-              <div class="num">{fmt(mot)}</div>
-            </td>
-            <td class="bar-cell">
-              <div class="bar-track"><div class="bar mot" style="width:{mot_w:.1f}%;"></div></div>
-            </td>
+              <td class="value">
+                <div class="label">MOT</div>
+                <div class="num">{fmt(mot)}</div>
+              </td>
+              <td class="bar-cell">
+                <div class="bar-track"><div class="bar mot" style="width:{mot_w:.1f}%;"></div></div>
+              </td>
 
-            <td class="value">
-              <div class="label">BOTH</div>
-              <div class="num">{fmt(both)}</div>
-            </td>
-            <td class="bar-cell">
-              <div class="bar-track"><div class="bar both" style="width:{both_w:.1f}%;"></div></div>
-            </td>
-          </tr>
-        """
+              <td class="value">
+                <div class="label">BOTH</div>
+                <div class="num">{fmt(both)}</div>
+              </td>
+              <td class="bar-cell">
+                <div class="bar-track"><div class="bar both" style="width:{both_w:.1f}%;"></div></div>
+              </td>
+            </tr>
+            """
         )
 
     return "\n".join(rows_html)
 
 
 def build_stats_cards_html(stats: Dict[str, Dict[str, float]]) -> str:
+    """
+    BASIC_TOKENS_PER_TURN の min / max / mean / median を
+    ミニチャート付きカードとして表示する HTML を生成。
+    """
+
+    if not stats:
+        return ""
+
+    # 全ロール共通のスケール（min, max）を計算
+    global_min = min(v["min"] for v in stats.values())
+    global_max = max(v["max"] for v in stats.values())
+    if not math.isfinite(global_min) or not math.isfinite(global_max):
+        global_min, global_max = 0.0, 1.0
+    if global_max <= global_min:
+        global_max = global_min + 1e-6
+
+    def pos(value: float) -> float:
+        """global_min〜global_max を 0〜100% に線形マッピング。"""
+        t = (value - global_min) / (global_max - global_min)
+        t = max(0.0, min(1.0, t))
+        return t * 100.0
+
     def block(role: str) -> str:
         s = stats.get(role)
         if not s:
             return ""
+        span_left = pos(s["min"])
+        span_width = max(3.0, pos(s["max"]) - span_left)
+        median_left = pos(s["median"])
+        mean_left = pos(s["mean"])
+        role_class = role.lower()
         return f"""
         <div class="stat-card">
           <div class="stat-label">{role}</div>
           <div class="stat-main">{s['median']:.2f}</div>
           <div class="stat-sub">
             min {s['min']:.2f} / max {s['max']:.2f} / mean {s['mean']:.2f}
+          </div>
+          <div class="stat-range">
+            <div class="stat-range-track">
+              <div class="stat-range-span role-{role_class}" style="left:{span_left:.1f}%;width:{span_width:.1f}%;"></div>
+              <div class="stat-marker median" style="left:{median_left:.1f}%;"></div>
+              <div class="stat-marker mean" style="left:{mean_left:.1f}%;"></div>
+            </div>
+            <div class="stat-range-caption">min → max（● median, ◇ mean / 共通スケール）</div>
           </div>
         </div>
         """
@@ -141,12 +181,10 @@ def build_pragmatics_summary_table(
     roles:   ["CHI", "MOT"]
     """
     # すべての session_id を集約
-    session_ids = sorted(
-        df["session_id"].unique(), key=lambda x: int(str(x))
-    )
+    session_ids = sorted(df["session_id"].unique(), key=lambda x: int(str(x)))
 
     # (metric, role, session) -> value の辞書
-    value_map = {}
+    value_map: Dict[tuple, float] = {}
     for _, row in df.iterrows():
         key = (str(row["metric_id"]), str(row["speaker_role"]), str(row["session_id"]))
         value_map[key] = float(row["value"])
@@ -158,7 +196,7 @@ def build_pragmatics_summary_table(
     header_html = "<tr>" + "".join(header_cells) + "</tr>"
 
     # 本文
-    body_rows = []
+    body_rows: List[str] = []
     for sid in session_ids:
         sid_str = str(sid)
         row_cells = [f"<td class='sid'>{sid_str}</td>"]
@@ -204,18 +242,16 @@ def build_pragmatics_heatmap(
     metrics: List[str],
     roles: List[str],
 ) -> str:
-    session_ids = sorted(
-        df["session_id"].unique(), key=lambda x: int(str(x))
-    )
+    session_ids = sorted(df["session_id"].unique(), key=lambda x: int(str(x)))
 
     # (metric, role, session) -> value
-    value_map = {}
+    value_map: Dict[tuple, float] = {}
     for _, row in df.iterrows():
         key = (str(row["metric_id"]), str(row["speaker_role"]), str(row["session_id"]))
         value_map[key] = float(row["value"])
 
     # metric×roleごとの min/max
-    ranges = {}
+    ranges: Dict[tuple, tuple] = {}
     for metric_id in metrics:
         for role in roles:
             vals = []
@@ -252,7 +288,7 @@ def build_pragmatics_heatmap(
         else:
             return f"{v:.2f}"
 
-    tables_html = []
+    tables_html: List[str] = []
     for role in roles:
         # ヘッダ
         header_cells = ["<th>metric_id</th>"]
@@ -261,7 +297,7 @@ def build_pragmatics_heatmap(
         header_html = "<tr>" + "".join(header_cells) + "</tr>"
 
         # 本文
-        body_rows = []
+        body_rows: List[str] = []
         for metric_id in metrics:
             row_cells = [f"<td class='sid'>{metric_id}</td>"]
             for sid in session_ids:
@@ -364,7 +400,7 @@ def build_html(
       align-items: center;
       gap: 16px;
     }}
-    .header-text h1 {{ margin: 0 0 6px; font-size: 20px; letter-spacing: 0.04em; }}
+    .header-text h1 {{ margin: 0 0 6px; font-size: 20px; letterspacing: 0.04em; }}
     .header-text p {{ margin: 0; font-size: 13px; opacity: 0.9; }}
     .badge {{
       display: inline-flex; align-items: center; gap: 6px;
@@ -424,6 +460,61 @@ def build_html(
     .stat-label {{ font-size: 11px; color: #4f46e5; font-weight: 600; margin-bottom: 4px; }}
     .stat-main {{ font-size: 16px; font-weight: 600; }}
     .stat-sub {{ font-size: 11px; color: var(--muted); }}
+
+    /* min〜max のレンジ + median / mean のミニチャート */
+    .stat-range {{
+      margin-top: 6px;
+    }}
+    .stat-range-track {{
+      position: relative;
+      height: 10px;
+      border-radius: 999px;
+      background: #e5e7eb;
+      overflow: hidden;
+    }}
+    .stat-range-span {{
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      background: rgba(129, 140, 248, 0.5);
+    }}
+    .stat-range-span.role-chi {{
+      background: rgba(99, 102, 241, 0.7);
+    }}
+    .stat-range-span.role-mot {{
+      background: rgba(34, 197, 94, 0.7);
+    }}
+    .stat-range-span.role-both {{
+      background: rgba(249, 115, 22, 0.7);
+    }}
+    .stat-marker {{
+      position: absolute;
+      top: 50%;
+      width: 10px;
+      height: 10px;
+      transform: translate(-50%, -50%);
+      border-radius: 999px;
+      border: 2px solid #ffffff;
+      box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.3);
+    }}
+    .stat-marker.median {{
+      background: #111827;
+    }}
+    .stat-marker.mean {{
+      background: #ffffff;
+    }}
+    .stat-marker.mean::after {{
+      content: "";
+      position: absolute;
+      inset: 2px;
+      border-radius: 999px;
+      background: #111827;
+    }}
+    .stat-range-caption {{
+      margin-top: 3px;
+      font-size: 10px;
+      color: var(--muted);
+    }}
 
     .table-wrapper {{
       margin-top: 4px; max-height: 420px; overflow: auto;
@@ -605,7 +696,7 @@ def build_html(
               BASIC_TOKENS_PER_TURN 記述統計
             </div>
             <div class="card-subtitle">
-              CHI / MOT / BOTH ごとの min / max / mean / median を確認します。
+              CHI / MOT / BOTH ごとの min / max / mean / median を、ミニチャート付きで確認します。
             </div>
           </div>
         </div>
@@ -613,8 +704,9 @@ def build_html(
           {stats_html}
         </div>
         <div class="footer-note">
-          会話全体のレンジ感をざっくり把握するためのサマリです。
-          詳細なセッションごとの値は左の表を参照してください。
+          各カードのレンジバーは、BASIC_TOKENS_PER_TURN 全体の最小値〜最大値を共通スケールとして、
+          その中で各話者の min–max 範囲と median / mean の位置関係を示しています。
+          会話全体のレンジ感と、CHI/MOT/BOTH の違いを直感的に把握するためのビューです。
         </div>
       </div>
     </div>
@@ -675,8 +767,10 @@ def build_html(
     return html
 
 
-def main():
-    parser = argparse.ArgumentParser(description="Build Nanami pragmatics HTML dashboard with heatmap.")
+def main() -> None:
+    parser = argparse.ArgumentParser(
+        description="Build Nanami pragmatics HTML dashboard with heatmap."
+    )
     parser.add_argument(
         "--results",
         type=Path,
