@@ -29,6 +29,9 @@ GitHub Pages のトップ（`https://leadlea.github.io/asd/`）は、
    - 各指標について、**セッション間の相対的な高さ**を色（ラベンダー〜パープル）で可視化。
    - CHI 用と MOT 用を別パネルで表示。
 
+- Nanami Pragmatics Dashboard（ガイド資料） 
+  👉 https://leadlea.github.io/asd/nanami_pragmatics_dashboard_guide.html
+
 ---
 
 ## 2. 対象データと前提
