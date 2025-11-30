@@ -246,15 +246,3 @@ GitHub に push すると、`https://leadlea.github.io/asd/` が更新されま�
   * 「本命指標」「補助指標」「参考指標」の層別
     を行うことを想定しています。
 
----
-
-## 7. 過去の英語 ASD Pragmatics MVP について
-
-以前の README で説明していた **英語 ASD/TD 語用論 MVP（ASDBank + CHILDES）** に関するレポートは、
-以下の HTML にアーカイブされています。
-
-* ASD Pragmatics MVP Report (EN)
-  👉 [https://leadlea.github.io/asd/ASD_TD_MVP_Report.html](https://leadlea.github.io/asd/ASD_TD_MVP_Report.html)
-
-現在のリポジトリの主眼は **Nanami/TYP を使った日本語母子対話の語用論・プロソディ解析** ですが、
-英語MVPのコード・レポートも必要に応じて参照可能です。
