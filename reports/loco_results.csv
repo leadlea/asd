@@ -1,4 +1,0 @@
-fold,AUC,F1,note
-fold1:Rollins+Sachs,0.064,0.0,
-fold2:Brown+Providence,,,class-imbalance
-fold3:Flusberg+Nadig,,,class-imbalance

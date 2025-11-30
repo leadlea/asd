@@ -1,0 +1,153 @@
+metric_id,session_id,speaker_role,value,unit,notes
+BASIC_TOKENS_PER_TURN,10129,BOTH,13.134920634920634,tokens_per_turn,(CHI + MOT) n_tokens / n_utts from turns.csv
+BASIC_TOKENS_PER_TURN,10129,CHI,12.089622641509434,tokens_per_turn,n_tokens / n_utts from turns.csv
+BASIC_TOKENS_PER_TURN,10129,MOT,18.675,tokens_per_turn,n_tokens / n_utts from turns.csv
+BASIC_TOKENS_PER_TURN,10225,BOTH,17.754464285714285,tokens_per_turn,(CHI + MOT) n_tokens / n_utts from turns.csv
+BASIC_TOKENS_PER_TURN,10225,CHI,17.01005025125628,tokens_per_turn,n_tokens / n_utts from turns.csv
+BASIC_TOKENS_PER_TURN,10225,MOT,23.68,tokens_per_turn,n_tokens / n_utts from turns.csv
+BASIC_TOKENS_PER_TURN,10421,BOTH,12.735119047619047,tokens_per_turn,(CHI + MOT) n_tokens / n_utts from turns.csv
+BASIC_TOKENS_PER_TURN,10421,CHI,9.551282051282051,tokens_per_turn,n_tokens / n_utts from turns.csv
+BASIC_TOKENS_PER_TURN,10421,MOT,13.69767441860465,tokens_per_turn,n_tokens / n_utts from turns.csv
+BASIC_TOKENS_PER_TURN,10622,BOTH,42.5,tokens_per_turn,(CHI + MOT) n_tokens / n_utts from turns.csv
+BASIC_TOKENS_PER_TURN,10622,CHI,62.275862068965516,tokens_per_turn,n_tokens / n_utts from turns.csv
+BASIC_TOKENS_PER_TURN,10622,MOT,8.764705882352942,tokens_per_turn,n_tokens / n_utts from turns.csv
+BASIC_TOKENS_PER_TURN,10928,BOTH,11.865814696485623,tokens_per_turn,(CHI + MOT) n_tokens / n_utts from turns.csv
+BASIC_TOKENS_PER_TURN,10928,CHI,4.293577981651376,tokens_per_turn,n_tokens / n_utts from turns.csv
+BASIC_TOKENS_PER_TURN,10928,MOT,13.462282398452611,tokens_per_turn,n_tokens / n_utts from turns.csv
+BASIC_TOKENS_PER_TURN,11025,BOTH,27.402010050251256,tokens_per_turn,(CHI + MOT) n_tokens / n_utts from turns.csv
+BASIC_TOKENS_PER_TURN,11025,CHI,11.314285714285715,tokens_per_turn,n_tokens / n_utts from turns.csv
+BASIC_TOKENS_PER_TURN,11025,MOT,30.835365853658537,tokens_per_turn,n_tokens / n_utts from turns.csv
+BASIC_TOKENS_PER_TURN,20213,BOTH,33.12,tokens_per_turn,(CHI + MOT) n_tokens / n_utts from turns.csv
+BASIC_TOKENS_PER_TURN,20213,CHI,15.981132075471699,tokens_per_turn,n_tokens / n_utts from turns.csv
+BASIC_TOKENS_PER_TURN,20213,MOT,45.736111111111114,tokens_per_turn,n_tokens / n_utts from turns.csv
+BASIC_TOKENS_PER_TURN,20319,BOTH,17.70404984423676,tokens_per_turn,(CHI + MOT) n_tokens / n_utts from turns.csv
+BASIC_TOKENS_PER_TURN,20319,CHI,9.219047619047618,tokens_per_turn,n_tokens / n_utts from turns.csv
+BASIC_TOKENS_PER_TURN,20319,MOT,21.828703703703702,tokens_per_turn,n_tokens / n_utts from turns.csv
+F0_SD,10129,CHI,108.8593845040702,Hz,mean F0 standard deviation from prosody.csv (column='f0_sd')
+F0_SD,10129,MOT,171.47428743485352,Hz,mean F0 standard deviation from prosody.csv (column='f0_sd')
+F0_SD,10225,CHI,162.10437400934833,Hz,mean F0 standard deviation from prosody.csv (column='f0_sd')
+F0_SD,10225,MOT,182.05412860500593,Hz,mean F0 standard deviation from prosody.csv (column='f0_sd')
+F0_SD,10421,CHI,175.50096153674457,Hz,mean F0 standard deviation from prosody.csv (column='f0_sd')
+F0_SD,10421,MOT,187.96696571753424,Hz,mean F0 standard deviation from prosody.csv (column='f0_sd')
+F0_SD,10622,CHI,200.22253194693343,Hz,mean F0 standard deviation from prosody.csv (column='f0_sd')
+F0_SD,10622,MOT,207.1429489754607,Hz,mean F0 standard deviation from prosody.csv (column='f0_sd')
+F0_SD,10928,CHI,213.9660487944715,Hz,mean F0 standard deviation from prosody.csv (column='f0_sd')
+F0_SD,10928,MOT,213.5407614112601,Hz,mean F0 standard deviation from prosody.csv (column='f0_sd')
+F0_SD,11025,CHI,192.8508145852366,Hz,mean F0 standard deviation from prosody.csv (column='f0_sd')
+F0_SD,11025,MOT,189.8843711279501,Hz,mean F0 standard deviation from prosody.csv (column='f0_sd')
+F0_SD,20213,CHI,179.28350391290329,Hz,mean F0 standard deviation from prosody.csv (column='f0_sd')
+F0_SD,20213,MOT,177.94163908850123,Hz,mean F0 standard deviation from prosody.csv (column='f0_sd')
+F0_SD,20319,CHI,143.8368570622723,Hz,mean F0 standard deviation from prosody.csv (column='f0_sd')
+F0_SD,20319,MOT,134.55390684354495,Hz,mean F0 standard deviation from prosody.csv (column='f0_sd')
+FILLER_RATE,10129,CHI,0.2731174404994147,per_100_tokens,"count of filler patterns per 100 tokens; patterns=['えー', 'えぇ', 'えっと', 'えと', 'あの', 'そのー', 'その…', 'うーん', 'うんと', 'まー', 'まあ']"
+FILLER_RATE,10129,MOT,0.13386880856760375,per_100_tokens,"count of filler patterns per 100 tokens; patterns=['えー', 'えぇ', 'えっと', 'えと', 'あの', 'そのー', 'その…', 'うーん', 'うんと', 'まー', 'まあ']"
+FILLER_RATE,10225,CHI,0.029542097488921712,per_100_tokens,"count of filler patterns per 100 tokens; patterns=['えー', 'えぇ', 'えっと', 'えと', 'あの', 'そのー', 'その…', 'うーん', 'うんと', 'まー', 'まあ']"
+FILLER_RATE,10225,MOT,0.16891891891891891,per_100_tokens,"count of filler patterns per 100 tokens; patterns=['えー', 'えぇ', 'えっと', 'えと', 'あの', 'そのー', 'その…', 'うーん', 'うんと', 'まー', 'まあ']"
+FILLER_RATE,10421,CHI,0.1342281879194631,per_100_tokens,"count of filler patterns per 100 tokens; patterns=['えー', 'えぇ', 'えっと', 'えと', 'あの', 'そのー', 'その…', 'うーん', 'うんと', 'まー', 'まあ']"
+FILLER_RATE,10421,MOT,0.11318619128466327,per_100_tokens,"count of filler patterns per 100 tokens; patterns=['えー', 'えぇ', 'えっと', 'えと', 'あの', 'そのー', 'その…', 'うーん', 'うんと', 'まー', 'まあ']"
+FILLER_RATE,10622,CHI,0.0,per_100_tokens,"count of filler patterns per 100 tokens; patterns=['えー', 'えぇ', 'えっと', 'えと', 'あの', 'そのー', 'その…', 'うーん', 'うんと', 'まー', 'まあ']"
+FILLER_RATE,10622,MOT,0.0,per_100_tokens,"count of filler patterns per 100 tokens; patterns=['えー', 'えぇ', 'えっと', 'えと', 'あの', 'そのー', 'その…', 'うーん', 'うんと', 'まー', 'まあ']"
+FILLER_RATE,10928,CHI,0.0,per_100_tokens,"count of filler patterns per 100 tokens; patterns=['えー', 'えぇ', 'えっと', 'えと', 'あの', 'そのー', 'その…', 'うーん', 'うんと', 'まー', 'まあ']"
+FILLER_RATE,10928,MOT,0.35919540229885055,per_100_tokens,"count of filler patterns per 100 tokens; patterns=['えー', 'えぇ', 'えっと', 'えと', 'あの', 'そのー', 'その…', 'うーん', 'うんと', 'まー', 'まあ']"
+FILLER_RATE,11025,CHI,0.0,per_100_tokens,"count of filler patterns per 100 tokens; patterns=['えー', 'えぇ', 'えっと', 'えと', 'あの', 'そのー', 'その…', 'うーん', 'うんと', 'まー', 'まあ']"
+FILLER_RATE,11025,MOT,0.059323709709313825,per_100_tokens,"count of filler patterns per 100 tokens; patterns=['えー', 'えぇ', 'えっと', 'えと', 'あの', 'そのー', 'その…', 'うーん', 'うんと', 'まー', 'まあ']"
+FILLER_RATE,20213,CHI,0.1180637544273908,per_100_tokens,"count of filler patterns per 100 tokens; patterns=['えー', 'えぇ', 'えっと', 'えと', 'あの', 'そのー', 'その…', 'うーん', 'うんと', 'まー', 'まあ']"
+FILLER_RATE,20213,MOT,0.030367446097783177,per_100_tokens,"count of filler patterns per 100 tokens; patterns=['えー', 'えぇ', 'えっと', 'えと', 'あの', 'そのー', 'その…', 'うーん', 'うんと', 'まー', 'まあ']"
+FILLER_RATE,20319,CHI,0.10330578512396695,per_100_tokens,"count of filler patterns per 100 tokens; patterns=['えー', 'えぇ', 'えっと', 'えと', 'あの', 'そのー', 'その…', 'うーん', 'うんと', 'まー', 'まあ']"
+FILLER_RATE,20319,MOT,0.042417815482502653,per_100_tokens,"count of filler patterns per 100 tokens; patterns=['えー', 'えぇ', 'えっと', 'えと', 'あの', 'そのー', 'その…', 'うーん', 'うんと', 'まー', 'まあ']"
+PAUSE_RATIO,10129,CHI,20.0,pause_p95_unit,proxy of pause ratio using pause_p95 (95th percentile of pause length)
+PAUSE_RATIO,10129,MOT,15.5,pause_p95_unit,proxy of pause ratio using pause_p95 (95th percentile of pause length)
+PAUSE_RATIO,10225,CHI,6.0,pause_p95_unit,proxy of pause ratio using pause_p95 (95th percentile of pause length)
+PAUSE_RATIO,10225,MOT,6.4999999999999964,pause_p95_unit,proxy of pause ratio using pause_p95 (95th percentile of pause length)
+PAUSE_RATIO,10421,CHI,5.649999999999999,pause_p95_unit,proxy of pause ratio using pause_p95 (95th percentile of pause length)
+PAUSE_RATIO,10421,MOT,11.649999999999975,pause_p95_unit,proxy of pause ratio using pause_p95 (95th percentile of pause length)
+PAUSE_RATIO,10622,CHI,22.65000000000004,pause_p95_unit,proxy of pause ratio using pause_p95 (95th percentile of pause length)
+PAUSE_RATIO,10622,MOT,20.0,pause_p95_unit,proxy of pause ratio using pause_p95 (95th percentile of pause length)
+PAUSE_RATIO,10928,CHI,5.849999999999998,pause_p95_unit,proxy of pause ratio using pause_p95 (95th percentile of pause length)
+PAUSE_RATIO,10928,MOT,7.0,pause_p95_unit,proxy of pause ratio using pause_p95 (95th percentile of pause length)
+PAUSE_RATIO,11025,CHI,5.6,pause_p95_unit,proxy of pause ratio using pause_p95 (95th percentile of pause length)
+PAUSE_RATIO,11025,MOT,7.5,pause_p95_unit,proxy of pause ratio using pause_p95 (95th percentile of pause length)
+PAUSE_RATIO,20213,CHI,20.0,pause_p95_unit,proxy of pause ratio using pause_p95 (95th percentile of pause length)
+PAUSE_RATIO,20213,MOT,2.75,pause_p95_unit,proxy of pause ratio using pause_p95 (95th percentile of pause length)
+PAUSE_RATIO,20319,CHI,12.0,pause_p95_unit,proxy of pause ratio using pause_p95 (95th percentile of pause length)
+PAUSE_RATIO,20319,MOT,7.949999999999989,pause_p95_unit,proxy of pause ratio using pause_p95 (95th percentile of pause length)
+QUESTION_RATE,10129,CHI,25.471698113207548,per_100_turns,heuristic question turns per 100 turns; detected by '?'/'？' and suffix patterns like 〜か / 〜かな / 〜の etc.
+QUESTION_RATE,10129,MOT,45.0,per_100_turns,heuristic question turns per 100 turns; detected by '?'/'？' and suffix patterns like 〜か / 〜かな / 〜の etc.
+QUESTION_RATE,10225,CHI,31.65829145728643,per_100_turns,heuristic question turns per 100 turns; detected by '?'/'？' and suffix patterns like 〜か / 〜かな / 〜の etc.
+QUESTION_RATE,10225,MOT,24.0,per_100_turns,heuristic question turns per 100 turns; detected by '?'/'？' and suffix patterns like 〜か / 〜かな / 〜の etc.
+QUESTION_RATE,10421,CHI,19.23076923076923,per_100_turns,heuristic question turns per 100 turns; detected by '?'/'？' and suffix patterns like 〜か / 〜かな / 〜の etc.
+QUESTION_RATE,10421,MOT,24.8062015503876,per_100_turns,heuristic question turns per 100 turns; detected by '?'/'？' and suffix patterns like 〜か / 〜かな / 〜の etc.
+QUESTION_RATE,10622,CHI,17.24137931034483,per_100_turns,heuristic question turns per 100 turns; detected by '?'/'？' and suffix patterns like 〜か / 〜かな / 〜の etc.
+QUESTION_RATE,10622,MOT,17.647058823529413,per_100_turns,heuristic question turns per 100 turns; detected by '?'/'？' and suffix patterns like 〜か / 〜かな / 〜の etc.
+QUESTION_RATE,10928,CHI,13.761467889908257,per_100_turns,heuristic question turns per 100 turns; detected by '?'/'？' and suffix patterns like 〜か / 〜かな / 〜の etc.
+QUESTION_RATE,10928,MOT,31.528046421663444,per_100_turns,heuristic question turns per 100 turns; detected by '?'/'？' and suffix patterns like 〜か / 〜かな / 〜の etc.
+QUESTION_RATE,11025,CHI,25.714285714285715,per_100_turns,heuristic question turns per 100 turns; detected by '?'/'？' and suffix patterns like 〜か / 〜かな / 〜の etc.
+QUESTION_RATE,11025,MOT,50.0,per_100_turns,heuristic question turns per 100 turns; detected by '?'/'？' and suffix patterns like 〜か / 〜かな / 〜の etc.
+QUESTION_RATE,20213,CHI,7.547169811320755,per_100_turns,heuristic question turns per 100 turns; detected by '?'/'？' and suffix patterns like 〜か / 〜かな / 〜の etc.
+QUESTION_RATE,20213,MOT,29.166666666666668,per_100_turns,heuristic question turns per 100 turns; detected by '?'/'？' and suffix patterns like 〜か / 〜かな / 〜の etc.
+QUESTION_RATE,20319,CHI,32.38095238095238,per_100_turns,heuristic question turns per 100 turns; detected by '?'/'？' and suffix patterns like 〜か / 〜かな / 〜の etc.
+QUESTION_RATE,20319,MOT,47.22222222222222,per_100_turns,heuristic question turns per 100 turns; detected by '?'/'？' and suffix patterns like 〜か / 〜かな / 〜の etc.
+SFP_NEGOTIATING_RATE,10129,CHI,12.264150943396226,per_100_turns,"count of negotiating sentence-final particles per 100 turns; patterns=['よね', 'かな', 'だよね', 'じゃない?', 'じゃない？', 'じゃないよね', 'よ', 'ね']"
+SFP_NEGOTIATING_RATE,10129,MOT,7.5,per_100_turns,"count of negotiating sentence-final particles per 100 turns; patterns=['よね', 'かな', 'だよね', 'じゃない?', 'じゃない？', 'じゃないよね', 'よ', 'ね']"
+SFP_NEGOTIATING_RATE,10225,CHI,4.0201005025125625,per_100_turns,"count of negotiating sentence-final particles per 100 turns; patterns=['よね', 'かな', 'だよね', 'じゃない?', 'じゃない？', 'じゃないよね', 'よ', 'ね']"
+SFP_NEGOTIATING_RATE,10225,MOT,16.0,per_100_turns,"count of negotiating sentence-final particles per 100 turns; patterns=['よね', 'かな', 'だよね', 'じゃない?', 'じゃない？', 'じゃないよね', 'よ', 'ね']"
+SFP_NEGOTIATING_RATE,10421,CHI,12.820512820512821,per_100_turns,"count of negotiating sentence-final particles per 100 turns; patterns=['よね', 'かな', 'だよね', 'じゃない?', 'じゃない？', 'じゃないよね', 'よ', 'ね']"
+SFP_NEGOTIATING_RATE,10421,MOT,14.34108527131783,per_100_turns,"count of negotiating sentence-final particles per 100 turns; patterns=['よね', 'かな', 'だよね', 'じゃない?', 'じゃない？', 'じゃないよね', 'よ', 'ね']"
+SFP_NEGOTIATING_RATE,10622,CHI,3.4482758620689653,per_100_turns,"count of negotiating sentence-final particles per 100 turns; patterns=['よね', 'かな', 'だよね', 'じゃない?', 'じゃない？', 'じゃないよね', 'よ', 'ね']"
+SFP_NEGOTIATING_RATE,10622,MOT,0.0,per_100_turns,"count of negotiating sentence-final particles per 100 turns; patterns=['よね', 'かな', 'だよね', 'じゃない?', 'じゃない？', 'じゃないよね', 'よ', 'ね']"
+SFP_NEGOTIATING_RATE,10928,CHI,6.422018348623853,per_100_turns,"count of negotiating sentence-final particles per 100 turns; patterns=['よね', 'かな', 'だよね', 'じゃない?', 'じゃない？', 'じゃないよね', 'よ', 'ね']"
+SFP_NEGOTIATING_RATE,10928,MOT,11.992263056092844,per_100_turns,"count of negotiating sentence-final particles per 100 turns; patterns=['よね', 'かな', 'だよね', 'じゃない?', 'じゃない？', 'じゃないよね', 'よ', 'ね']"
+SFP_NEGOTIATING_RATE,11025,CHI,5.714285714285714,per_100_turns,"count of negotiating sentence-final particles per 100 turns; patterns=['よね', 'かな', 'だよね', 'じゃない?', 'じゃない？', 'じゃないよね', 'よ', 'ね']"
+SFP_NEGOTIATING_RATE,11025,MOT,18.29268292682927,per_100_turns,"count of negotiating sentence-final particles per 100 turns; patterns=['よね', 'かな', 'だよね', 'じゃない?', 'じゃない？', 'じゃないよね', 'よ', 'ね']"
+SFP_NEGOTIATING_RATE,20213,CHI,0.0,per_100_turns,"count of negotiating sentence-final particles per 100 turns; patterns=['よね', 'かな', 'だよね', 'じゃない?', 'じゃない？', 'じゃないよね', 'よ', 'ね']"
+SFP_NEGOTIATING_RATE,20213,MOT,0.0,per_100_turns,"count of negotiating sentence-final particles per 100 turns; patterns=['よね', 'かな', 'だよね', 'じゃない?', 'じゃない？', 'じゃないよね', 'よ', 'ね']"
+SFP_NEGOTIATING_RATE,20319,CHI,5.714285714285714,per_100_turns,"count of negotiating sentence-final particles per 100 turns; patterns=['よね', 'かな', 'だよね', 'じゃない?', 'じゃない？', 'じゃないよね', 'よ', 'ね']"
+SFP_NEGOTIATING_RATE,20319,MOT,13.88888888888889,per_100_turns,"count of negotiating sentence-final particles per 100 turns; patterns=['よね', 'かな', 'だよね', 'じゃない?', 'じゃない？', 'じゃないよね', 'よ', 'ね']"
+SPEECH_RATE,10129,CHI,10.74849977505336,per_sec,mean speech rate from prosody.csv (column='speech_rate')
+SPEECH_RATE,10129,MOT,10.59054295224554,per_sec,mean speech rate from prosody.csv (column='speech_rate')
+SPEECH_RATE,10225,CHI,10.443236839436551,per_sec,mean speech rate from prosody.csv (column='speech_rate')
+SPEECH_RATE,10225,MOT,10.209492822966508,per_sec,mean speech rate from prosody.csv (column='speech_rate')
+SPEECH_RATE,10421,CHI,10.89704087743602,per_sec,mean speech rate from prosody.csv (column='speech_rate')
+SPEECH_RATE,10421,MOT,10.650655401675296,per_sec,mean speech rate from prosody.csv (column='speech_rate')
+SPEECH_RATE,10622,CHI,10.473612635364235,per_sec,mean speech rate from prosody.csv (column='speech_rate')
+SPEECH_RATE,10622,MOT,10.07310875236454,per_sec,mean speech rate from prosody.csv (column='speech_rate')
+SPEECH_RATE,10928,CHI,9.764302955019236,per_sec,mean speech rate from prosody.csv (column='speech_rate')
+SPEECH_RATE,10928,MOT,9.627785118723946,per_sec,mean speech rate from prosody.csv (column='speech_rate')
+SPEECH_RATE,11025,CHI,10.673645984709673,per_sec,mean speech rate from prosody.csv (column='speech_rate')
+SPEECH_RATE,11025,MOT,10.358791707571005,per_sec,mean speech rate from prosody.csv (column='speech_rate')
+SPEECH_RATE,20213,CHI,10.685574691540078,per_sec,mean speech rate from prosody.csv (column='speech_rate')
+SPEECH_RATE,20213,MOT,10.686402374924992,per_sec,mean speech rate from prosody.csv (column='speech_rate')
+SPEECH_RATE,20319,CHI,10.64129351585234,per_sec,mean speech rate from prosody.csv (column='speech_rate')
+SPEECH_RATE,20319,MOT,10.512652449920768,per_sec,mean speech rate from prosody.csv (column='speech_rate')
+TT_GAP_MEAN,10129,CHI,0.2857142857142857,sec,"mean max(0, gap) where next speaker=CHI, |gap| <= 10.0"
+TT_GAP_MEAN,10129,MOT,0.5555555555555556,sec,"mean max(0, gap) where next speaker=MOT, |gap| <= 10.0"
+TT_GAP_MEAN,10225,CHI,0.625,sec,"mean max(0, gap) where next speaker=CHI, |gap| <= 10.0"
+TT_GAP_MEAN,10225,MOT,0.7222222222222222,sec,"mean max(0, gap) where next speaker=MOT, |gap| <= 10.0"
+TT_GAP_MEAN,10421,CHI,1.1208000000000016,sec,"mean max(0, gap) where next speaker=CHI, |gap| <= 10.0"
+TT_GAP_MEAN,10421,MOT,1.111818181818181,sec,"mean max(0, gap) where next speaker=MOT, |gap| <= 10.0"
+TT_GAP_MEAN,10622,CHI,0.0,sec,"mean max(0, gap) where next speaker=CHI, |gap| <= 10.0"
+TT_GAP_MEAN,10622,MOT,1.0,sec,"mean max(0, gap) where next speaker=MOT, |gap| <= 10.0"
+TT_GAP_MEAN,10928,CHI,1.0476190476190477,sec,"mean max(0, gap) where next speaker=CHI, |gap| <= 10.0"
+TT_GAP_MEAN,10928,MOT,0.9059523809523811,sec,"mean max(0, gap) where next speaker=MOT, |gap| <= 10.0"
+TT_GAP_MEAN,11025,CHI,1.4516129032258065,sec,"mean max(0, gap) where next speaker=CHI, |gap| <= 10.0"
+TT_GAP_MEAN,11025,MOT,0.8064516129032258,sec,"mean max(0, gap) where next speaker=MOT, |gap| <= 10.0"
+TT_GAP_MEAN,20213,CHI,0.047619047619047616,sec,"mean max(0, gap) where next speaker=CHI, |gap| <= 10.0"
+TT_GAP_MEAN,20213,MOT,0.09523809523809523,sec,"mean max(0, gap) where next speaker=MOT, |gap| <= 10.0"
+TT_GAP_MEAN,20319,CHI,0.5268817204301075,sec,"mean max(0, gap) where next speaker=CHI, |gap| <= 10.0"
+TT_GAP_MEAN,20319,MOT,0.20212765957446807,sec,"mean max(0, gap) where next speaker=MOT, |gap| <= 10.0"
+TT_OVERLAP_RATE,10129,CHI,0.0,percent,"percentage of turn transitions to CHI where gap < 0 (overlap), |gap| <= 10.0"
+TT_OVERLAP_RATE,10129,MOT,0.0,percent,"percentage of turn transitions to MOT where gap < 0 (overlap), |gap| <= 10.0"
+TT_OVERLAP_RATE,10225,CHI,0.0,percent,"percentage of turn transitions to CHI where gap < 0 (overlap), |gap| <= 10.0"
+TT_OVERLAP_RATE,10225,MOT,0.0,percent,"percentage of turn transitions to MOT where gap < 0 (overlap), |gap| <= 10.0"
+TT_OVERLAP_RATE,10421,CHI,0.0,percent,"percentage of turn transitions to CHI where gap < 0 (overlap), |gap| <= 10.0"
+TT_OVERLAP_RATE,10421,MOT,0.0,percent,"percentage of turn transitions to MOT where gap < 0 (overlap), |gap| <= 10.0"
+TT_OVERLAP_RATE,10622,CHI,0.0,percent,"percentage of turn transitions to CHI where gap < 0 (overlap), |gap| <= 10.0"
+TT_OVERLAP_RATE,10622,MOT,0.0,percent,"percentage of turn transitions to MOT where gap < 0 (overlap), |gap| <= 10.0"
+TT_OVERLAP_RATE,10928,CHI,0.0,percent,"percentage of turn transitions to CHI where gap < 0 (overlap), |gap| <= 10.0"
+TT_OVERLAP_RATE,10928,MOT,0.0,percent,"percentage of turn transitions to MOT where gap < 0 (overlap), |gap| <= 10.0"
+TT_OVERLAP_RATE,11025,CHI,0.0,percent,"percentage of turn transitions to CHI where gap < 0 (overlap), |gap| <= 10.0"
+TT_OVERLAP_RATE,11025,MOT,0.0,percent,"percentage of turn transitions to MOT where gap < 0 (overlap), |gap| <= 10.0"
+TT_OVERLAP_RATE,20213,CHI,0.0,percent,"percentage of turn transitions to CHI where gap < 0 (overlap), |gap| <= 10.0"
+TT_OVERLAP_RATE,20213,MOT,0.0,percent,"percentage of turn transitions to MOT where gap < 0 (overlap), |gap| <= 10.0"
+TT_OVERLAP_RATE,20319,CHI,0.0,percent,"percentage of turn transitions to CHI where gap < 0 (overlap), |gap| <= 10.0"
+TT_OVERLAP_RATE,20319,MOT,0.0,percent,"percentage of turn transitions to MOT where gap < 0 (overlap), |gap| <= 10.0"

@@ -1,0 +1,4 @@
+keep_role,drop_role,keep_start,keep_end,drop_start,drop_end,keep_text,drop_text
+CHI,MOT,855.12,857.12,857.12,859.12,ダンプカー,ダンプカー
+MOT,CHI,1823.12,1827.12,1827.12,1831.12,ピポピポ ピポピポ,ピポピポ ピポピポ
+MOT,CHI,1983.12,1985.12,1985.12,1987.12,カバー,カバー

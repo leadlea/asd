@@ -1,9 +1,0 @@
-openai-whisper
-webrtcvad
-librosa
-resampy
-jinja2
-fugashi
-unidic-lite
-scikit-learn
-soundfile
