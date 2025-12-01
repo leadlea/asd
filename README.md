@@ -341,3 +341,6 @@ GitHub に push すると、`https://leadlea.github.io/asd/` が更新されま�
   * 「本命指標」「補助指標」「参考指標」の層別
 
   を行うことを想定しています。
+
+- 関連論文調査レポート：CEJC・CSJを活用した語用論／発達障害研究
+  👉 https://leadlea.github.io/asd/corpas_paper.html
