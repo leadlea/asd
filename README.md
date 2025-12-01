@@ -29,7 +29,7 @@ GitHub Pages のトップ（`https://leadlea.github.io/asd/`）は、
    - 各指標について、**セッション間の相対的な高さ**を色（ラベンダー〜パープル）で可視化。
    - CHI 用と MOT 用を別パネルで表示。
 
-- Nanami Pragmatics Dashboard（ガイド資料） 
+- Nanami Pragmatics Dashboard（ガイド資料）  
   👉 https://leadlea.github.io/asd/nanami_pragmatics_dashboard_guide.html
 
 ---
@@ -82,22 +82,26 @@ out/audio/Nanami/
   * 出典: `pragmatics.csv`
   * 定義: ターン間のギャップ時間（秒）の平均
   * 単位: 秒
+
 * **TT_OVERLAP_RATE**
 
   * 出典: `pragmatics.csv`
   * 定義: オーバーラップしたターンの割合
   * 単位: `%`
+
 * **FILLER_RATE**
 
   * 出典: `pragmatics.csv`（`segments.text` ベース）
   * 定義: `['えー', 'えぇ', 'えっと', 'えと', 'あの', 'そのー', 'その…', 'うーん', 'うんと', 'まー', 'まあ']`
     にマッチするフィラー出現数 / 100トークン
   * 単位: `per_100_tokens`
+
 * **SFP_NEGOTIATING_RATE**
 
   * 出典: `pragmatics.csv`（`segments.text` ベース）
   * 定義: 交渉的終助詞（例: 「〜よね」「〜でしょ」「〜かな」「〜かも」など）を含むターン数 / 100ターン
   * 単位: `per_100_turns`
+
 * **QUESTION_RATE**
 
   * 出典: `segments.csv`
@@ -111,11 +115,13 @@ out/audio/Nanami/
   * 出典: `prosody.csv`
   * 定義: 発話速度（`tokens/sec` など）
   * 単位: `per_sec`
+
 * **PAUSE_RATIO**
 
   * 出典: `prosody.csv` の `pause_p95`
   * 定義: 発話中のポーズ長を代表する 95 パーセンタイル値
   * 単位: 任意スケール（秒相当・無次元のいずれか）
+
 * **F0_SD**
 
   * 出典: `prosody.csv` の `f0_sd`
@@ -144,7 +150,8 @@ out/audio/Nanami/
 
     * 必要なテーブル・列が揃っているか（available / needs_annotation など）
     * 実際に値が算出されているか
-      を `nanami_metric_session_coverage.csv` に出力
+
+    を `nanami_metric_session_coverage.csv` に出力
 
 出力例（ヘッダ）:
 
@@ -189,6 +196,50 @@ F0_SD,10129,CHI,108.86,Hz,...
 2. 語用論・プロソディ指標のサマリテーブル（1セル2段表示）
 3. 指標 × セッションのヒートマップ（CHI 用 / MOT 用）
 
+### 4.5 音声解析パイプライン（`audio_mvp/` ＋ `run_nanami.sh`）
+
+Nanami/TYP の元音声（mp3）から `turns.csv` / `segments.csv` / `prosody.csv` 等を作る部分は
+`audio_mvp/` 以下のスクリプトと、ループ用シェルスクリプト `run_nanami.sh` で構成されています。
+
+#### 単一ファイルを解析する例
+
+```bash
+python audio_mvp/audio_analyze.py \
+  --audio-in audio/Nanami/10129.mp3 \
+  --out-dir out/audio/Nanami/10129
+```
+
+#### mp3 をループで一括解析する例（ワンライナー）
+
+`audio/Nanami/*.mp3` を全部処理して、
+`out/audio/Nanami/<session_id>/...` に結果を書き出すシェルループは以下の通りです。
+
+```bash
+for f in audio/Nanami/*.mp3; do
+  stem=$(basename "$f" .mp3)
+  python audio_mvp/audio_analyze.py \
+    --audio-in "$f" \
+    --out-dir "out/audio/Nanami/$stem"
+done
+```
+
+#### `run_nanami.sh` を使う場合
+
+同等の処理を行うラッパースクリプトとして `run_nanami.sh` を用意しています。
+
+```bash
+# 必要に応じて Hugging Face のトークンやデバイスを指定
+export HF_TOKEN=hf_xxxxxxxxxxxxxxxxxxxxxxxxxxxxx    # 自分のトークンを設定
+export WHISPER_DEVICE=mps                           # CPU の場合は "cpu"
+export PYANNOTE_DEVICE=cpu                          # MPS が不安定な場合は cpu 推奨
+
+# Nanami の mp3 を一括解析
+bash run_nanami.sh
+
+# 実行後：
+# out/audio/Nanami/<session_id>/report.html などが生成されます
+```
+
 ---
 
 ## 5. 再現手順（Quickstart）
@@ -204,13 +255,51 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### 5.2 Nanami 出力の準備
+### 5.2 Nanami 音声（mp3）から解析結果を生成する
 
-* 別途用意したパイプライン（例: `jp_pipeline/` や `run_nanami.sh`）を通して、
-  `out/audio/Nanami/<session_id>/turns.csv`, `segments.csv`, `prosody.csv` 等を生成しておきます。
-* 詳細はプロジェクト内のスクリプト・メモを参照。
+1. Nanami/TYP の mp3 を、セッション ID をファイル名として配置します。
+
+   ```text
+   audio/Nanami/
+     ├── 10129.mp3
+     ├── 10225.mp3
+     ├── 10421.mp3
+     ├── 10622.mp3
+     ├── 10928.mp3
+     ├── 11025.mp3
+     ├── 20213.mp3
+     └── 20319.mp3
+   ```
+
+2. Hugging Face トークン（pyannote 用）とデバイス設定を環境変数で指定し、
+   `run_nanami.sh` もしくは上記の `for` ループを実行します。
+
+   ```bash
+   export HF_TOKEN=hf_xxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+   export WHISPER_DEVICE=mps   # or cpu
+   export PYANNOTE_DEVICE=cpu  # or mps
+
+   # 推奨：ラッパースクリプトで一括実行
+   bash run_nanami.sh
+   ```
+
+   もしくはシェルループで直接実行：
+
+   ```bash
+   for f in audio/Nanami/*.mp3; do
+     stem=$(basename "$f" .mp3)
+     python audio_mvp/audio_analyze.py \
+       --audio-in "$f" \
+       --out-dir "out/audio/Nanami/$stem"
+   done
+   ```
+
+   実行が完了すると、`out/audio/Nanami/<session_id>/` 以下に
+   `turns.csv`, `segments.csv`, `prosody.csv`, `pragmatics.csv`, `report.html` などが生成されます。
 
 ### 5.3 指標計算・ダッシュボード生成
+
+上記 5.2 で Nanami 出力が揃った前提で、指標計算とダッシュボード生成を行います。
 
 ```bash
 # 1) 指標計算（nanami_metric_results.csv）
@@ -237,15 +326,18 @@ GitHub に push すると、`https://leadlea.github.io/asd/` が更新されま�
 ## 6. 共同研究・今後の拡張のためのメモ
 
 * 本ダッシュボードはあくまで **exploratory なプロトタイプ** です。
+
 * CSJ / CEJC を用いたスケールアウト時には、
 
   * 指標定義の精緻化（終助詞・談話標識のラベリング精度向上）
   * prosody 指標の妥当性検証（録音条件・話者属性差を踏まえた正規化）
   * ASD / TD / その他臨床群との比較設計（年齢・課題条件のマッチング）
-    などが必要になります。
+
+  などが必要になります。
+
 * 研究メンバーとの議論を通じて、
 
   * **臨床的に有意義な指標セットの絞り込み**
   * 「本命指標」「補助指標」「参考指標」の層別
-    を行うことを想定しています。
 
+  を行うことを想定しています。
