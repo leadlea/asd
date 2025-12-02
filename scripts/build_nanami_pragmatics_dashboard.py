@@ -2,14 +2,15 @@
 from __future__ import annotations
 
 import argparse
+import math
 from pathlib import Path
 from typing import Dict, List
 
-import math
 import pandas as pd
 
 
 # ========= 共通ユーティリティ =========
+
 
 def load_results(results_path: Path) -> pd.DataFrame:
     df = pd.read_csv(results_path)
@@ -21,6 +22,7 @@ def load_results(results_path: Path) -> pd.DataFrame:
 
 
 # ========= BASIC_TOKENS_PER_TURN 部分 =========
+
 
 def load_basic_tokens_summary(df: pd.DataFrame) -> pd.DataFrame:
     """BASIC_TOKENS_PER_TURN を CHI / MOT / BOTH ごとに pivot した表を作る。"""
@@ -170,6 +172,7 @@ def build_stats_cards_html(stats: Dict[str, Dict[str, float]]) -> str:
 
 # ========= 精神医学系 指標一覧テーブル（CHI/MOT 同セル2段） =========
 
+
 def build_pragmatics_summary_table(
     df: pd.DataFrame,
     metrics: List[str],
@@ -177,7 +180,6 @@ def build_pragmatics_summary_table(
 ) -> str:
     """
     metrics: 指標IDのリスト
-      例: ["TT_GAP_MEAN", "TT_OVERLAP_RATE", ...]
     roles:   ["CHI", "MOT"]
     """
     # すべての session_id を集約
@@ -236,6 +238,7 @@ def build_pragmatics_summary_table(
 
 
 # ========= 指標×セッション ヒートマップ =========
+
 
 def build_pragmatics_heatmap(
     df: pd.DataFrame,
@@ -327,6 +330,7 @@ def build_pragmatics_heatmap(
 
 
 # ========= HTML 全体 =========
+
 
 def build_html(
     tokens_pivot: pd.DataFrame,
@@ -636,6 +640,43 @@ def build_html(
     .heatmap-cell {{
       text-align: right;
       font-variant-numeric: tabular-nums;
+    }}
+
+    /* ===== 画面が低いときのプレゼン用コンパクトモード ===== */
+    @media (max-height: 800px) {{
+      body {{
+        padding: 12px;
+      }}
+      .header-card {{
+        padding: 12px 16px;
+        margin-bottom: 8px;
+      }}
+      .header-text h1 {{
+        font-size: 16px;
+      }}
+      .header-text p {{
+        font-size: 11px;
+      }}
+      .card {{
+        padding: 10px 12px;
+      }}
+      .card-subtitle {{
+        display: none;  /* 長い説明文は隠す */
+      }}
+      /* 上段（トークン密度＋統計カード）は小さい画面では隠す */
+      .main-grid {{
+        display: none;
+      }}
+      /* SFPサマリ表＆ヒートマップの高さを少し圧縮 */
+      .table-wrapper {{
+        max-height: 260px;
+      }}
+      .heatmap-table-wrapper {{
+        max-height: 220px;
+      }}
+      .footer-note {{
+        display: none;
+      }}
     }}
   </style>
 </head>

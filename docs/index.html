@@ -262,6 +262,43 @@
       text-align: right;
       font-variant-numeric: tabular-nums;
     }
+
+    /* ===== 画面が低いときのプレゼン用コンパクトモード ===== */
+    @media (max-height: 800px) {
+      body {
+        padding: 12px;
+      }
+      .header-card {
+        padding: 12px 16px;
+        margin-bottom: 8px;
+      }
+      .header-text h1 {
+        font-size: 16px;
+      }
+      .header-text p {
+        font-size: 11px;
+      }
+      .card {
+        padding: 10px 12px;
+      }
+      .card-subtitle {
+        display: none;  /* 長い説明文は隠す */
+      }
+      /* 上段（トークン密度＋統計カード）は小さい画面では隠す */
+      .main-grid {
+        display: none;
+      }
+      /* SFPサマリ表＆ヒートマップの高さを少し圧縮 */
+      .table-wrapper {
+        max-height: 260px;
+      }
+      .heatmap-table-wrapper {
+        max-height: 220px;
+      }
+      .footer-note {
+        display: none;
+      }
+    }
   </style>
 </head>
 <body>
