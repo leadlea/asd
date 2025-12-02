@@ -14,11 +14,10 @@
 !config/
 !config/pragmatics_index_catalog.csv
 
-# scripts: Nanami pragmatics 用の 3 本だけ
+# scripts: Nanami pragmatics 用のスクリプト
 !scripts/
-!scripts/build_nanami_metric_coverage.py
-!scripts/calc_nanami_pragmatics_metrics.py
-!scripts/build_nanami_pragmatics_dashboard.py
+!scripts/*.py
+
 # audio_mvp: 音声解析スクリプト
 !audio_mvp/
 !audio_mvp/*.py

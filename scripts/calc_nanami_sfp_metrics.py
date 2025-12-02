@@ -103,6 +103,11 @@ AIZUCHI_LEMMAS = {
 def load_all_segments(nanami_root: str, corpus_name: str = "Nanami") -> pd.DataFrame:
     """
     out/audio/Nanami/<session_id>/segments.csv をすべて読み込んで結合する。
+
+    - session_id: ディレクトリ名から付与
+    - text: 発話テキスト列として必須
+    - role: なければ speaker_role / speaker を使って補完し、
+            それもなければ 'BOTH' を入れる
     """
     all_rows = []
     for name in sorted(os.listdir(nanami_root)):
@@ -125,10 +130,22 @@ def load_all_segments(nanami_root: str, corpus_name: str = "Nanami") -> pd.DataF
 
     df_all = pd.concat(all_rows, ignore_index=True)
 
-    # 必須カラムの最低限チェック（なければエラーにして利用者側で直す）
-    for col in ["session_id", "role", "text"]:
+    # --- 必須カラム（session_id, text）だけ厳密チェック ---
+    for col in ["session_id", "text"]:
         if col not in df_all.columns:
-            raise RuntimeError(f"segments.csv に '{col}' カラムが必要です（コード内で調整してください）。")
+            raise RuntimeError(
+                f"segments.csv に '{col}' カラムが必要です（コード内で調整してください）。"
+            )
+
+    # --- role 列の補完ロジック ---
+    if "role" not in df_all.columns:
+        if "speaker_role" in df_all.columns:
+            df_all["role"] = df_all["speaker_role"]
+        elif "speaker" in df_all.columns:
+            df_all["role"] = df_all["speaker"]
+        else:
+            # 最悪のフォールバック：全て BOTH 扱い
+            df_all["role"] = "BOTH"
 
     # 並び順用の start カラム（候補名のうち存在するものを使う）
     for cand in ["start_sec", "start_time", "start", "onset"]:
@@ -244,7 +261,9 @@ def build_response_pairs(df_segments: pd.DataFrame) -> pd.DataFrame:
         )
 
     if not rows:
-        return pd.DataFrame(columns=["session_id", "prev_role", "prev_sfp_group", "next_role", "next_first_token"])
+        return pd.DataFrame(
+            columns=["session_id", "prev_role", "prev_sfp_group", "next_role", "next_first_token"]
+        )
 
     return pd.DataFrame(rows)
 
@@ -271,7 +290,10 @@ def compute_response_metrics(df_pairs: pd.DataFrame) -> pd.DataFrame:
         # NE: あいづち率 + エントロピー
         if n_ne > 0:
             # あいづち率
-            n_aizuchi = sum(1 for t in g_ne["next_first_token"].astype(str) if t in AIZUCHI_LEMMAS)
+            n_aizuchi = sum(
+                1 for t in g_ne["next_first_token"].astype(str)
+                if t in AIZUCHI_LEMMAS
+            )
             resp_ne_aizuchi_rate = float(n_aizuchi) / float(n_ne)
 
             # エントロピー
@@ -324,7 +346,9 @@ def compute_response_metrics(df_pairs: pd.DataFrame) -> pd.DataFrame:
             )
 
     if not metrics:
-        return pd.DataFrame(columns=["metric_id", "session_id", "speaker_role", "value", "unit", "notes"])
+        return pd.DataFrame(
+            columns=["metric_id", "session_id", "speaker_role", "value", "unit", "notes"]
+        )
 
     return pd.DataFrame(metrics)
 
