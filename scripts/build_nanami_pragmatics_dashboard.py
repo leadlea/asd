@@ -340,40 +340,47 @@ def build_html(
     tokens_rows_html = build_tokens_rows_html(tokens_pivot, max_display=40.0)
     stats_html = build_stats_cards_html(stats_basic)
 
-    # 会話タイミング・フィラー・質問・プロソディ + 終助詞プロファイル + 応答パターン
-    metrics_for_prag = [
-        # ターン交替・フィラー・質問
+    # 「終助詞以外」と「終助詞系」に分割
+    metrics_other = [
         "TT_GAP_MEAN",
         "TT_OVERLAP_RATE",
         "FILLER_RATE",
         "QUESTION_RATE",
+        "SPEECH_RATE",
+        "PAUSE_RATIO",
+        "F0_SD",
+    ]
+
+    metrics_sfp = [
         "SFP_NEGOTIATING_RATE",
-        # 終助詞プロファイル
         "SFP_NE_RATE",
         "SFP_NE_Q_RATE",
         "SFP_YO_RATE",
         "SFP_NA_RATE",
         "SFP_NO_RATE",
         "SFP_MON_RATE",
-        # 応答パターン
         "RESP_NE_AIZUCHI_RATE",
         "RESP_NE_ENTROPY",
         "RESP_YO_ENTROPY",
-        # プロソディ
-        "SPEECH_RATE",
-        "PAUSE_RATIO",
-        "F0_SD",
     ]
 
-    prag_table_html = build_pragmatics_summary_table(
+    # heatmap 用は全部まとめて
+    metrics_for_heatmap = metrics_other + metrics_sfp
+
+    prag_table_other_html = build_pragmatics_summary_table(
         df_all,
-        metrics=metrics_for_prag,
+        metrics=metrics_other,
+        roles=["CHI", "MOT"],
+    )
+    prag_table_sfp_html = build_pragmatics_summary_table(
+        df_all,
+        metrics=metrics_sfp,
         roles=["CHI", "MOT"],
     )
 
     heatmap_html = build_pragmatics_heatmap(
         df_all,
-        metrics=metrics_for_prag,
+        metrics=metrics_for_heatmap,
         roles=["CHI", "MOT"],
     )
 
@@ -482,12 +489,6 @@ def build_html(
     }}
     body.compact .main-grid {{
       display: none;
-    }}
-    body.compact .table-wrapper {{
-      max-height: 260px;
-    }}
-    body.compact .heatmap-table-wrapper {{
-      max-height: 220px;
     }}
     body.compact .footer-note {{
       display: none;
@@ -598,10 +599,11 @@ def build_html(
     }}
 
     .table-wrapper {{
-      margin-top: 4px; max-height: 420px; overflow: auto;
+      margin-top: 4px;
       border-radius: 10px;
       border: 1px solid rgba(148, 163, 184, 0.6);
       background: #f9fafb;
+      overflow: visible;
     }}
     table {{ width: 100%; border-collapse: collapse; font-size: 11px; }}
     thead {{ background: #eef2ff; position: sticky; top: 0; z-index: 1; }}
@@ -649,6 +651,13 @@ def build_html(
       font-size: 11px;
     }}
 
+    .subsection-title {{
+      margin: 8px 0 4px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+    }}
+
     /* Heatmap styles */
     .heatmap-grid {{
       display: grid;
@@ -674,8 +683,7 @@ def build_html(
       margin-bottom: 6px;
     }}
     .heatmap-table-wrapper {{
-      max-height: 260px;
-      overflow: auto;
+      overflow: visible;
       border-radius: 8px;
     }}
     .heatmap-table {{
@@ -804,18 +812,16 @@ def build_html(
             精神医学に関連する語用論・プロソディ・終助詞指標サマリ
           </div>
           <div class="card-subtitle">
-            ターン交替のタイミング（TT_GAP_MEAN, TT_OVERLAP_RATE）、
-            フィラー率（FILLER_RATE）、
-            質問率（QUESTION_RATE）、
-            交渉的終助詞率（SFP_NEGOTIATING_RATE）に加え、
-            終助詞プロファイル（SFP_NE_RATE, SFP_NE_Q_RATE, SFP_YO_RATE, SFP_NA_RATE, SFP_NO_RATE, SFP_MON_RATE）と
-            「ね」「よ」への応答パターン（RESP_NE_AIZUCHI_RATE, RESP_NE_ENTROPY, RESP_YO_ENTROPY）、
-            プロソディ指標（SPEECH_RATE, PAUSE_RATIO, F0_SD）を
-            CHI / MOT ごとに 1 セル 2 段で一覧表示します。
+            まず「タイミング・フィラー・質問・プロソディ」をまとめたテーブル、
+            続いて「終助詞プロファイル＋終助詞への応答パターン」をまとめたテーブルを
+            CHI / MOT ごとに 1 セル 2 段で表示します。
           </div>
         </div>
       </div>
-      {prag_table_html}
+      <div class="subsection-title">① 終助詞以外（タイミング / フィラー / 質問 / プロソディ）</div>
+      {prag_table_other_html}
+      <div class="subsection-title">② 終助詞系（終助詞プロファイル + 応答パターン）</div>
+      {prag_table_sfp_html}
       <div class="footer-note">
         <strong>単位:</strong>
         <code>TT_GAP_MEAN</code> = 秒,
@@ -823,15 +829,15 @@ def build_html(
         <code>FILLER_RATE</code> = フィラー出現数 / 100トークン,
         <code>SFP_NEGOTIATING_RATE</code> = 交渉的な終助詞を含むターン数 / 100ターン,
         <code>QUESTION_RATE</code> = 質問とみなされたターン数 / 100ターン,<br/>
+        <code>SPEECH_RATE</code> = 発話速度 (per_sec),
+        <code>PAUSE_RATIO</code> = ポーズ代表値 (pause_p95 ベース),
+        <code>F0_SD</code> = F0 の標準偏差 (Hz)。<br/>
         <code>SFP_NE_RATE</code>, <code>SFP_NE_Q_RATE</code>, <code>SFP_YO_RATE</code>,
         <code>SFP_NA_RATE</code>, <code>SFP_NO_RATE</code>, <code>SFP_MON_RATE</code> =
         文末が各終助詞グループで終わる発話の割合（0〜1 の ratio）,<br/>
         <code>RESP_NE_AIZUCHI_RATE</code> = 「ね」系終助詞（NE / NE_Q）直後に典型的あいづち語で応答した割合（0〜1 の ratio）,<br/>
         <code>RESP_NE_ENTROPY</code>, <code>RESP_YO_ENTROPY</code> =
-        「ね」「よ」に対する応答の 1語目の分布のエントロピー（Shannon entropy, log2, float）,<br/>
-        <code>SPEECH_RATE</code> = 発話速度 (per_sec),
-        <code>PAUSE_RATIO</code> = ポーズ代表値 (pause_p95 ベース),
-        <code>F0_SD</code> = F0 の標準偏差 (Hz)。<br/>
+        「ね」「よ」に対する応答の 1語目の分布のエントロピー（Shannon entropy, log2, float）。<br/>
         これらは ASD/TD 間や介入前後の比較など、計算論的精神医学の文脈で有用とされる指標群です。
       </div>
     </div>
