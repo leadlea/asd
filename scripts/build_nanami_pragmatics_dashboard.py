@@ -430,6 +430,69 @@ def build_html(
       width: 7px; height: 7px; border-radius: 999px;
       background: #22c55e; box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.4);
     }}
+
+    .header-right {{
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 8px;
+    }}
+    .view-toggle {{
+      display: inline-flex;
+      padding: 3px;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.25);
+      box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.25);
+    }}
+    .view-btn {{
+      border: none;
+      background: transparent;
+      color: #e5e7eb;
+      font-size: 11px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      cursor: pointer;
+      opacity: 0.75;
+      transition: background 0.15s ease, opacity 0.15s ease;
+    }}
+    .view-btn.active {{
+      background: rgba(248, 250, 252, 0.16);
+      opacity: 1;
+    }}
+
+    /* 概要ビュー（compact）のスタイル */
+    body.compact {{
+      padding: 16px;
+    }}
+    body.compact .header-card {{
+      padding: 14px 18px;
+      margin-bottom: 8px;
+    }}
+    body.compact .header-text h1 {{
+      font-size: 18px;
+    }}
+    body.compact .header-text p {{
+      font-size: 12px;
+    }}
+    body.compact .card {{
+      padding: 12px 14px;
+    }}
+    body.compact .card-subtitle {{
+      display: none;
+    }}
+    body.compact .main-grid {{
+      display: none;
+    }}
+    body.compact .table-wrapper {{
+      max-height: 260px;
+    }}
+    body.compact .heatmap-table-wrapper {{
+      max-height: 220px;
+    }}
+    body.compact .footer-note {{
+      display: none;
+    }}
+
     .main-grid {{
       margin-top: 20px;
       display: grid;
@@ -641,46 +704,9 @@ def build_html(
       text-align: right;
       font-variant-numeric: tabular-nums;
     }}
-
-    /* ===== 画面が低いときのプレゼン用コンパクトモード ===== */
-    @media (max-height: 800px) {{
-      body {{
-        padding: 12px;
-      }}
-      .header-card {{
-        padding: 12px 16px;
-        margin-bottom: 8px;
-      }}
-      .header-text h1 {{
-        font-size: 16px;
-      }}
-      .header-text p {{
-        font-size: 11px;
-      }}
-      .card {{
-        padding: 10px 12px;
-      }}
-      .card-subtitle {{
-        display: none;  /* 長い説明文は隠す */
-      }}
-      /* 上段（トークン密度＋統計カード）は小さい画面では隠す */
-      .main-grid {{
-        display: none;
-      }}
-      /* SFPサマリ表＆ヒートマップの高さを少し圧縮 */
-      .table-wrapper {{
-        max-height: 260px;
-      }}
-      .heatmap-table-wrapper {{
-        max-height: 220px;
-      }}
-      .footer-note {{
-        display: none;
-      }}
-    }}
   </style>
 </head>
-<body>
+<body class="compact">
   <div class="container">
     <div class="header-card">
       <div class="header-text">
@@ -694,7 +720,11 @@ def build_html(
           <strong>会話タイミング・フィラー・交渉的終助詞・終助詞プロファイル・終助詞への応答パターン・質問・プロソディ</strong>に関する指標をまとめたダッシュボードです。
         </p>
       </div>
-      <div>
+      <div class="header-right">
+        <div class="view-toggle">
+          <button class="view-btn active" data-mode="summary">概要ビュー</button>
+          <button class="view-btn" data-mode="detail">詳細ビュー</button>
+        </div>
         <div style="font-size:12px; text-align:right; opacity:.9;">source: nanami_metric_results.csv</div>
       </div>
     </div>
@@ -826,6 +856,36 @@ def build_html(
       </div>
     </div>
   </div>
+  <script>
+    document.addEventListener("DOMContentLoaded", function() {{
+      const body = document.body;
+      const buttons = document.querySelectorAll(".view-btn");
+
+      function setMode(mode) {{
+        if (mode === "summary") {{
+          body.classList.add("compact");
+        }} else {{
+          body.classList.remove("compact");
+        }}
+        buttons.forEach(function(btn) {{
+          if (btn.dataset.mode === mode) {{
+            btn.classList.add("active");
+          }} else {{
+            btn.classList.remove("active");
+          }}
+        }});
+      }}
+
+      buttons.forEach(function(btn) {{
+        btn.addEventListener("click", function() {{
+          setMode(this.dataset.mode);
+        }});
+      }});
+
+      // 初期状態: 概要ビュー
+      setMode("summary");
+    }});
+  </script>
 </body>
 </html>
 """
