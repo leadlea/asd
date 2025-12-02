@@ -336,12 +336,26 @@ def build_html(
     tokens_rows_html = build_tokens_rows_html(tokens_pivot, max_display=40.0)
     stats_html = build_stats_cards_html(stats_basic)
 
+    # 会話タイミング・フィラー・質問・プロソディ + 終助詞プロファイル + 応答パターン
     metrics_for_prag = [
+        # ターン交替・フィラー・質問
         "TT_GAP_MEAN",
         "TT_OVERLAP_RATE",
         "FILLER_RATE",
-        "SFP_NEGOTIATING_RATE",
         "QUESTION_RATE",
+        "SFP_NEGOTIATING_RATE",
+        # 終助詞プロファイル
+        "SFP_NE_RATE",
+        "SFP_NE_Q_RATE",
+        "SFP_YO_RATE",
+        "SFP_NA_RATE",
+        "SFP_NO_RATE",
+        "SFP_MON_RATE",
+        # 応答パターン
+        "RESP_NE_AIZUCHI_RATE",
+        "RESP_NE_ENTROPY",
+        "RESP_YO_ENTROPY",
+        # プロソディ
         "SPEECH_RATE",
         "PAUSE_RATIO",
         "F0_SD",
@@ -363,7 +377,7 @@ def build_html(
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
-  <title>Nanami Pragmatics Dashboard – BASIC_TOKENS_PER_TURN + pragmatics</title>
+  <title>Nanami Pragmatics Dashboard – BASIC_TOKENS_PER_TURN + pragmatics (timing / SFP / response / prosody)</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
     :root {{
@@ -631,12 +645,12 @@ def build_html(
       <div class="header-text">
         <div class="badge">
           <span class="badge-dot"></span>
-          Nanami / BASIC_TOKENS_PER_TURN + pragmatics
+          Nanami / BASIC_TOKENS_PER_TURN + pragmatics (timing / SFP / response / prosody)
         </div>
         <h1>Nanami Pragmatics Dashboard</h1>
         <p>
           8セッションの母子対話について、<strong>1ターンあたりの平均トークン数</strong>と
-          <strong>会話タイミング・フィラー・交渉的終助詞・質問・プロソディ</strong>に関する指標をまとめたダッシュボードです。
+          <strong>会話タイミング・フィラー・交渉的終助詞・終助詞プロファイル・終助詞への応答パターン・質問・プロソディ</strong>に関する指標をまとめたダッシュボードです。
         </p>
       </div>
       <div>
@@ -716,12 +730,16 @@ def build_html(
         <div>
           <div class="card-title">
             <span class="icon">🧠</span>
-            精神医学に関連する語用論・プロソディ指標サマリ
+            精神医学に関連する語用論・プロソディ・終助詞指標サマリ
           </div>
           <div class="card-subtitle">
             ターン交替のタイミング（TT_GAP_MEAN, TT_OVERLAP_RATE）、
-            フィラー率（FILLER_RATE）、交渉的終助詞率（SFP_NEGOTIATING_RATE）、
-            質問率（QUESTION_RATE）、プロソディ指標（SPEECH_RATE, PAUSE_RATIO, F0_SD）を
+            フィラー率（FILLER_RATE）、
+            質問率（QUESTION_RATE）、
+            交渉的終助詞率（SFP_NEGOTIATING_RATE）に加え、
+            終助詞プロファイル（SFP_NE_RATE, SFP_NE_Q_RATE, SFP_YO_RATE, SFP_NA_RATE, SFP_NO_RATE, SFP_MON_RATE）と
+            「ね」「よ」への応答パターン（RESP_NE_AIZUCHI_RATE, RESP_NE_ENTROPY, RESP_YO_ENTROPY）、
+            プロソディ指標（SPEECH_RATE, PAUSE_RATIO, F0_SD）を
             CHI / MOT ごとに 1 セル 2 段で一覧表示します。
           </div>
         </div>
@@ -732,8 +750,14 @@ def build_html(
         <code>TT_GAP_MEAN</code> = 秒,
         <code>TT_OVERLAP_RATE</code> = %, 
         <code>FILLER_RATE</code> = フィラー出現数 / 100トークン,
-        <code>SFP_NEGOTIATING_RATE</code> = 交渉的終助詞を含むターン数 / 100ターン,
-        <code>QUESTION_RATE</code> = 質問とみなされたターン数 / 100ターン,
+        <code>SFP_NEGOTIATING_RATE</code> = 交渉的な終助詞を含むターン数 / 100ターン,
+        <code>QUESTION_RATE</code> = 質問とみなされたターン数 / 100ターン,<br/>
+        <code>SFP_NE_RATE</code>, <code>SFP_NE_Q_RATE</code>, <code>SFP_YO_RATE</code>,
+        <code>SFP_NA_RATE</code>, <code>SFP_NO_RATE</code>, <code>SFP_MON_RATE</code> =
+        文末が各終助詞グループで終わる発話の割合（0〜1 の ratio）,<br/>
+        <code>RESP_NE_AIZUCHI_RATE</code> = 「ね」系終助詞（NE / NE_Q）直後に典型的あいづち語で応答した割合（0〜1 の ratio）,<br/>
+        <code>RESP_NE_ENTROPY</code>, <code>RESP_YO_ENTROPY</code> =
+        「ね」「よ」に対する応答の 1語目の分布のエントロピー（Shannon entropy, log2, float）,<br/>
         <code>SPEECH_RATE</code> = 発話速度 (per_sec),
         <code>PAUSE_RATIO</code> = ポーズ代表値 (pause_p95 ベース),
         <code>F0_SD</code> = F0 の標準偏差 (Hz)。<br/>
