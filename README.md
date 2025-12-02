@@ -59,8 +59,20 @@ out/audio/Nanami/
   └── 20319/
 ````
 
-本 README で述べるスクリプトは、上記のような Nanami 出力が
-すでに揃っていることを前提としています。
+* `turns.csv`
+
+  * 1 行 = 1 「ターン」（話者交替境界を基準としたまとまり）
+  * 各ターンについて、トークン数・発話時間・平均 F0 などを記録
+* `segments.csv`
+
+  * 1 行 = 1 「セグメント」（短い発話断片）
+  * 元々は ASR / diarization 出力からの派生
+* `prosody.csv`
+
+  * ターン単位での F0, エネルギー, ポーズ長などの要約指標
+* `pragmatics.csv`
+
+  * 上記を統合した、語用論・タイミング系の派生指標
 
 ---
 
@@ -96,11 +108,17 @@ out/audio/Nanami/
     にマッチするフィラー出現数 / 100トークン
   * 単位: `per_100_tokens`
 
-* **SFP_NEGOTIATING_RATE**
+* **SFP_ALL_RATE**
 
-  * 出典: `pragmatics.csv`（`segments.text` ベース）
-  * 定義: 交渉的終助詞（例: 「〜よね」「〜でしょ」「〜かな」「〜かも」など）を含むターン数 / 100ターン
-  * 単位: `per_100_turns`
+  * 出典: `segments.csv`
+  * 定義: 文末に終助詞（よ・ね・な・ぞ など）を含む発話の割合
+  * 単位: `ratio`（0〜1）
+
+* **DM_DEMO_RATE**
+
+  * 出典: `segments.csv`
+  * 定義: 「でも」で始まるターン（談話標識「でも」）の割合
+  * 単位: `ratio`（0〜1）
 
 * **QUESTION_RATE**
 
@@ -168,6 +186,11 @@ BASIC_TOKENS_PER_TURN,10129,CHI,ready,,,1,0,0,0,
   * `turns.csv`, `segments.csv`, `prosody.csv` などから
     各指標の値をまとめて `nanami_metric_results.csv` に整形
 
+* `scripts/calc_nanami_sfp_metrics.py`
+
+  * `out/audio/Nanami/<session_id>/segments.csv` から終助詞産出指標（SFP_*）と応答パターン指標（RESP_*）を追加で計算し、
+    既存の `nanami_metric_results.csv` を読み込んでこれらの指標行を追記したうえで、同じファイル名で書き戻す（後がけ処理）。
+
 出力例（冒頭）:
 
 ```text
@@ -179,22 +202,17 @@ FILLER_RATE,10129,CHI,0.2731,per_100_tokens,"count of filler patterns per 100 to
 ...
 QUESTION_RATE,10129,MOT,xx.x,per_100_turns,...
 SPEECH_RATE,10129,CHI,10.75,per_sec,...
-PAUSE_RATIO,10129,MOT,15.5,unitless,...
-F0_SD,10129,CHI,108.86,Hz,...
 ```
 
 ### 4.4 ダッシュボード HTML 生成
 
 * `scripts/build_nanami_pragmatics_dashboard.py`
 
-  * 入力: `out/audio/Nanami/nanami_metric_results.csv`
-  * 出力: `docs/index.html`（＝ GitHub Pages のトップ）
+  * `nanami_metric_results.csv` から、以下を含む HTML ダッシュボードを生成:
 
-主な可視化内容：
-
-1. セッション別の BASIC_TOKENS_PER_TURN（CHI / MOT / BOTH）
-2. 語用論・プロソディ指標のサマリテーブル（1セル2段表示）
-3. 指標 × セッションのヒートマップ（CHI 用 / MOT 用）
+    1. セッションごとの BASIC_TOKENS_PER_TURN バーグラフ
+    2. 語用論・プロソディ指標のサマリテーブル（1セル2段表示）
+    3. 指標 × セッションのヒートマップ（CHI 用 / MOT 用）
 
 ### 4.5 音声解析パイプライン（`audio_mvp/` ＋ `run_nanami.sh`）
 
@@ -216,7 +234,8 @@ python audio_mvp/audio_analyze.py \
 
 ```bash
 for f in audio/Nanami/*.mp3; do
-  stem=$(basename "$f" .mp3)
+  stem="$(basename "$f" .mp3)"
+  echo "Processing $stem ..."
   python audio_mvp/audio_analyze.py \
     --audio-in "$f" \
     --out-dir "out/audio/Nanami/$stem"
@@ -263,35 +282,17 @@ pip install -r requirements.txt
    audio/Nanami/
      ├── 10129.mp3
      ├── 10225.mp3
-     ├── 10421.mp3
-     ├── 10622.mp3
-     ├── 10928.mp3
-     ├── 11025.mp3
-     ├── 20213.mp3
-     └── 20319.mp3
+     ├── ...
    ```
 
-2. Hugging Face トークン（pyannote 用）とデバイス設定を環境変数で指定し、
-   `run_nanami.sh` もしくは上記の `for` ループを実行します。
+2. 上記の「音声解析パイプライン」に従って、`run_nanami.sh` またはワンライナーで解析します。
 
    ```bash
    export HF_TOKEN=hf_xxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-   export WHISPER_DEVICE=mps   # or cpu
-   export PYANNOTE_DEVICE=cpu  # or mps
+   export WHISPER_DEVICE=mps
+   export PYANNOTE_DEVICE=cpu
 
-   # 推奨：ラッパースクリプトで一括実行
    bash run_nanami.sh
-   ```
-
-   もしくはシェルループで直接実行：
-
-   ```bash
-   for f in audio/Nanami/*.mp3; do
-     stem=$(basename "$f" .mp3)
-     python audio_mvp/audio_analyze.py \
-       --audio-in "$f" \
-       --out-dir "out/audio/Nanami/$stem"
-   done
    ```
 
    実行が完了すると、`out/audio/Nanami/<session_id>/` 以下に
@@ -307,13 +308,19 @@ python scripts/calc_nanami_pragmatics_metrics.py \
   --nanami-root out/audio/Nanami \
   --out out/audio/Nanami/nanami_metric_results.csv
 
-# 2) カバレッジ行列（任意・開発用）
+# 2) 終助詞・応答パターン指標の追加（SFP_* / RESP_*）
+python scripts/calc_nanami_sfp_metrics.py \
+  --nanami-root out/audio/Nanami \
+  --metrics-in out/audio/Nanami/nanami_metric_results.csv \
+  --metrics-out out/audio/Nanami/nanami_metric_results.csv
+
+# 3) カバレッジ行列（任意・開発用）
 python scripts/build_nanami_metric_coverage.py \
   --nanami-root out/audio/Nanami \
   --catalog config/pragmatics_index_catalog.csv \
   --out out/audio/Nanami/nanami_metric_session_coverage.csv
 
-# 3) ダッシュボード HTML 生成（docs/index.html）
+# 4) ダッシュボード HTML 生成（docs/index.html）
 python scripts/build_nanami_pragmatics_dashboard.py \
   --results out/audio/Nanami/nanami_metric_results.csv \
   --out docs/index.html
@@ -343,4 +350,4 @@ GitHub に push すると、`https://leadlea.github.io/asd/` が更新されま�
   を行うことを想定しています。
 
 - 関連論文調査レポート：CEJC・CSJを活用した語用論／発達障害研究
-  👉 https://leadlea.github.io/asd/corpas_paper.html
+  👉 [https://leadlea.github.io/asd/corpas_paper.html](https://leadlea.github.io/asd/corpas_paper.html)
