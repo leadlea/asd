@@ -1,6 +1,6 @@
 metric_id,session_id,speaker_role,value,unit,notes
 BASIC_TOKENS_PER_TURN,10129,BOTH,12.734138972809667,tokens_per_turn,(CHI + MOT) n_tokens / n_utts from turns.csv
-BASIC_TOKENS_PER_TURN,10129,CHI,12.054151624548737,tokens_per_turn,n_tokens / n_utts from turns.csv
+BASIC_TOKENS_PER_TURN,10129,CHI,12.054151624548735,tokens_per_turn,n_tokens / n_utts from turns.csv
 BASIC_TOKENS_PER_TURN,10129,MOT,16.22222222222222,tokens_per_turn,n_tokens / n_utts from turns.csv
 BASIC_TOKENS_PER_TURN,10225,BOTH,16.2332361516035,tokens_per_turn,(CHI + MOT) n_tokens / n_utts from turns.csv
 BASIC_TOKENS_PER_TURN,10225,CHI,14.967532467532468,tokens_per_turn,n_tokens / n_utts from turns.csv
@@ -9,14 +9,14 @@ BASIC_TOKENS_PER_TURN,10421,BOTH,9.48,tokens_per_turn,(CHI + MOT) n_tokens / n_u
 BASIC_TOKENS_PER_TURN,10421,CHI,5.9689922480620154,tokens_per_turn,n_tokens / n_utts from turns.csv
 BASIC_TOKENS_PER_TURN,10421,MOT,10.623737373737374,tokens_per_turn,n_tokens / n_utts from turns.csv
 BASIC_TOKENS_PER_TURN,10622,BOTH,77.53571428571429,tokens_per_turn,(CHI + MOT) n_tokens / n_utts from turns.csv
-BASIC_TOKENS_PER_TURN,10622,CHI,103.57894736842105,tokens_per_turn,n_tokens / n_utts from turns.csv
+BASIC_TOKENS_PER_TURN,10622,CHI,103.57894736842104,tokens_per_turn,n_tokens / n_utts from turns.csv
 BASIC_TOKENS_PER_TURN,10622,MOT,22.555555555555557,tokens_per_turn,n_tokens / n_utts from turns.csv
 BASIC_TOKENS_PER_TURN,10928,BOTH,20.80674846625767,tokens_per_turn,(CHI + MOT) n_tokens / n_utts from turns.csv
 BASIC_TOKENS_PER_TURN,10928,CHI,5.658536585365853,tokens_per_turn,n_tokens / n_utts from turns.csv
 BASIC_TOKENS_PER_TURN,10928,MOT,25.897540983606557,tokens_per_turn,n_tokens / n_utts from turns.csv
 BASIC_TOKENS_PER_TURN,11025,BOTH,28.76536312849162,tokens_per_turn,(CHI + MOT) n_tokens / n_utts from turns.csv
-BASIC_TOKENS_PER_TURN,11025,CHI,14.846153846153847,tokens_per_turn,n_tokens / n_utts from turns.csv
-BASIC_TOKENS_PER_TURN,11025,MOT,31.130718954248366,tokens_per_turn,n_tokens / n_utts from turns.csv
+BASIC_TOKENS_PER_TURN,11025,CHI,14.846153846153848,tokens_per_turn,n_tokens / n_utts from turns.csv
+BASIC_TOKENS_PER_TURN,11025,MOT,31.13071895424837,tokens_per_turn,n_tokens / n_utts from turns.csv
 BASIC_TOKENS_PER_TURN,20213,BOTH,33.66386554621849,tokens_per_turn,(CHI + MOT) n_tokens / n_utts from turns.csv
 BASIC_TOKENS_PER_TURN,20213,CHI,19.770833333333332,tokens_per_turn,n_tokens / n_utts from turns.csv
 BASIC_TOKENS_PER_TURN,20213,MOT,43.056338028169016,tokens_per_turn,n_tokens / n_utts from turns.csv
@@ -44,17 +44,17 @@ FILLER_RATE,10129,MOT,0.228310502283105,per_100_tokens,"count of filler patterns
 FILLER_RATE,10225,CHI,0.1301518438177874,per_100_tokens,"count of filler patterns per 100 tokens; patterns=['えー', 'えぇ', 'えっと', 'えと', 'あの', 'そのー', 'その…', 'うーん', 'うんと', 'まー', 'まあ']"
 FILLER_RATE,10225,MOT,0.5219206680584552,per_100_tokens,"count of filler patterns per 100 tokens; patterns=['えー', 'えぇ', 'えっと', 'えと', 'あの', 'そのー', 'その…', 'うーん', 'うんと', 'まー', 'まあ']"
 FILLER_RATE,10421,CHI,0.2597402597402597,per_100_tokens,"count of filler patterns per 100 tokens; patterns=['えー', 'えぇ', 'えっと', 'えと', 'あの', 'そのー', 'その…', 'うーん', 'うんと', 'まー', 'まあ']"
-FILLER_RATE,10421,MOT,0.02376990729736154,per_100_tokens,"count of filler patterns per 100 tokens; patterns=['えー', 'えぇ', 'えっと', 'えと', 'あの', 'そのー', 'その…', 'うーん', 'うんと', 'まー', 'まあ']"
+FILLER_RATE,10421,MOT,0.0237699072973615,per_100_tokens,"count of filler patterns per 100 tokens; patterns=['えー', 'えぇ', 'えっと', 'えと', 'あの', 'そのー', 'その…', 'うーん', 'うんと', 'まー', 'まあ']"
 FILLER_RATE,10622,CHI,0.0,per_100_tokens,"count of filler patterns per 100 tokens; patterns=['えー', 'えぇ', 'えっと', 'えと', 'あの', 'そのー', 'その…', 'うーん', 'うんと', 'まー', 'まあ']"
 FILLER_RATE,10622,MOT,0.0,per_100_tokens,"count of filler patterns per 100 tokens; patterns=['えー', 'えぇ', 'えっと', 'えと', 'あの', 'そのー', 'その…', 'うーん', 'うんと', 'まー', 'まあ']"
 FILLER_RATE,10928,CHI,0.646551724137931,per_100_tokens,"count of filler patterns per 100 tokens; patterns=['えー', 'えぇ', 'えっと', 'えと', 'あの', 'そのー', 'その…', 'うーん', 'うんと', 'まー', 'まあ']"
-FILLER_RATE,10928,MOT,0.14242759930368729,per_100_tokens,"count of filler patterns per 100 tokens; patterns=['えー', 'えぇ', 'えっと', 'えと', 'あの', 'そのー', 'その…', 'うーん', 'うんと', 'まー', 'まあ']"
+FILLER_RATE,10928,MOT,0.1424275993036872,per_100_tokens,"count of filler patterns per 100 tokens; patterns=['えー', 'えぇ', 'えっと', 'えと', 'あの', 'そのー', 'その…', 'うーん', 'うんと', 'まー', 'まあ']"
 FILLER_RATE,11025,CHI,0.0,per_100_tokens,"count of filler patterns per 100 tokens; patterns=['えー', 'えぇ', 'えっと', 'えと', 'あの', 'そのー', 'その…', 'うーん', 'うんと', 'まー', 'まあ']"
 FILLER_RATE,11025,MOT,0.0,per_100_tokens,"count of filler patterns per 100 tokens; patterns=['えー', 'えぇ', 'えっと', 'えと', 'あの', 'そのー', 'その…', 'うーん', 'うんと', 'まー', 'まあ']"
 FILLER_RATE,20213,CHI,0.0,per_100_tokens,"count of filler patterns per 100 tokens; patterns=['えー', 'えぇ', 'えっと', 'えと', 'あの', 'そのー', 'その…', 'うーん', 'うんと', 'まー', 'まあ']"
 FILLER_RATE,20213,MOT,0.0,per_100_tokens,"count of filler patterns per 100 tokens; patterns=['えー', 'えぇ', 'えっと', 'えと', 'あの', 'そのー', 'その…', 'うーん', 'うんと', 'まー', 'まあ']"
 FILLER_RATE,20319,CHI,0.1890359168241966,per_100_tokens,"count of filler patterns per 100 tokens; patterns=['えー', 'えぇ', 'えっと', 'えと', 'あの', 'そのー', 'その…', 'うーん', 'うんと', 'まー', 'まあ']"
-FILLER_RATE,20319,MOT,0.022502250225022502,per_100_tokens,"count of filler patterns per 100 tokens; patterns=['えー', 'えぇ', 'えっと', 'えと', 'あの', 'そのー', 'その…', 'うーん', 'うんと', 'まー', 'まあ']"
+FILLER_RATE,20319,MOT,0.0225022502250225,per_100_tokens,"count of filler patterns per 100 tokens; patterns=['えー', 'えぇ', 'えっと', 'えと', 'あの', 'そのー', 'その…', 'うーん', 'うんと', 'まー', 'まあ']"
 PAUSE_RATIO,10129,CHI,18.25,pause_p95_unit,proxy of pause ratio using pause_p95 (95th percentile of pause length)
 PAUSE_RATIO,10129,MOT,5.799999999999997,pause_p95_unit,proxy of pause ratio using pause_p95 (95th percentile of pause length)
 PAUSE_RATIO,10225,CHI,6.050000000000011,pause_p95_unit,proxy of pause ratio using pause_p95 (95th percentile of pause length)
@@ -77,7 +77,7 @@ QUESTION_RATE,10225,CHI,26.948051948051948,per_100_turns,heuristic question turn
 QUESTION_RATE,10225,MOT,22.857142857142858,per_100_turns,heuristic question turns per 100 turns; detected by '?'/'？' and suffix patterns like 〜か / 〜かな / 〜の etc.
 QUESTION_RATE,10421,CHI,18.6046511627907,per_100_turns,heuristic question turns per 100 turns; detected by '?'/'？' and suffix patterns like 〜か / 〜かな / 〜の etc.
 QUESTION_RATE,10421,MOT,21.464646464646464,per_100_turns,heuristic question turns per 100 turns; detected by '?'/'？' and suffix patterns like 〜か / 〜かな / 〜の etc.
-QUESTION_RATE,10622,CHI,10.526315789473685,per_100_turns,heuristic question turns per 100 turns; detected by '?'/'？' and suffix patterns like 〜か / 〜かな / 〜の etc.
+QUESTION_RATE,10622,CHI,10.526315789473683,per_100_turns,heuristic question turns per 100 turns; detected by '?'/'？' and suffix patterns like 〜か / 〜かな / 〜の etc.
 QUESTION_RATE,10622,MOT,11.11111111111111,per_100_turns,heuristic question turns per 100 turns; detected by '?'/'？' and suffix patterns like 〜か / 〜かな / 〜の etc.
 QUESTION_RATE,10928,CHI,20.73170731707317,per_100_turns,heuristic question turns per 100 turns; detected by '?'/'？' and suffix patterns like 〜か / 〜かな / 〜の etc.
 QUESTION_RATE,10928,MOT,44.26229508196721,per_100_turns,heuristic question turns per 100 turns; detected by '?'/'？' and suffix patterns like 〜か / 〜かな / 〜の etc.
@@ -89,7 +89,7 @@ QUESTION_RATE,20319,CHI,34.78260869565217,per_100_turns,heuristic question turns
 QUESTION_RATE,20319,MOT,50.561797752808985,per_100_turns,heuristic question turns per 100 turns; detected by '?'/'？' and suffix patterns like 〜か / 〜かな / 〜の etc.
 SFP_NEGOTIATING_RATE,10129,CHI,14.8014440433213,per_100_turns,"count of negotiating sentence-final particles per 100 turns; patterns=['よね', 'かな', 'だよね', 'じゃない?', 'じゃない？', 'じゃないよね', 'よ', 'ね']"
 SFP_NEGOTIATING_RATE,10129,MOT,5.555555555555555,per_100_turns,"count of negotiating sentence-final particles per 100 turns; patterns=['よね', 'かな', 'だよね', 'じゃない?', 'じゃない？', 'じゃないよね', 'よ', 'ね']"
-SFP_NEGOTIATING_RATE,10225,CHI,12.012987012987013,per_100_turns,"count of negotiating sentence-final particles per 100 turns; patterns=['よね', 'かな', 'だよね', 'じゃない?', 'じゃない？', 'じゃないよね', 'よ', 'ね']"
+SFP_NEGOTIATING_RATE,10225,CHI,12.012987012987011,per_100_turns,"count of negotiating sentence-final particles per 100 turns; patterns=['よね', 'かな', 'だよね', 'じゃない?', 'じゃない？', 'じゃないよね', 'よ', 'ね']"
 SFP_NEGOTIATING_RATE,10225,MOT,11.428571428571429,per_100_turns,"count of negotiating sentence-final particles per 100 turns; patterns=['よね', 'かな', 'だよね', 'じゃない?', 'じゃない？', 'じゃないよね', 'よ', 'ね']"
 SFP_NEGOTIATING_RATE,10421,CHI,7.751937984496124,per_100_turns,"count of negotiating sentence-final particles per 100 turns; patterns=['よね', 'かな', 'だよね', 'じゃない?', 'じゃない？', 'じゃないよね', 'よ', 'ね']"
 SFP_NEGOTIATING_RATE,10421,MOT,13.88888888888889,per_100_turns,"count of negotiating sentence-final particles per 100 turns; patterns=['よね', 'かな', 'だよね', 'じゃない?', 'じゃない？', 'じゃないよね', 'よ', 'ね']"
@@ -127,14 +127,14 @@ TT_GAP_MEAN,10421,CHI,2.087037037037038,sec,"mean max(0, gap) where next speaker
 TT_GAP_MEAN,10421,MOT,2.7090566037735835,sec,"mean max(0, gap) where next speaker=MOT, |gap| <= 10.0"
 TT_GAP_MEAN,10622,CHI,0.0,sec,"mean max(0, gap) where next speaker=CHI, |gap| <= 10.0"
 TT_GAP_MEAN,10622,MOT,1.2222222222222223,sec,"mean max(0, gap) where next speaker=MOT, |gap| <= 10.0"
-TT_GAP_MEAN,10928,CHI,0.42857142857142855,sec,"mean max(0, gap) where next speaker=CHI, |gap| <= 10.0"
+TT_GAP_MEAN,10928,CHI,0.4285714285714285,sec,"mean max(0, gap) where next speaker=CHI, |gap| <= 10.0"
 TT_GAP_MEAN,10928,MOT,0.3295774647887273,sec,"mean max(0, gap) where next speaker=MOT, |gap| <= 10.0"
 TT_GAP_MEAN,11025,CHI,1.0,sec,"mean max(0, gap) where next speaker=CHI, |gap| <= 10.0"
 TT_GAP_MEAN,11025,MOT,0.36,sec,"mean max(0, gap) where next speaker=MOT, |gap| <= 10.0"
 TT_GAP_MEAN,20213,CHI,0.1276595744680851,sec,"mean max(0, gap) where next speaker=CHI, |gap| <= 10.0"
 TT_GAP_MEAN,20213,MOT,0.0,sec,"mean max(0, gap) where next speaker=MOT, |gap| <= 10.0"
 TT_GAP_MEAN,20319,CHI,0.3917525773195876,sec,"mean max(0, gap) where next speaker=CHI, |gap| <= 10.0"
-TT_GAP_MEAN,20319,MOT,0.22448979591836735,sec,"mean max(0, gap) where next speaker=MOT, |gap| <= 10.0"
+TT_GAP_MEAN,20319,MOT,0.2244897959183673,sec,"mean max(0, gap) where next speaker=MOT, |gap| <= 10.0"
 TT_OVERLAP_RATE,10129,CHI,0.0,percent,"percentage of turn transitions to CHI where gap < 0 (overlap), |gap| <= 10.0"
 TT_OVERLAP_RATE,10129,MOT,0.0,percent,"percentage of turn transitions to MOT where gap < 0 (overlap), |gap| <= 10.0"
 TT_OVERLAP_RATE,10225,CHI,0.0,percent,"percentage of turn transitions to CHI where gap < 0 (overlap), |gap| <= 10.0"
@@ -151,3 +151,131 @@ TT_OVERLAP_RATE,20213,CHI,0.0,percent,"percentage of turn transitions to CHI whe
 TT_OVERLAP_RATE,20213,MOT,0.0,percent,"percentage of turn transitions to MOT where gap < 0 (overlap), |gap| <= 10.0"
 TT_OVERLAP_RATE,20319,CHI,0.0,percent,"percentage of turn transitions to CHI where gap < 0 (overlap), |gap| <= 10.0"
 TT_OVERLAP_RATE,20319,MOT,0.0,percent,"percentage of turn transitions to MOT where gap < 0 (overlap), |gap| <= 10.0"
+SFP_NE_RATE,10129,CHI,0.07942238267148015,ratio,computed from segments.csv (sentence-final particles)
+SFP_NE_Q_RATE,10129,CHI,0.0,ratio,computed from segments.csv (sentence-final particles)
+SFP_YO_RATE,10129,CHI,0.05054151624548736,ratio,computed from segments.csv (sentence-final particles)
+SFP_NA_RATE,10129,CHI,0.039711191335740074,ratio,computed from segments.csv (sentence-final particles)
+SFP_NO_RATE,10129,CHI,0.02527075812274368,ratio,computed from segments.csv (sentence-final particles)
+SFP_MON_RATE,10129,CHI,0.007220216606498195,ratio,computed from segments.csv (sentence-final particles)
+SFP_NE_RATE,10129,MOT,0.037037037037037035,ratio,computed from segments.csv (sentence-final particles)
+SFP_NE_Q_RATE,10129,MOT,0.0,ratio,computed from segments.csv (sentence-final particles)
+SFP_YO_RATE,10129,MOT,0.018518518518518517,ratio,computed from segments.csv (sentence-final particles)
+SFP_NA_RATE,10129,MOT,0.0,ratio,computed from segments.csv (sentence-final particles)
+SFP_NO_RATE,10129,MOT,0.07407407407407407,ratio,computed from segments.csv (sentence-final particles)
+SFP_MON_RATE,10129,MOT,0.0,ratio,computed from segments.csv (sentence-final particles)
+SFP_NE_RATE,10225,CHI,0.022727272727272728,ratio,computed from segments.csv (sentence-final particles)
+SFP_NE_Q_RATE,10225,CHI,0.0,ratio,computed from segments.csv (sentence-final particles)
+SFP_YO_RATE,10225,CHI,0.07792207792207792,ratio,computed from segments.csv (sentence-final particles)
+SFP_NA_RATE,10225,CHI,0.032467532467532464,ratio,computed from segments.csv (sentence-final particles)
+SFP_NO_RATE,10225,CHI,0.045454545454545456,ratio,computed from segments.csv (sentence-final particles)
+SFP_MON_RATE,10225,CHI,0.003246753246753247,ratio,computed from segments.csv (sentence-final particles)
+SFP_NE_RATE,10225,MOT,0.08571428571428572,ratio,computed from segments.csv (sentence-final particles)
+SFP_NE_Q_RATE,10225,MOT,0.0,ratio,computed from segments.csv (sentence-final particles)
+SFP_YO_RATE,10225,MOT,0.02857142857142857,ratio,computed from segments.csv (sentence-final particles)
+SFP_NA_RATE,10225,MOT,0.0,ratio,computed from segments.csv (sentence-final particles)
+SFP_NO_RATE,10225,MOT,0.0,ratio,computed from segments.csv (sentence-final particles)
+SFP_MON_RATE,10225,MOT,0.0,ratio,computed from segments.csv (sentence-final particles)
+SFP_NE_RATE,10421,CHI,0.031007751937984496,ratio,computed from segments.csv (sentence-final particles)
+SFP_NE_Q_RATE,10421,CHI,0.0,ratio,computed from segments.csv (sentence-final particles)
+SFP_YO_RATE,10421,CHI,0.046511627906976744,ratio,computed from segments.csv (sentence-final particles)
+SFP_NA_RATE,10421,CHI,0.007751937984496124,ratio,computed from segments.csv (sentence-final particles)
+SFP_NO_RATE,10421,CHI,0.0,ratio,computed from segments.csv (sentence-final particles)
+SFP_MON_RATE,10421,CHI,0.0,ratio,computed from segments.csv (sentence-final particles)
+SFP_NE_RATE,10421,MOT,0.05303030303030303,ratio,computed from segments.csv (sentence-final particles)
+SFP_NE_Q_RATE,10421,MOT,0.0025252525252525255,ratio,computed from segments.csv (sentence-final particles)
+SFP_YO_RATE,10421,MOT,0.06818181818181818,ratio,computed from segments.csv (sentence-final particles)
+SFP_NA_RATE,10421,MOT,0.03282828282828283,ratio,computed from segments.csv (sentence-final particles)
+SFP_NO_RATE,10421,MOT,0.03282828282828283,ratio,computed from segments.csv (sentence-final particles)
+SFP_MON_RATE,10421,MOT,0.0025252525252525255,ratio,computed from segments.csv (sentence-final particles)
+SFP_NE_RATE,10622,CHI,0.0,ratio,computed from segments.csv (sentence-final particles)
+SFP_NE_Q_RATE,10622,CHI,0.0,ratio,computed from segments.csv (sentence-final particles)
+SFP_YO_RATE,10622,CHI,0.0,ratio,computed from segments.csv (sentence-final particles)
+SFP_NA_RATE,10622,CHI,0.0,ratio,computed from segments.csv (sentence-final particles)
+SFP_NO_RATE,10622,CHI,0.0,ratio,computed from segments.csv (sentence-final particles)
+SFP_MON_RATE,10622,CHI,0.0,ratio,computed from segments.csv (sentence-final particles)
+SFP_NE_RATE,10622,MOT,0.0,ratio,computed from segments.csv (sentence-final particles)
+SFP_NE_Q_RATE,10622,MOT,0.0,ratio,computed from segments.csv (sentence-final particles)
+SFP_YO_RATE,10622,MOT,0.0,ratio,computed from segments.csv (sentence-final particles)
+SFP_NA_RATE,10622,MOT,0.0,ratio,computed from segments.csv (sentence-final particles)
+SFP_NO_RATE,10622,MOT,0.0,ratio,computed from segments.csv (sentence-final particles)
+SFP_MON_RATE,10622,MOT,0.0,ratio,computed from segments.csv (sentence-final particles)
+SFP_NE_RATE,10928,CHI,0.04878048780487805,ratio,computed from segments.csv (sentence-final particles)
+SFP_NE_Q_RATE,10928,CHI,0.0,ratio,computed from segments.csv (sentence-final particles)
+SFP_YO_RATE,10928,CHI,0.012195121951219513,ratio,computed from segments.csv (sentence-final particles)
+SFP_NA_RATE,10928,CHI,0.024390243902439025,ratio,computed from segments.csv (sentence-final particles)
+SFP_NO_RATE,10928,CHI,0.036585365853658534,ratio,computed from segments.csv (sentence-final particles)
+SFP_MON_RATE,10928,CHI,0.0,ratio,computed from segments.csv (sentence-final particles)
+SFP_NE_RATE,10928,MOT,0.10245901639344263,ratio,computed from segments.csv (sentence-final particles)
+SFP_NE_Q_RATE,10928,MOT,0.004098360655737705,ratio,computed from segments.csv (sentence-final particles)
+SFP_YO_RATE,10928,MOT,0.05737704918032787,ratio,computed from segments.csv (sentence-final particles)
+SFP_NA_RATE,10928,MOT,0.020491803278688523,ratio,computed from segments.csv (sentence-final particles)
+SFP_NO_RATE,10928,MOT,0.020491803278688523,ratio,computed from segments.csv (sentence-final particles)
+SFP_MON_RATE,10928,MOT,0.0,ratio,computed from segments.csv (sentence-final particles)
+SFP_NE_RATE,11025,CHI,0.038461538461538464,ratio,computed from segments.csv (sentence-final particles)
+SFP_NE_Q_RATE,11025,CHI,0.0,ratio,computed from segments.csv (sentence-final particles)
+SFP_YO_RATE,11025,CHI,0.0,ratio,computed from segments.csv (sentence-final particles)
+SFP_NA_RATE,11025,CHI,0.038461538461538464,ratio,computed from segments.csv (sentence-final particles)
+SFP_NO_RATE,11025,CHI,0.0,ratio,computed from segments.csv (sentence-final particles)
+SFP_MON_RATE,11025,CHI,0.0,ratio,computed from segments.csv (sentence-final particles)
+SFP_NE_RATE,11025,MOT,0.09803921568627451,ratio,computed from segments.csv (sentence-final particles)
+SFP_NE_Q_RATE,11025,MOT,0.0,ratio,computed from segments.csv (sentence-final particles)
+SFP_YO_RATE,11025,MOT,0.0718954248366013,ratio,computed from segments.csv (sentence-final particles)
+SFP_NA_RATE,11025,MOT,0.0392156862745098,ratio,computed from segments.csv (sentence-final particles)
+SFP_NO_RATE,11025,MOT,0.026143790849673203,ratio,computed from segments.csv (sentence-final particles)
+SFP_MON_RATE,11025,MOT,0.0,ratio,computed from segments.csv (sentence-final particles)
+SFP_NE_RATE,20213,CHI,0.020833333333333332,ratio,computed from segments.csv (sentence-final particles)
+SFP_NE_Q_RATE,20213,CHI,0.0,ratio,computed from segments.csv (sentence-final particles)
+SFP_YO_RATE,20213,CHI,0.0,ratio,computed from segments.csv (sentence-final particles)
+SFP_NA_RATE,20213,CHI,0.0,ratio,computed from segments.csv (sentence-final particles)
+SFP_NO_RATE,20213,CHI,0.020833333333333332,ratio,computed from segments.csv (sentence-final particles)
+SFP_MON_RATE,20213,CHI,0.0,ratio,computed from segments.csv (sentence-final particles)
+SFP_NE_RATE,20213,MOT,0.0,ratio,computed from segments.csv (sentence-final particles)
+SFP_NE_Q_RATE,20213,MOT,0.0,ratio,computed from segments.csv (sentence-final particles)
+SFP_YO_RATE,20213,MOT,0.0,ratio,computed from segments.csv (sentence-final particles)
+SFP_NA_RATE,20213,MOT,0.0,ratio,computed from segments.csv (sentence-final particles)
+SFP_NO_RATE,20213,MOT,0.028169014084507043,ratio,computed from segments.csv (sentence-final particles)
+SFP_MON_RATE,20213,MOT,0.0,ratio,computed from segments.csv (sentence-final particles)
+SFP_NE_RATE,20319,CHI,0.008695652173913044,ratio,computed from segments.csv (sentence-final particles)
+SFP_NE_Q_RATE,20319,CHI,0.0,ratio,computed from segments.csv (sentence-final particles)
+SFP_YO_RATE,20319,CHI,0.017391304347826087,ratio,computed from segments.csv (sentence-final particles)
+SFP_NA_RATE,20319,CHI,0.008695652173913044,ratio,computed from segments.csv (sentence-final particles)
+SFP_NO_RATE,20319,CHI,0.008695652173913044,ratio,computed from segments.csv (sentence-final particles)
+SFP_MON_RATE,20319,CHI,0.0,ratio,computed from segments.csv (sentence-final particles)
+SFP_NE_RATE,20319,MOT,0.07303370786516854,ratio,computed from segments.csv (sentence-final particles)
+SFP_NE_Q_RATE,20319,MOT,0.0,ratio,computed from segments.csv (sentence-final particles)
+SFP_YO_RATE,20319,MOT,0.06179775280898876,ratio,computed from segments.csv (sentence-final particles)
+SFP_NA_RATE,20319,MOT,0.0056179775280898875,ratio,computed from segments.csv (sentence-final particles)
+SFP_NO_RATE,20319,MOT,0.011235955056179775,ratio,computed from segments.csv (sentence-final particles)
+SFP_MON_RATE,20319,MOT,0.0,ratio,computed from segments.csv (sentence-final particles)
+RESP_NE_AIZUCHI_RATE,10129,CHI,0.0,ratio,aizuchi rate after NE/NE_Q SFP (from segments.csv)
+RESP_NE_ENTROPY,10129,CHI,0.0,float,entropy of response first tokens after NE/NE_Q SFP (from segments.csv)
+RESP_YO_ENTROPY,10129,CHI,0.0,float,entropy of response first tokens after YO SFP (from segments.csv)
+RESP_NE_AIZUCHI_RATE,10129,MOT,0.0,ratio,aizuchi rate after NE/NE_Q SFP (from segments.csv)
+RESP_NE_ENTROPY,10129,MOT,1.0,float,entropy of response first tokens after NE/NE_Q SFP (from segments.csv)
+RESP_NE_AIZUCHI_RATE,10225,CHI,0.0,ratio,aizuchi rate after NE/NE_Q SFP (from segments.csv)
+RESP_NE_ENTROPY,10225,CHI,0.0,float,entropy of response first tokens after NE/NE_Q SFP (from segments.csv)
+RESP_NE_AIZUCHI_RATE,10225,MOT,0.0,ratio,aizuchi rate after NE/NE_Q SFP (from segments.csv)
+RESP_NE_ENTROPY,10225,MOT,1.0,float,entropy of response first tokens after NE/NE_Q SFP (from segments.csv)
+RESP_YO_ENTROPY,10225,MOT,0.0,float,entropy of response first tokens after YO SFP (from segments.csv)
+RESP_NE_AIZUCHI_RATE,10421,CHI,0.0,ratio,aizuchi rate after NE/NE_Q SFP (from segments.csv)
+RESP_NE_ENTROPY,10421,CHI,1.584962500721156,float,entropy of response first tokens after NE/NE_Q SFP (from segments.csv)
+RESP_YO_ENTROPY,10421,CHI,2.584962500721156,float,entropy of response first tokens after YO SFP (from segments.csv)
+RESP_NE_AIZUCHI_RATE,10421,MOT,0.0,ratio,aizuchi rate after NE/NE_Q SFP (from segments.csv)
+RESP_NE_ENTROPY,10421,MOT,0.0,float,entropy of response first tokens after NE/NE_Q SFP (from segments.csv)
+RESP_YO_ENTROPY,10421,MOT,1.584962500721156,float,entropy of response first tokens after YO SFP (from segments.csv)
+RESP_NE_AIZUCHI_RATE,10928,CHI,0.0,ratio,aizuchi rate after NE/NE_Q SFP (from segments.csv)
+RESP_NE_ENTROPY,10928,CHI,2.321928094887362,float,entropy of response first tokens after NE/NE_Q SFP (from segments.csv)
+RESP_YO_ENTROPY,10928,CHI,1.584962500721156,float,entropy of response first tokens after YO SFP (from segments.csv)
+RESP_NE_AIZUCHI_RATE,10928,MOT,0.0,ratio,aizuchi rate after NE/NE_Q SFP (from segments.csv)
+RESP_NE_ENTROPY,10928,MOT,2.0,float,entropy of response first tokens after NE/NE_Q SFP (from segments.csv)
+RESP_YO_ENTROPY,10928,MOT,0.0,float,entropy of response first tokens after YO SFP (from segments.csv)
+RESP_NE_AIZUCHI_RATE,11025,CHI,0.0,ratio,aizuchi rate after NE/NE_Q SFP (from segments.csv)
+RESP_NE_ENTROPY,11025,CHI,1.0,float,entropy of response first tokens after NE/NE_Q SFP (from segments.csv)
+RESP_NE_AIZUCHI_RATE,11025,MOT,0.0,ratio,aizuchi rate after NE/NE_Q SFP (from segments.csv)
+RESP_NE_ENTROPY,11025,MOT,0.0,float,entropy of response first tokens after NE/NE_Q SFP (from segments.csv)
+RESP_NE_AIZUCHI_RATE,20213,MOT,0.0,ratio,aizuchi rate after NE/NE_Q SFP (from segments.csv)
+RESP_NE_ENTROPY,20213,MOT,0.0,float,entropy of response first tokens after NE/NE_Q SFP (from segments.csv)
+RESP_NE_AIZUCHI_RATE,20319,CHI,0.0,ratio,aizuchi rate after NE/NE_Q SFP (from segments.csv)
+RESP_NE_ENTROPY,20319,CHI,1.5,float,entropy of response first tokens after NE/NE_Q SFP (from segments.csv)
+RESP_YO_ENTROPY,20319,CHI,2.584962500721156,float,entropy of response first tokens after YO SFP (from segments.csv)
+RESP_YO_ENTROPY,20319,MOT,1.0,float,entropy of response first tokens after YO SFP (from segments.csv)
