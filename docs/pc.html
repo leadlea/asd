@@ -408,7 +408,7 @@ flowchart TB
   U[作成者<br/>若手/中堅] --> P[Preflightチェック<br/>Slide Unit Test]
   P -->|Fail| F[修正提案<br/>差分/根拠/言い換え/図解]
   F --> U
-  P -->|Pass| R[人のレビュー<br/>シニアは"高付加価値"に集中]
+  P -->|Pass| R[人のレビュー<br/>シニアは高付加価値に集中]
   R --> D[提出]
   subgraph Test[Unit Testの例]
     T1[ロジック]:::b --> T2[数値整合]:::b --> T3[型/禁則]:::b --> T4[想定突っ込み]:::b
@@ -544,7 +544,7 @@ sequenceDiagram
 
           <div class="mermaid-wrap">
             <pre class="mermaid">
-flowchart LR
+flowchart TD
   M[会議/議事メモ] --> E[抽出<br/>Decision / Assumption / Open / Owner / Due]
   E --> L[Decision Log（監査台帳）]
   L --> N[未決の滞留検知<br/>自動督促/エスカレーション]
