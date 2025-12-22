@@ -1,0 +1,683 @@
+Copy code
+Html
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>提案資料｜Consulting Operating System（COS）｜AI研究者 福原 玄</title>
+
+  <!-- Mermaid -->
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+
+  <style>
+    :root{
+      --bg:#ffffff;
+      --fg:#111111;
+      --muted:#555;
+      --line:#e6e6e6;
+      --soft:#f7f7f7;
+      --accent:#111111;
+      --ok:#111;
+      --warn:#111;
+      --shadow: 0 6px 18px rgba(0,0,0,.06);
+      --radius:16px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace;
+      --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans JP", "Hiragino Sans", "Yu Gothic UI", "Yu Gothic", "Meiryo", Arial, sans-serif;
+    }
+    *{ box-sizing:border-box; }
+    html,body{ height:100%; }
+    body{
+      margin:0;
+      background:var(--bg);
+      color:var(--fg);
+      font-family:var(--sans);
+      line-height:1.7;
+      letter-spacing:.2px;
+    }
+
+    /* Layout */
+    .page{
+      width:100%;
+      margin:0;
+      padding:28px 28px 80px;
+    }
+    .grid{
+      display:grid;
+      grid-template-columns: 320px 1fr;
+      gap:20px;
+      align-items:start;
+    }
+    @media (max-width: 980px){
+      .grid{ grid-template-columns:1fr; }
+      .toc{ position:relative !important; top:auto !important; }
+    }
+
+    /* Header / Hero */
+    .hero{
+      border:1px solid var(--line);
+      background:linear-gradient(180deg, #fff 0%, #fff 60%, var(--soft) 100%);
+      border-radius:var(--radius);
+      padding:22px 22px 18px;
+      box-shadow:var(--shadow);
+      margin-bottom:18px;
+    }
+    .kicker{
+      font-size:13px;
+      color:var(--muted);
+      text-transform:uppercase;
+      letter-spacing:.12em;
+      margin:0 0 8px;
+    }
+    h1{
+      font-size:30px;
+      line-height:1.25;
+      margin:0 0 10px;
+    }
+    .sub{
+      margin:0;
+      color:var(--muted);
+      font-size:15px;
+    }
+    .meta{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      margin-top:14px;
+      color:var(--muted);
+      font-size:13px;
+    }
+    .chip{
+      border:1px solid var(--line);
+      background:#fff;
+      border-radius:999px;
+      padding:6px 10px;
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+    }
+    .dot{
+      width:8px;height:8px;border-radius:50%;
+      background:var(--fg);
+      display:inline-block;
+    }
+
+    /* TOC */
+    .toc{
+      position:sticky;
+      top:18px;
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      padding:16px;
+      background:#fff;
+      box-shadow:var(--shadow);
+    }
+    .toc h3{
+      margin:0 0 10px;
+      font-size:14px;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+    }
+    .toc a{
+      color:var(--fg);
+      text-decoration:none;
+      display:block;
+      padding:7px 8px;
+      border-radius:10px;
+      font-size:14px;
+    }
+    .toc a:hover{
+      background:var(--soft);
+    }
+    .toc .small{
+      font-size:12px;
+      color:var(--muted);
+      margin-top:10px;
+      padding-top:10px;
+      border-top:1px solid var(--line);
+    }
+
+    /* Content */
+    .content section{
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      padding:18px 18px 16px;
+      background:#fff;
+      box-shadow:var(--shadow);
+      margin-bottom:16px;
+    }
+    .content h2{
+      margin:0 0 10px;
+      font-size:22px;
+      line-height:1.25;
+    }
+    .content h3{
+      margin:16px 0 8px;
+      font-size:16px;
+    }
+    .lead{
+      font-size:16px;
+      margin:0 0 10px;
+    }
+
+    /* Cards / Lists */
+    .cards{
+      display:grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap:12px;
+      margin-top:10px;
+    }
+    @media (max-width: 980px){
+      .cards{ grid-template-columns:1fr; }
+    }
+    .card{
+      border:1px solid var(--line);
+      border-radius:14px;
+      padding:14px 14px 12px;
+      background:var(--soft);
+    }
+    .card .t{
+      font-weight:700;
+      margin:0 0 6px;
+    }
+    .card .d{
+      margin:0;
+      color:var(--muted);
+      font-size:14px;
+    }
+    ul{ margin:8px 0 0 1.1em; }
+    li{ margin:4px 0; }
+    .kpi{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      margin-top:10px;
+    }
+    .kpi .pill{
+      border:1px solid var(--line);
+      background:#fff;
+      border-radius:999px;
+      padding:6px 10px;
+      font-size:13px;
+      color:var(--fg);
+    }
+
+    /* Mermaid */
+    .mermaid-wrap{
+      border:1px solid var(--line);
+      background:#fff;
+      border-radius:14px;
+      padding:12px;
+      overflow:auto;
+      margin-top:10px;
+    }
+    .note{
+      margin-top:10px;
+      padding:12px 12px 10px;
+      border-left:4px solid var(--fg);
+      background:var(--soft);
+      border-radius:10px;
+      color:var(--muted);
+      font-size:13px;
+    }
+    .mono{
+      font-family:var(--mono);
+      font-size:12px;
+      color:var(--muted);
+      background:var(--soft);
+      border:1px solid var(--line);
+      border-radius:12px;
+      padding:10px;
+      overflow:auto;
+    }
+
+    /* Footer */
+    .footer{
+      margin-top:18px;
+      color:var(--muted);
+      font-size:12px;
+      text-align:center;
+    }
+
+    /* Print */
+    @media print{
+      body{ background:#fff; }
+      .page{ padding:0; }
+      .toc{ display:none; }
+      .hero,.content section{ box-shadow:none; }
+      .content section{ break-inside:avoid; }
+      a{ color:inherit; text-decoration:none; }
+    }
+  </style>
+
+  <script>
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: "neutral",
+      flowchart: { curve: "linear" },
+      sequence: { showSequenceNumbers: true }
+    });
+  </script>
+</head>
+
+<body>
+  <div class="page">
+    <div class="hero" id="top">
+      <p class="kicker">Proposal / Brisis Consulting</p>
+      <h1>Consulting Operating System（COS）<br>— 50→800名体制でも崩れない「運用の自動制御」AI</h1>
+      <p class="sub">
+        ありきたりのRAG（検索）ではなく、レビュー品質・育成/アサイン・顧客関係・負荷/メンタルを
+        <b>“運用として自動制御”</b>する仕組みを提案します。
+      </p>
+      <div class="meta">
+        <span class="chip"><span class="dot"></span> 提案者：AI研究者 福原 玄</span>
+        <span class="chip">提出日：2025-12-22</span>
+        <span class="chip">背景：事業拡大（50→5年後800名）</span>
+        <span class="chip">目的：業務効率 × 社員満足の維持/向上</span>
+      </div>
+    </div>
+
+    <div class="grid">
+      <!-- TOC -->
+      <aside class="toc">
+        <h3>Contents</h3>
+        <a href="#s1">1. 課題整理（拡大期に壊れるもの）</a>
+        <a href="#s2">2. 解決方針：AIを“業務OS化”する</a>
+        <a href="#s3">3. COS全体像（アーキテクチャ）</a>
+        <a href="#s4">4. 提案① Slide Unit Test（資料レビュー）</a>
+        <a href="#s5">5. 提案② Skill DNA（メンバスキル管理）</a>
+        <a href="#s6">6. 提案③ Client Relationship Twin（クライアント管理）</a>
+        <a href="#s7">7. 提案④ Workload & Risk Radar（負荷/メンタル）</a>
+        <a href="#s8">8. 提案⑤ Decision Log（意思決定の整流）</a>
+        <a href="#s9">9. ロードマップ（90日PoC→全社展開）</a>
+        <a href="#s10">10. ガバナンス/安全設計（監視感を出さない）</a>
+        <a href="#s11">11. PoC提案（対象/期間/KPI）</a>
+        <div class="small">
+          白背景・黒文字・横幅100%<br>
+          Mermaid図はこのHTML単体で表示（CDN利用）
+        </div>
+      </aside>
+
+      <!-- Content -->
+      <main class="content">
+
+        <section id="s1">
+          <h2>1. 課題整理：800名規模で“崩れる”のは知識ではなく運用</h2>
+          <p class="lead">
+            人が増えるほど、<b>「レビュー品質のばらつき」「誰が何できるか不明」「顧客関係の劣化」「若手の燃え尽き」</b>が同時多発します。
+            これらは “情報不足” ではなく、<b>運用の制御不全</b>として発生します。
+          </p>
+
+          <div class="cards">
+            <div class="card">
+              <p class="t">資料レビュー</p>
+              <p class="d">差戻し往復が増え、シニアがボトルネック化。品質も属人化。</p>
+            </div>
+            <div class="card">
+              <p class="t">メンバスキル管理</p>
+              <p class="d">自己申告ベースで精度が低い。アサインミス→炎上→疲弊。</p>
+            </div>
+            <div class="card">
+              <p class="t">クライアント管理</p>
+              <p class="d">炎上の芽は「関係性の歪み」に出るが、CRMでは捕捉しづらい。</p>
+            </div>
+          </div>
+
+          <div class="note">
+            <b>忙しく、若手のメンタルケアができない</b>という状況は、個人の努力で解決できません。<br>
+            本提案は「診断」ではなく、<b>燃え尽きに繋がる負荷構造を早期に検知し、介入アクションまで自動で出す</b>仕組みを核にします。
+          </div>
+        </section>
+
+        <section id="s2">
+          <h2>2. 解決方針：RAGではなく、AIで“運用を自動制御”する</h2>
+          <p class="lead">
+            RAG（検索・要約）で「賢く見せる」段階はすでに飽和しています。<br>
+            次の差別化は、AIを<b>運用の制御装置（Quality / Talent / Relationship / Health）</b>として実装することです。
+          </p>
+
+          <div class="cards">
+            <div class="card">
+              <p class="t">検索（RAG）</p>
+              <p class="d">知識を引く。便利だが、運用の詰まり（差戻し/炎上/疲弊）を直接は減らしにくい。</p>
+            </div>
+            <div class="card">
+              <p class="t">運用自動制御（COS）</p>
+              <p class="d">差戻しを“テストで未然防止”。アサインを“実績推定”で最適化。関係性/負荷を“早期警戒×介入”で守る。</p>
+            </div>
+            <div class="card">
+              <p class="t">成果の出方</p>
+              <p class="d">レビュー往復↓／滞留↓／炎上↓／稼働偏り↓／若手満足↑／継続率↑</p>
+            </div>
+          </div>
+        </section>
+
+        <section id="s3">
+          <h2>3. COS全体像：入力→解析→介入（アクション）までを一気通貫</h2>
+          <p class="lead">
+            COSは “文章を作るAI” ではなく、<b>状態を見て、手を打つAI</b>です。<br>
+            重要なのは、アラートだけで終わらせず<b>次の一手（誰が・何を・いつ）</b>まで出すことです。
+          </p>
+
+          <div class="mermaid-wrap">
+            <pre class="mermaid">
+flowchart LR
+  A[入力<br/>成果物・タスク・会議/メール/チャット(メタ情報)<br/>稼働/納期/差戻し・30秒セルフチェック] --> B[COSコア]
+  B --> C1[SlideOps<br/>資料のUnit Test / 突っ込み自動生成 / 型の強制]
+  B --> C2[Skill DNA<br/>アウトプットからスキル実績推定 / 育成設計]
+  B --> C3[Client Relationship Twin<br/>関係性レーダー / 予兆検知 / 打ち手提案]
+  B --> C4[Workload & Risk Radar<br/>負荷構造検知 / 介入アクション提示]
+  B --> C5[Decision Log<br/>決定事項/前提/未決の監査 / 滞留防止]
+
+  C1 --> D[アクション<br/>修正提案・レビュー同席・テンプレ生成]
+  C2 --> D[アクション<br/>アサイン・助っ人提案・練習課題]
+  C3 --> D[アクション<br/>合意形成の順番再設計・決裁者同席提案]
+  C4 --> D[アクション<br/>1on1提案・締切再交渉文面・タスク再設計]
+  C5 --> D[アクション<br/>未決の自動督促・前提崩壊アラート]
+
+  D --> E[成果<br/>差戻し↓ / 炎上↓ / 稼働偏り↓ / 満足↑ / 継続率↑]
+            </pre>
+          </div>
+
+          <div class="note">
+            COSは「監視」ではなく「安全装置」です。個人を裁くのではなく、<b>詰まり（滞留・差戻し・偏り・関係性の歪み）</b>を早期に取り除く設計にします。
+          </div>
+        </section>
+
+        <section id="s4">
+          <h2>4. 提案①：Slide Unit Test化（DocOps / SlideOps）</h2>
+          <p class="lead">
+            目的は「レビュー工数削減」ではなく、<b>差戻しが起きない構造</b>を作ること。<br>
+            提出した瞬間にAIが “テスト落ち” を検出し、修正を促します。
+          </p>
+
+          <h3>何をテストするか（例）</h3>
+          <ul>
+            <li>論点→結論→根拠→示唆 の欠落／飛躍（ロジック監査）</li>
+            <li>数字の整合（合計/前年差/単位/期間/定義ゆれ）（数値監査）</li>
+            <li>見出しと結論の不一致、主語の曖昧さ、禁句・社内用語の混入（型監査）</li>
+            <li>想定突っ込み100本（役員/現場/情シス/法務/購買…観点別）（突っ込み生成）</li>
+          </ul>
+
+          <h3>“ユニーク”の肝：単一AIではなく「合議制批評」</h3>
+          <p class="lead">
+            指摘の質を安定させるため、ロール別AIを合議させます（例：ロジック監査官、数値監査官、クライアント目線、シニア口調）。
+          </p>
+
+          <div class="mermaid-wrap">
+            <pre class="mermaid">
+flowchart TB
+  U[作成者<br/>若手/中堅] --> P[Preflightチェック<br/>Slide Unit Test]
+  P -->|Fail| F[修正提案<br/>差分/根拠/言い換え/図解]
+  F --> U
+  P -->|Pass| R[人のレビュー<br/>シニアは"高付加価値"に集中]
+  R --> D[提出]
+  subgraph Test[Unit Testの例]
+    T1[ロジック]:::b --> T2[数値整合]:::b --> T3[型/禁則]:::b --> T4[想定突っ込み]:::b
+  end
+  P --- Test
+
+  classDef b fill:#fff,stroke:#111,color:#111;
+            </pre>
+          </div>
+
+          <div class="kpi">
+            <span class="pill">KPI：差戻し回数（往復）↓</span>
+            <span class="pill">KPI：初回OK率↑</span>
+            <span class="pill">KPI：レビュー滞留時間↓</span>
+            <span class="pill">KPI：若手の心理的安全↑</span>
+          </div>
+        </section>
+
+        <section id="s5">
+          <h2>5. 提案②：Skill DNA（スキル管理を“実績推定”へ）</h2>
+          <p class="lead">
+            スキルを「自己申告タグ」から「アウトプット由来のベクトル（Skill DNA）」へ。<br>
+            800名規模で致命傷になる <b>アサインミスと育成迷子</b> を構造的に減らします。
+          </p>
+
+          <h3>何を推定するか（例）</h3>
+          <ul>
+            <li>論点設計、構成力、根拠の作り方、数値強度、ファシリ、交渉、PMO、業界理解</li>
+            <li>伸びしろ（例：論点強いが根拠弱い → データ設計課題を15分で提示）</li>
+          </ul>
+
+          <div class="mermaid-wrap">
+            <pre class="mermaid">
+flowchart LR
+  A[入力<br/>成果物/レビュー履歴/タスクの粒度/会議ログ] --> B[特徴抽出]
+  B --> C[Skill DNA<br/>スキルベクトル化]
+  C --> D1[アサイン最適化<br/>案件要件との距離最小化]
+  C --> D2[育成設計<br/>隣に置く先輩/練習課題/次の任せ方]
+  C --> D3[偏り是正<br/>ハイパフォーマー集中を検知]
+            </pre>
+          </div>
+
+          <div class="kpi">
+            <span class="pill">KPI：アサインミス（炎上）率↓</span>
+            <span class="pill">KPI：独り立ちまでの期間↓</span>
+            <span class="pill">KPI：稼働偏り↓</span>
+          </div>
+
+          <div class="note">
+            ここはRAG不要です。必要なのは「知識」よりも、<b>行動と成果物のパターンからの推定</b>です。
+          </div>
+        </section>
+
+        <section id="s6">
+          <h2>6. 提案③：Client Relationship Twin（CRM→関係性レーダー）</h2>
+          <p class="lead">
+            炎上の芽は、情報量ではなく<b>関係性の歪み</b>に現れます。<br>
+            文章内容を読むより、<b>相互作用パターン（反応速度/同席者/宿題粒度/合意密度）</b>を時系列で捉えます。
+          </p>
+
+          <h3>予兆の例（メタ情報中心）</h3>
+          <ul>
+            <li>反応速度が落ちる／決裁者が出てこない／論点が増えるのに合意が減る</li>
+            <li>宿題の粒度が粗くなる／会議が“詰問型”に変化する</li>
+          </ul>
+
+          <div class="mermaid-wrap">
+            <pre class="mermaid">
+flowchart TB
+  S[会議/メール/チャット<br/>メタ情報] --> G[関係性グラフ生成<br/>誰が誰に影響しているか]
+  G --> A[時系列異常検知<br/>合意密度/反応速度/同席者変化]
+  A --> R[リスク分類<br/>炎上/失注/スコープ肥大]
+  R --> P[打ち手提案<br/>決裁者同席/論点整理会/合意順序再設計]
+            </pre>
+          </div>
+
+          <div class="kpi">
+            <span class="pill">KPI：炎上予兆の早期検知率↑</span>
+            <span class="pill">KPI：追加工数（手戻り）↓</span>
+            <span class="pill">KPI：継続/アップセル率↑</span>
+          </div>
+        </section>
+
+        <section id="s7">
+          <h2>7. 提案④：Workload & Risk Radar（負荷/メンタルの早期警戒×介入）</h2>
+          <p class="lead">
+            個人を診断しません。<b>燃え尽きにつながる負荷構造</b>を検知して、先に手当てします。<br>
+            アラートだけで終わらず、<b>介入アクション（助っ人・1on1・締切再設計・タスク再設計）</b>まで自動で提示します。
+          </p>
+
+          <h3>信号（例）</h3>
+          <ul>
+            <li>カレンダー過密／深夜稼働／差戻し連発／レビュー待ち滞留／タスク分断</li>
+            <li>30秒セルフチェック（任意）：「今日の余裕」だけ入れる（精度UP）</li>
+          </ul>
+
+          <div class="mermaid-wrap">
+            <pre class="mermaid">
+sequenceDiagram
+  autonumber
+  participant W as Work Signals
+  participant R as Risk Radar
+  participant M as Manager
+  participant T as Team/Helpers
+  participant U as Member
+
+  W->>R: 稼働/差戻し/滞留/会議密度/セルフチェック
+  R->>R: 異常検知 + 負荷構造推定
+  R->>M: 介入提案（助っ人候補/1on1/締切再設計）
+  M->>T: 助っ人アサイン（Skill DNA連携）
+  M->>U: 1on1 / 期待値調整 / タスク粒度再設計
+  R->>R: 介入後の改善を追跡（再発防止）
+            </pre>
+          </div>
+
+          <div class="kpi">
+            <span class="pill">KPI：稼働偏り↓</span>
+            <span class="pill">KPI：離職/休職リスク指標↓</span>
+            <span class="pill">KPI：若手eNPS↑</span>
+          </div>
+
+          <div class="note">
+            ※医療的診断は行わず、<b>業務運用の安全装置</b>として設計します（監視感を出さない・評価に直結させない方針）。
+          </div>
+        </section>
+
+        <section id="s8">
+          <h2>8. 提案⑤：Decision Log（意思決定の整流：拡大期の致命傷を防ぐ）</h2>
+          <p class="lead">
+            拡大期に組織を壊すのは「何を決めたか分からない」病です。<br>
+            議事録要約ではなく、<b>決定事項（Decision）・前提（Assumption）・未決（Open）</b>を監査ログ化し、未決の滞留をなくします。
+          </p>
+
+          <div class="mermaid-wrap">
+            <pre class="mermaid">
+flowchart LR
+  M[会議/議事メモ] --> E[抽出<br/>Decision / Assumption / Open / Owner / Due]
+  E --> L[Decision Log（監査台帳）]
+  L --> N[未決の滞留検知<br/>自動督促/エスカレーション]
+  L --> A[前提崩壊アラート<br/>条件監視（例：納期/予算/要件）]
+  N --> O[実行]
+  A --> O
+            </pre>
+          </div>
+
+          <div class="kpi">
+            <span class="pill">KPI：未決（Open）の滞留日数↓</span>
+            <span class="pill">KPI：合意形成リードタイム↓</span>
+            <span class="pill">KPI：手戻り↓</span>
+          </div>
+        </section>
+
+        <section id="s9">
+          <h2>9. ロードマップ：90日PoCで“効き”を出し、全社OSへ</h2>
+          <p class="lead">
+            まずは<b>即効性が高い順</b>に導入します（レビュー→負荷→スキル→顧客）。<br>
+            90日で「差戻し/滞留/偏り」の改善を可視化し、展開判断に繋げます。
+          </p>
+
+          <div class="mermaid-wrap">
+            <pre class="mermaid">
+gantt
+  title COS 導入ロードマップ（例）
+  dateFormat  YYYY-MM-DD
+  axisFormat  %m/%d
+
+  section 0-90日（PoCで効きを出す）
+  SlideOps（資料Unit Test）      :a1, 2026-01-05, 28d
+  Risk Radar（負荷/介入）        :a2, 2026-01-19, 42d
+  KPI測定・運用チューニング       :a3, 2026-02-03, 35d
+
+  section 3-6ヶ月（組織の背骨を作る）
+  Skill DNA（実績推定）           :b1, 2026-03-10, 60d
+  Decision Log（未決滞留防止）    :b2, 2026-03-24, 60d
+
+  section 6-12ヶ月（攻めの拡張）
+  Client Relationship Twin（予兆）:c1, 2026-06-01, 90d
+  全社展開（運用OS化）            :c2, 2026-08-15, 120d
+            </pre>
+          </div>
+
+          <div class="note">
+            ※日付は例です。実際は貴社の案件波形・繁忙期に合わせて再設計します。
+          </div>
+        </section>
+
+        <section id="s10">
+          <h2>10. ガバナンス/安全設計：監視感を出さずに“守る”</h2>
+          <p class="lead">
+            COSは「監視」ではなく「安全装置」。導入で反発が出ないよう、最初から設計に織り込みます。
+          </p>
+
+          <div class="cards">
+            <div class="card">
+              <p class="t">最小データ主義</p>
+              <p class="d">本文の解釈ではなく、メタ情報・滞留・差戻しなどの“運用信号”を中心に。</p>
+            </div>
+            <div class="card">
+              <p class="t">評価に直結させない</p>
+              <p class="d">個人評価ではなく、詰まりの除去（助っ人/締切/粒度）に使う方針を明文化。</p>
+            </div>
+            <div class="card">
+              <p class="t">説明可能性</p>
+              <p class="d">なぜアラートが出たか（滞留/差戻し/偏り等）を根拠付きで提示。</p>
+            </div>
+          </div>
+
+          <h3>運用ポリシー例（ドラフト）</h3>
+          <div class="mono">
+- COSは個人を監視・評価するために使わない（安全装置として使う）
+- リスク検知は「介入アクションの提案」までセット（アラート放置を禁止）
+- メンタル領域は医療診断を行わず、業務負荷の構造是正に限定
+- ログとモデル出力は目的外利用を禁止（アクセス権・監査ログを整備）
+          </div>
+        </section>
+
+        <section id="s11">
+          <h2>11. PoC提案：小さく始めて、数字で勝つ</h2>
+          <p class="lead">
+            忙しい前提で、<b>最小の対象</b>から始めます。成果が出たら横展開します。
+          </p>
+
+          <h3>PoCスコープ（案）</h3>
+          <ul>
+            <li>対象：2〜3プロジェクト（30〜50名規模）</li>
+            <li>期間：6〜10週</li>
+            <li>優先：SlideOps → Risk Radar（即効性）</li>
+          </ul>
+
+          <h3>主要KPI（例）</h3>
+          <div class="kpi">
+            <span class="pill">差戻し回数（往復）</span>
+            <span class="pill">レビュー滞留時間</span>
+            <span class="pill">稼働偏り（上位n%集中）</span>
+            <span class="pill">炎上予兆の早期検知</span>
+            <span class="pill">若手eNPS / 満足度</span>
+          </div>
+
+          <div class="note">
+            次のステップ：PoC対象案件の選定（2〜3本）と、貴社の「資料の型」「レビュー観点」「運用KPI」を30〜60分で棚卸しし、テスト仕様に落とし込みます。
+          </div>
+        </section>
+
+        <section>
+          <h2>付録：提案の要点（1枚で）</h2>
+          <div class="cards">
+            <div class="card">
+              <p class="t">結論</p>
+              <p class="d">RAGではなく、運用を自動制御する「COS」を導入し、拡大期の詰まりを構造で解消する。</p>
+            </div>
+            <div class="card">
+              <p class="t">即効性</p>
+              <p class="d">Slide Unit Testで差戻しを未然防止。Risk Radarで燃え尽き構造に先回り介入。</p>
+            </div>
+            <div class="card">
+              <p class="t">中長期</p>
+              <p class="d">Skill DNAで育成/アサインを最適化。Client Twinで炎上予兆を検知し打ち手まで提示。</p>
+            </div>
+          </div>
+        </section>
+
+        <div class="footer">
+          © 2025 AI研究者 福原 玄 / Consulting Operating System（COS）提案
+          &nbsp;|&nbsp; <a href="#top">TOPへ戻る</a>
+        </div>
+      </main>
+    </div>
+  </div>
+</body>
+</html>
