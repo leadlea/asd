@@ -1,0 +1,545 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>AI人材 大量採用を成功させる実務ガイド（採用チーム配布資料）</title>
+  <style>
+    :root{
+      --fg:#111;
+      --muted:#555;
+      --line:#e6e6e6;
+      --bg:#fff;
+      --chip:#f6f6f6;
+      --accent:#111;
+      --radius:14px;
+      --font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic", sans-serif;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    }
+    html,body{ background:var(--bg); color:var(--fg); font-family:var(--font); line-height:1.6; }
+    body{ margin:0; }
+    .page{
+      max-width: 1040px;
+      margin: 0 auto;
+      padding: 34px 22px 80px;
+    }
+    header{
+      border:1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 22px 22px 18px;
+      margin-bottom: 18px;
+    }
+    h1{
+      font-size: 28px;
+      margin: 0 0 6px 0;
+      letter-spacing: .02em;
+    }
+    .sub{
+      font-size: 15px;
+      color: var(--muted);
+      margin: 0;
+    }
+    .meta{
+      margin-top: 12px;
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .chip{
+      display:inline-block;
+      padding: 6px 10px;
+      border:1px solid var(--line);
+      border-radius: 999px;
+      background: var(--chip);
+    }
+    section{
+      margin-top: 14px;
+      border:1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 18px 18px 16px;
+    }
+    h2{
+      font-size: 20px;
+      margin: 0 0 10px 0;
+    }
+    h3{
+      font-size: 16px;
+      margin: 14px 0 8px 0;
+    }
+    p,li{ font-size: 15px; }
+    ul{ margin: 8px 0 0 20px; }
+    .grid{
+      display:grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+      margin-top: 10px;
+    }
+    .callout{
+      border:1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 14px 14px 12px;
+      background:#fff;
+    }
+    .callout strong{ font-size: 15px; }
+    .kpi{
+      display:grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .kpi .box{
+      border:1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 12px 12px 10px;
+    }
+    .kpi .num{
+      font-size: 22px;
+      font-weight: 700;
+      margin: 0;
+    }
+    .kpi .lbl{
+      margin: 4px 0 0 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    table{
+      width:100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+      font-size: 14px;
+    }
+    th,td{
+      border:1px solid var(--line);
+      padding: 10px;
+      vertical-align: top;
+      text-align:left;
+    }
+    th{ background:#fafafa; }
+    .small{ font-size: 13px; color: var(--muted); }
+    .mono{ font-family: var(--mono); font-size: 13px; }
+    .mermaid-wrap{
+      border:1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 10px;
+      margin-top: 10px;
+      overflow-x:auto;
+    }
+    .mermaid{ font-size: 14px; }
+
+    .checklist{
+      display:grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    .item{
+      border:1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 12px;
+    }
+    .item .t{ font-weight:700; }
+    .item ul{ margin-top: 6px; }
+
+    .footer{
+      margin-top: 18px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    /* Print */
+    @media print{
+      .page{ max-width: none; padding: 16mm 14mm; }
+      header, section{ break-inside: avoid; }
+      a{ color: var(--fg); text-decoration: none; }
+    }
+  </style>
+
+  <!-- Mermaid -->
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <script>
+    window.addEventListener("DOMContentLoaded", () => {
+      mermaid.initialize({ startOnLoad: true, theme: "base" });
+    });
+  </script>
+</head>
+
+<body>
+  <div class="page">
+
+    <header>
+      <h1>AI人材を「大量採用」するための実務ガイド（コンサルファーム採用向け）</h1>
+      <p class="sub">採用を“案件化して工場化する” — 母集団×選考スケール×口説きの再現性で勝つ</p>
+      <div class="meta">
+        <span class="chip">配布対象：採用チーム / 面接官 / AIリーダー</span>
+        <span class="chip">形式：スキルベース採用 × 構造化面接 × ミニ課題</span>
+        <span class="chip">作成：AI研究者 福原 玄（現場視点）</span>
+      </div>
+    </header>
+
+    <section>
+      <h2>0. まず結論（大量採用が成立する条件）</h2>
+      <div class="grid">
+        <div class="callout">
+          <strong>大量採用の勝ちパターンは「採用を案件化」すること</strong>
+          <ul>
+            <li><b>役割分解</b>（AI人材を一括りにしない）</li>
+            <li><b>スキルで母集団拡大</b>（職歴フィルタを捨てる）</li>
+            <li><b>選考をスケール設計</b>（構造化面接＋ミニ課題でブレを消す）</li>
+            <li><b>口説きを標準化</b>（「案件のリアル」と「成長の道」を見せる）</li>
+            <li><b>10営業日でオファー</b>（SLAでスピードを担保）</li>
+          </ul>
+        </div>
+        <div class="callout">
+          <strong>採用のボトルネック（典型）</strong>
+          <ul>
+            <li>JDが抽象的で、強い人ほど敬遠する</li>
+            <li>面接官ごとに基準が違い、通過率が不安定</li>
+            <li>技術者の見極めを「雑談」や「印象」でやっている</li>
+            <li>オファーまでが長く、他社に取られる</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>1. 役割を分解する（母集団も面接も、ここで決まる）</h2>
+      <p>AI人材を「一括」で探すと失敗します。以下のように<b>4〜5系統</b>に分け、JD・課題・面接官を分離します。</p>
+
+      <table>
+        <thead>
+          <tr>
+            <th>系統（例）</th>
+            <th>主な成果物（90日目安）</th>
+            <th>見極めポイント</th>
+            <th>刺さる訴求</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><b>AI戦略/業務コンサル</b><br><span class="small">（GenAI含む）</span></td>
+            <td>課題定義 / ROI仮説 / To-Be業務 / PoC設計（評価指標含む）</td>
+            <td>経営課題→データ/AIに落とす力、合意形成、論点設計</td>
+            <td>幅広い業界×上流、提案機会、意思決定層と近い</td>
+          </tr>
+          <tr>
+            <td><b>AIアーキ/テックリード</b></td>
+            <td>RAG/LLMアプリの参照設計、評価設計、セキュリティ/運用設計</td>
+            <td>トレードオフ（品質/コスト/速度/運用）、設計の一貫性</td>
+            <td>提案〜実装の中核、裁量、標準化・横展開</td>
+          </tr>
+          <tr>
+            <td><b>LLM/MLエンジニア</b></td>
+            <td>RAG MVP、オフライン/オンライン評価、改善サイクル</td>
+            <td>検証→実装→評価→改善、再現性、実務の手数</td>
+            <td>作れる環境（データ/権限/計算資源）、本番化</td>
+          </tr>
+          <tr>
+            <td><b>データ/基盤（DE/MLOps/LLMOps）</b></td>
+            <td>データパイプライン、監視、モデル/プロンプト管理、ログ整備</td>
+            <td>運用設計、品質管理、SRE的視点、セキュリティ</td>
+            <td>地味だが価値が大きい、横断的影響力</td>
+          </tr>
+          <tr>
+            <td><b>AIガバナンス</b><br><span class="small">（モデルリスク/評価）</span></td>
+            <td>ガイドライン、責任分界、評価テンプレ、監査可能な証跡</td>
+            <td>リスク論点、説明責任、運用ルールの実装力</td>
+            <td>大企業案件で必須、差別化要素、経営直結</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="mermaid-wrap">
+        <pre class="mermaid">
+flowchart TB
+  A[AI人材を一括りにしない] --> B{役割分解}
+  B --> B1[AI戦略/業務コンサル]
+  B --> B2[AIアーキ/テックリード]
+  B --> B3[LLM/MLエンジニア]
+  B --> B4[データ/基盤 DE/MLOps/LLMOps]
+  B --> B5[AIガバナンス]
+  B1 --> C1[成果物ベースJD]
+  B2 --> C2[成果物ベースJD]
+  B3 --> C3[成果物ベースJD]
+  B4 --> C4[成果物ベースJD]
+  B5 --> C5[成果物ベースJD]
+        </pre>
+      </div>
+    </section>
+
+    <section>
+      <h2>2. JDは「成果物」で書く（強い人ほどここを見る）</h2>
+      <p>大量採用ほど、JDが抽象的だと母集団の質が落ちます。<b>“90日で何を出すか”</b>で揃えると、ミスマッチも面接コストも減ります。</p>
+
+      <div class="callout">
+        <strong>JDテンプレ（コピペ用）</strong>
+        <p class="mono">
+          【ミッション】<br>
+          ・（例）大手企業の業務課題を、GenAI/機械学習で解決する提案〜実装をリードする。<br><br>
+          【90日で期待する成果物】<br>
+          1) 課題定義と成功指標（品質/コスト/運用）を合意形成できる<br>
+          2) MVP（例：RAG）を構築し、評価→改善のサイクルを回す<br>
+          3) セキュリティ/ガバナンス観点（ログ、権限、責任分界）を最低限整備する<br><br>
+          【必須スキル】（職歴ではなくスキルで）<br>
+          ・要件→設計→評価→運用の一連の思考と説明ができる<br>
+          ・（役割に応じて）LLM/RAG/データ基盤/ガバナンスのいずれかで手を動かした経験<br><br>
+          【歓迎】<br>
+          ・顧客折衝、提案書、プロジェクト推進、標準化/横展開の経験
+        </p>
+      </div>
+
+      <div class="checklist">
+        <div class="item">
+          <div class="t">JDで必ず入れる3点</div>
+          <ul>
+            <li><b>成果物（90日）</b>：何を出せば勝ちか</li>
+            <li><b>現実（制約）</b>：データ/権限/セキュリティ/現場協力度</li>
+            <li><b>成長の道</b>：半年〜1年でどこまで任せるか</li>
+          </ul>
+        </div>
+        <div class="item">
+          <div class="t">NGワード例（大量採用で事故る）</div>
+          <ul>
+            <li>「最新技術に詳しい方」「AIが好きな方」だけで終わる</li>
+            <li>「生成AIのみ」など不自然な縛り（候補者の軸に逆行）</li>
+            <li>成果物がなく、評価基準が不明確</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>3. 選考をスケールさせる（構造化面接＋ミニ課題）</h2>
+      <p>大量採用は「面接官の属人性」を消すほど強くなります。おすすめは <b>構造化面接（ルーブリック採点）</b> と <b>ミニ課題（Work Sample）</b> の組み合わせです。</p>
+
+      <h3>3-1. 選考フロー（10営業日SLA）</h3>
+      <div class="mermaid-wrap">
+        <pre class="mermaid">
+flowchart LR
+  S[応募/スカウト] --> A[書類: スキル確認]
+  A -->|48h以内| B[一次: 構造化面接 45分]
+  B --> C[ミニ課題 60-90分<br>事前/当日どちらでも]
+  C -->|72h以内| D[二次: ケース+口頭レビュー 45分]
+  D -->|24h以内| E[合議・条件確定]
+  E -->|10営業日以内| F[オファー]
+        </pre>
+      </div>
+
+      <h3>3-2. ミニ課題（例：RAG/LLMアプリ）</h3>
+      <div class="callout">
+        <strong>課題例：RAGを業務導入するなら、どう設計する？（口頭レビュー付き）</strong>
+        <ul>
+          <li>要件：誰が何を知りたい？失敗すると何が起きる？</li>
+          <li>データ：どこにある？更新頻度は？品質は？</li>
+          <li>設計：検索、分割、権限、ログ、プロンプト、ガードレール</li>
+          <li>評価：正確性だけでなく、<b>コスト/速度/運用</b>も含める</li>
+          <li>運用：監視、改善サイクル、責任分界（誰が直す？）</li>
+        </ul>
+        <p class="small">※ポイント：アウトプットの“正解”より、トレードオフと再現性（どう進めるか）を評価する。</p>
+      </div>
+
+      <h3>3-3. 採点ルーブリック（例：5段階）</h3>
+      <table>
+        <thead>
+          <tr>
+            <th>評価軸</th>
+            <th>1（弱い）</th>
+            <th>3（標準）</th>
+            <th>5（強い）</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><b>論点設計</b></td>
+            <td>思いつきで話す</td>
+            <td>要件→設計→評価の順で整理</td>
+            <td>制約・リスクも含めて筋が通る</td>
+          </tr>
+          <tr>
+            <td><b>トレードオフ</b></td>
+            <td>品質しか見ない</td>
+            <td>品質/コスト/速度を比較する</td>
+            <td>運用・監査まで含め最適化</td>
+          </tr>
+          <tr>
+            <td><b>実装/運用の現実感</b></td>
+            <td>机上の空論</td>
+            <td>ログ/権限/監視の必要性を理解</td>
+            <td>責任分界や改善手順まで具体</td>
+          </tr>
+          <tr>
+            <td><b>コミュニケーション</b></td>
+            <td>説明が散らかる</td>
+            <td>結論→根拠→例で説明</td>
+            <td>相手に合わせて合意形成できる</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>4. 母集団を増やす（採用ラインを3本立てにする）</h2>
+      <p>大量採用は「経験者一本足」だと詰みます。供給を複線化します。</p>
+
+      <div class="mermaid-wrap">
+        <pre class="mermaid">
+flowchart TB
+  X[AI人材の供給を増やす] --> A[ラインA: 即戦力採用<br>経験者]
+  X --> B[ラインB: 隣接人材の転換<br>ソフト/データ/業務コンサル]
+  X --> C[ラインC: 社内リスキリング<br>既存コンサルをAI化]
+  A --> A1[専門コミュニティ/紹介/ハイタッチ]
+  B --> B1[スキルベース検索/課題で見極め]
+  C --> C1[AI Academy + OJT + メンター]
+        </pre>
+      </div>
+
+      <h3>4-1. 隣接人材の“転換”で勝つ（最も伸びる）</h3>
+      <ul>
+        <li>ソフトウェアエンジニア → LLMアプリ/LLMOps</li>
+        <li>データ分析/BI → ML/評価/要件定義</li>
+        <li>業務コンサル → AI戦略/ユースケース設計</li>
+      </ul>
+
+      <h3>4-2. スカウト文の必勝要素（短く刺す）</h3>
+      <div class="callout">
+        <strong>スカウトは「案件のリアル」＋「成長の道」＋「裁量」を1通で</strong>
+        <ul>
+          <li>あなたの強み（例：評価設計/基盤/業務設計）が<b>そのまま武器になる</b></li>
+          <li>入社後90日で任せる成果物（具体）</li>
+          <li>PoCで終わらせず、本番化・横展開までやる意思</li>
+        </ul>
+      </div>
+    </section>
+
+    <section>
+      <h2>5. 口説きの標準化（候補者が本当に気にすること）</h2>
+      <p>強いAI人材ほど、<b>「AIができる環境」</b>を見ます。ここを面談で“言語化”できると承諾率が上がります。</p>
+
+      <div class="checklist">
+        <div class="item">
+          <div class="t">候補者の鉄板質問（必ず用意）</div>
+          <ul>
+            <li>データアクセス権限は？（誰が出せる？どれくらい時間かかる？）</li>
+            <li>評価は？（精度以外に、コスト/速度/運用をどう見る？）</li>
+            <li>本番化の責任分界は？（障害/誤回答/監査対応は誰が持つ？）</li>
+            <li>PoC止まりをどう防ぐ？（横展開の仕組みは？）</li>
+          </ul>
+        </div>
+        <div class="item">
+          <div class="t">承諾率が上がる一言（例）</div>
+          <ul>
+            <li>「入社後すぐ、あなたには<b>評価設計</b>を任せたい」</li>
+            <li>「案件の勝ち筋は<b>標準化</b>。そこを一緒に作りたい」</li>
+            <li>「AI案件は“提案→実装→運用”まで。途中で切らない」</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>6. 大量採用のKPI（週次で回すダッシュボード）</h2>
+      <div class="kpi">
+        <div class="box">
+          <p class="num">10営業日</p>
+          <p class="lbl">Time-to-Offer（SLA）</p>
+        </div>
+        <div class="box">
+          <p class="num">◯◯%</p>
+          <p class="lbl">承諾率（Offer→Join）</p>
+        </div>
+        <div class="box">
+          <p class="num">◯◯%</p>
+          <p class="lbl">一次通過率（基準ブレ検知）</p>
+        </div>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>KPI</th>
+            <th>狙い</th>
+            <th>異常値のサイン</th>
+            <th>打ち手</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>応募→一次通過率</td>
+            <td>スクリーニング精度</td>
+            <td>面接官ごとのブレが大きい</td>
+            <td>ルーブリック読み合わせ、質問固定</td>
+          </tr>
+          <tr>
+            <td>一次→二次通過率</td>
+            <td>ミニ課題の適正</td>
+            <td>難しすぎ/簡単すぎ</td>
+            <td>課題を3問に固定し、難易度調整</td>
+          </tr>
+          <tr>
+            <td>Time-to-Offer</td>
+            <td>競合に勝つ</td>
+            <td>10営業日を超える</td>
+            <td>面接枠先取り、当日合議、条件帯決め</td>
+          </tr>
+          <tr>
+            <td>入社後90日評価</td>
+            <td>採用の妥当性</td>
+            <td>期待成果が曖昧</td>
+            <td>JDを成果物化、オンボ計画と接続</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>7. 不正応募・なりすまし対策（大量採用ほど必須）</h2>
+      <p>オンライン中心の大量採用では、本人性の担保が重要です。最低限の標準手順を決めます。</p>
+      <div class="checklist">
+        <div class="item">
+          <div class="t">必須（標準化）</div>
+          <ul>
+            <li>本人確認（身分証/顔照合の運用）</li>
+            <li>経歴検証（在籍/業務範囲の確認）</li>
+            <li>面接中の“独力確認”（口頭で設計の理由を深掘る）</li>
+          </ul>
+        </div>
+        <div class="item">
+          <div class="t">面接で効くチェック</div>
+          <ul>
+            <li>「その設計で失敗すると何が起きる？」を連続で聞く</li>
+            <li>「ログは何を残す？誰が見る？」で現実感を確認</li>
+            <li>生成AI利用は前提にしつつ、<b>思考の筋</b>を評価する</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>8. 30日で立ち上げる実行プラン（採用を“工場化”）</h2>
+      <div class="mermaid-wrap">
+        <pre class="mermaid">
+timeline
+  title 30日で大量採用オペを立ち上げる
+  1週目 : 役割分解(4-5系統) : 成果物ベースJD整備 : ルーブリック初版
+  2週目 : ミニ課題バンク(各系統3問) : 面接官トレーニング(60分) : 面接枠の先取り
+  3週目 : スカウト文テンプレ : チャネル設計(紹介/コミュニティ/媒体) : KPIダッシュボード
+  4週目 : 運用開始 : 週次で基準ブレ調整 : オファーSLA10営業日固定
+        </pre>
+      </div>
+
+      <h3>今すぐ決める3つ（会議で確定してOK）</h3>
+      <ul>
+        <li><b>役割系統</b>（4〜5）と、それぞれの<b>90日成果物</b></li>
+        <li><b>選考フロー</b>（構造化面接＋ミニ課題）と<b>採点軸</b></li>
+        <li><b>SLA</b>（10営業日オファー）と面接枠の確保方法</li>
+      </ul>
+    </section>
+
+    <div class="footer">
+      <p>※本資料は「大量採用」を前提に、採用の再現性（スケール）を優先して設計しています。社内事情に合わせて、役割系統・課題・SLAを調整してください。</p>
+    </div>
+
+  </div>
+</body>
+</html>
