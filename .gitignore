@@ -25,6 +25,8 @@
 # docs: index.html だけ
 !docs/
 !docs/*.html
+!docs/*.md
+!docs/**/*.md
 # Nanami のアウトプット一式
 !out/
 !out/audio/
