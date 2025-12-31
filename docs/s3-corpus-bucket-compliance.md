@@ -362,6 +362,9 @@ aws s3 cp reports/goldv13_cejcdyad_vs_csjdialog_a4_full.pdf \
 * `.../analysis/v1/gold=v13/report/goldv13_cejcdyad_vs_csjdialog_a4.pdf`
 * `.../analysis/v1/gold=v13/report/goldv13_cejcdyad_vs_csjdialog_a4_full.pdf`
 
+- <a href="https://leadlea.github.io/asd/report/goldv13_cejcdyad_vs_csjdialog_a4_full.pdf" target="_blank" rel="noopener">A4比較レポート（full PDF）</a>
+- <a href="https://leadlea.github.io/asd/report/goldv13_cejcdyad_vs_csjdialog_a4.pdf" target="_blank" rel="noopener">A4比較レポート（簡易 PDF）</a>
+
 ---
 
 ## 10. 既存論文との照合（sanity check：B-1_168）
