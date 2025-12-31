@@ -24,16 +24,16 @@ Outputs (to S3)
 Notes
 - SFP grouping: NE, NE_Q, YO, NO, NA, MON, NONLEX, NONE, OTHER
 - pairs are created only on speaker switches within each conversation
-- --loose-aizuchi expands aizuchi detection:
-  - marker-only NONLEX like "(L)", "(S)", "(X ##)" treated as aizuchi
-  - adds more backchannel tokens (へー/へぇ/ああ/そっか etc.)
-  - allows mixed 2-3 token short responses if all tokens are in vocab
+- --loose-aizuchi expands aizuchi detection
+
+v11: angle-tag robust + variant normalization + keep "ー" in aizuchi norm
+v12: trailing "ー" tolerant for aizuchi + add "ほー" + debug excludes empty norms
+v13: add agreement-backchannel tokens (ですよね/だよね/まあね/まぁね)
 """
 
 from __future__ import annotations
 
 import argparse
-import math
 import os
 import re
 import tempfile
@@ -98,14 +98,34 @@ def df_to_parquet_temp(df: pd.DataFrame) -> str:
 # Normalization utilities
 # -----------------------------
 
+# Generic tail punct for SFP/question detection (OK to strip "ー")
 _RE_TAIL_PUNCT = re.compile(r"[ 　\t\r\n、，。．\.！!？\?\u2026…～〜ー\-：:]+$")
+# Tail punct for aizuchi detection (DO NOT strip "ー")
+_RE_TAIL_PUNCT_AIZ = re.compile(r"[ 　\t\r\n、，。．\.！!？\?\u2026…～〜：:]+$")
+
 _RE_SPACES = re.compile(r"\s+")
 _RE_PARENS_ALL = re.compile(r"\([^)]*\)")
 _RE_AT_ANNOT = re.compile(r"@.+$")  # drop trailing "@..."
 
+# CSJ angle tags: <FV> <息> <H> ... + sometimes broken like "<H" at end
+_RE_ANGLE_TAG_CLOSED = re.compile(r"<[^>]*>")
+_RE_ANGLE_TAG_OPEN_TAIL = re.compile(r"<[^>\s]*$")
+
+# Japanese token (keep long vowel mark)
+_RE_JA_TOKEN = re.compile(r"[ぁ-んァ-ン一-龥ー]+")
+_RE_HAS_JA = re.compile(r"[ぁ-んァ-ン一-龥]")
+
 
 def nfkc(s: str) -> str:
     return unicodedata.normalize("NFKC", s)
+
+
+def strip_angle_tags(s: str) -> str:
+    if not s:
+        return ""
+    x = _RE_ANGLE_TAG_CLOSED.sub("", s)
+    x = _RE_ANGLE_TAG_OPEN_TAIL.sub("", x)
+    return x
 
 
 def normalize_tail(text: str) -> str:
@@ -113,6 +133,7 @@ def normalize_tail(text: str) -> str:
     if text is None:
         return ""
     s = nfkc(str(text))
+    s = strip_angle_tags(s)
     s = _RE_AT_ANNOT.sub("", s)
     s = _RE_PARENS_ALL.sub(" ", s)
     s = s.strip()
@@ -125,28 +146,38 @@ def normalize_tail(text: str) -> str:
 # NONLEX / NONE detection
 # -----------------------------
 
-_RE_ANGLE_TAG = re.compile(r"<[^>]+>")  # CSJ: <FV>, <息> etc.
-_RE_HAS_JA = re.compile(r"[ぁ-んァ-ン一-龥]")
-
-
 def is_none_like(text: str) -> bool:
+    """
+    Treat NONE only when the utterance becomes empty after removing angle tags.
+      - "<FV><息>" => NONE
+      - "は<H>い"  => NOT NONE
+    """
     if text is None:
         return False
-    s = nfkc(str(text)).strip()
-    return bool(_RE_ANGLE_TAG.search(s))
+    raw = nfkc(str(text)).strip()
+    if not raw:
+        return False
+    if "<" not in raw:
+        return False
+    stripped = strip_angle_tags(raw).strip()
+    return stripped == ""
 
 
 def is_nonlex_like(text: str) -> bool:
     """
     Treat utterances starting with '(' (after NFKC+strip) as NONLEX,
-    except those containing <...> which are classified as NONE.
+    except those containing only angle tags which are classified as NONE.
     """
     if text is None:
         return False
-    s = nfkc(str(text)).strip()
-    if not s:
+    s0 = nfkc(str(text)).strip()
+    if not s0:
         return True
-    if is_none_like(s):
+    if is_none_like(s0):
+        return False
+
+    s = strip_angle_tags(s0).strip()
+    if not s:
         return False
     return s.startswith("(")
 
@@ -163,6 +194,7 @@ def is_question(text: str) -> bool:
     if text is None:
         return False
     raw = nfkc(str(text)).strip()
+    raw = strip_angle_tags(raw)
     if _RE_Q_MARK.search(raw):
         return True
     tail = normalize_tail(raw)
@@ -181,20 +213,20 @@ def sfp_group(text: str) -> str:
     """
     if text is None:
         return "OTHER"
-    raw = nfkc(str(text)).strip()
-    if not raw:
+    raw0 = nfkc(str(text)).strip()
+    if not raw0:
         return "NONLEX"
 
-    if is_none_like(raw):
+    if is_none_like(raw0):
         return "NONE"
-    if is_nonlex_like(raw):
+    if is_nonlex_like(raw0):
         return "NONLEX"
 
-    tail = normalize_tail(raw)
+    tail = normalize_tail(raw0)
     if not tail:
         return "NONLEX"
 
-    q = is_question(raw)
+    q = is_question(raw0)
 
     # MON
     if tail.endswith("もん") or tail.endswith("もんね") or tail.endswith("もんねえ") or tail.endswith("もんねー"):
@@ -224,48 +256,95 @@ def sfp_group(text: str) -> str:
 
 
 # -----------------------------
-# Aizuchi detection (improved)
+# Aizuchi detection (v13)
 # -----------------------------
 
-_RE_PARENS_CAPTURE = re.compile(r"\(([^)]*)\)")
 _RE_AT_END = re.compile(r"@.+$")
-# marker-only: sequences of (...) blocks, no Japanese chars
 _RE_ONLY_PAREN_BLOCKS = re.compile(r"^(?:\([^)]*\)\s*)+$")
 
-
-def _paren_to_token(m: re.Match) -> str:
-    inside = m.group(1).strip()
-    if not inside:
-        return " "
-    parts = _RE_SPACES.split(inside)
-    cand = parts[-1] if parts else ""
-    cand = cand.split("|")[0].strip()
-    if _RE_HAS_JA.search(cand):
-        return " " + cand + " "
-    return " "
+# variants
+_RE_BAR_VARIANT = re.compile(r"([ぁ-んァ-ン一-龥ー]+)\|([ぁ-んァ-ン一-龥ー]+)")
+_RE_SEMI_VARIANT = re.compile(r"([ぁ-んァ-ン一-龥ー]+);([ぁ-んァ-ン一-龥ー]+)")
 
 
-def norm_for_aizuchi(text: str) -> str:
-    if text is None:
+def _normalize_variants(s: str) -> str:
+    """
+    Normalize transcript variants:
+      - 'そう|そ' -> 'そう'  (take LEFT)
+      - 'エ;ええ' -> 'ええ' (take RIGHT)
+    Applied repeatedly to handle multiple occurrences.
+    """
+    if not s:
         return ""
-    s = nfkc(str(text))
-    s = _RE_AT_END.sub("", s)
-    s = _RE_PARENS_CAPTURE.sub(_paren_to_token, s)
-    s = s.strip()
-    s = _RE_TAIL_PUNCT.sub("", s)
-    s = _RE_SPACES.sub(" ", s).strip()
+
+    # take left for |
+    while True:
+        new = _RE_BAR_VARIANT.sub(r"\1", s)
+        if new == s:
+            break
+        s = new
+
+    # take right for ;
+    while True:
+        new = _RE_SEMI_VARIANT.sub(r"\2", s)
+        if new == s:
+            break
+        s = new
+
     return s
 
 
+def norm_for_aizuchi(text: str) -> str:
+    """
+    Normalize to a space-separated string of Japanese tokens.
+    Robust to:
+      - CSJ tags: <H>, <FV>, <息>, broken '<H'
+      - Parenthesis labels: (F ...), (D ...), (L ...), nested parentheses
+      - Misc punctuation
+    Crucially: keep "ー".
+    """
+    if text is None:
+        return ""
+    s = nfkc(str(text))
+    s = strip_angle_tags(s)
+    s = _RE_AT_END.sub("", s)
+
+    s = _normalize_variants(s)
+
+    # Remove obvious punctuation while keeping ー; turn brackets into spaces.
+    trans = str.maketrans({
+        "(": " ", ")": " ", "（": " ", "）": " ",
+        "[": " ", "]": " ", "{": " ", "}": " ",
+        "<": " ", ">": " ",
+        "。": " ", "．": " ", ".": " ",
+        "、": " ", "，": " ", ",": " ",
+        "！": " ", "!": " ", "？": " ", "?": " ",
+        "…": " ", "：": " ", ":": " ", "；": " ", ";": " ",
+        "|": " ",
+        "　": " ",
+        "\t": " ", "\r": " ", "\n": " ",
+    })
+    s = s.translate(trans)
+    s = strip_angle_tags(s)
+
+    toks = _RE_JA_TOKEN.findall(s)
+    if not toks:
+        return ""
+
+    cleaned: List[str] = []
+    for t in toks:
+        t2 = _RE_TAIL_PUNCT_AIZ.sub("", t).strip()
+        if t2:
+            cleaned.append(t2)
+
+    return " ".join(cleaned).strip()
+
+
 def is_marker_only_nonlex(text: str) -> bool:
-    """
-    True for things like "(L)", "(S)", "(X ##)", "(D #)" ... i.e.
-    - consists only of parenthesis blocks
-    - contains no Japanese characters
-    """
     if text is None:
         return False
     raw = nfkc(str(text)).strip()
+    raw = strip_angle_tags(raw)
     raw = _RE_AT_END.sub("", raw)
     raw = _RE_TAIL_PUNCT.sub("", raw).strip()
     if not raw:
@@ -277,22 +356,33 @@ def is_marker_only_nonlex(text: str) -> bool:
     return bool(_RE_ONLY_PAREN_BLOCKS.fullmatch(raw))
 
 
-# Base aizuchi tokens (strict-ish)
 AIZUCHI_BASE = {
-    "うん", "はい", "ええ", "そう", "なるほど", "へえ", "ふーん", "うーん",
-    "あ", "あー", "え", "えー", "おー",
+    "うん", "はい", "ええ", "そう", "なるほど", "うーん",
+    "へえ", "へー", "へぇ", "ふーん", "はー", "ふん",
+    "あ", "あー", "え", "えー", "お", "おー",
+    "そうね", "そうか", "そうそう", "確かに",
     "そうだね", "そうですね", "そうなんだ", "そうなんです", "そうです",
+    "ほんと", "ほんとに",
 }
 
-# Loose additions (more permissive)
 AIZUCHI_LOOSE_ADD = {
-    "ね", "ん", "はー", "んー", "ううん", "はーい",
-    "へー", "へぇ", "ああ", "そっか", "そーか", "なるほどね",
-    "お",  # "お。" 系の軽い相槌
-    "いやー",  # 迷い/驚き/同調として出るケースが多い
+    "ね", "ん", "んー", "ううん", "はーい",
+    "ああ", "そっか", "そーか", "なるほどね",
+    "あの", "あのー", "あのね", "あのねー",
+    "その", "そのー",
+    "えーと", "えーとー", "えっと", "えっとー", "えーっと", "えーっとー",
+    "ま", "まー", "まあ",
+    "なんか", "ほら", "あれ",
+    "多分", "たぶん",
+    "ほー",
+    "いやー", "いやいや",
+    "あーのー", "んーと", "んーとー",
+    # v13: agreement backchannels
+    "ですよね", "ですよねー",
+    "だよね", "だよねー",
+    "まあね", "まぁね",
 }
 
-# repeat patterns like "うん うん", "そう そう", etc.
 _RE_REPEAT = re.compile(
     r"^(?P<w>うん|そう|はい|ええ|へえ|へー|へぇ|ふーん|なるほど|うーん|あー|あ|えー|え|おー|ね|ん|はー|んー|ううん|はーい)"
     r"(?:\s+(?P=w))+$"
@@ -307,7 +397,6 @@ def is_aizuchi(text: str, loose: bool = False) -> bool:
     if not raw:
         return False
 
-    # marker-only NONLEX like (L)/(S)/(X ##) -> treat as aizuchi in loose mode
     if loose and is_marker_only_nonlex(raw):
         return True
 
@@ -319,18 +408,27 @@ def is_aizuchi(text: str, loose: bool = False) -> bool:
     if loose:
         vocab |= AIZUCHI_LOOSE_ADD
 
-    # final small-tsu "えっ" -> "え"
     s2 = re.sub(r"[っッ]+$", "", s)
 
-    # exact / normalized match
+    # tolerant of trailing long vowel mark(s)
+    if s.endswith("ー"):
+        s_strip = s.rstrip("ー")
+        s2_strip = s2.rstrip("ー")
+        if (s_strip in vocab) or (s2_strip in vocab):
+            return True
+
+    # handle "いや" carefully (only standalone short, only in loose)
+    if loose and s in {"いや", "いやー", "いやいや"}:
+        if (" " not in s) and (len(s) <= 4):
+            return True
+        return False
+
     if (s in vocab) or (s2 in vocab):
         return True
 
-    # repeated same-token forms
     if _RE_REPEAT.fullmatch(s):
         return True
 
-    # mixed short forms like "うん うーん", "うーん うん" (loose only)
     if loose:
         toks = s.split()
         if 2 <= len(toks) <= 3 and all((t in vocab) for t in toks):
@@ -400,6 +498,7 @@ def build_segments(df_u: pd.DataFrame) -> pd.DataFrame:
         sort_cols = ["_row"]
 
     df = df.sort_values(["conversation_id"] + sort_cols, kind="mergesort")
+
     df["utt_index"] = df.groupby("conversation_id").cumcount().astype(int)
 
     if "start_time" not in df.columns:
@@ -518,7 +617,6 @@ def build_metrics_sfp(df_seg: pd.DataFrame) -> pd.DataFrame:
     for gname in ["NE", "NE_Q", "YO", "NO", "NA", "MON"]:
         dfm[f"rate_sfp_{gname}"] = (dfm[f"n_sfp_{gname}"] / dfm["n_utt"]).where(dfm["n_utt"] > 0, 0.0)
 
-    # validity/coverage: exclude OTHER + NONLEX + NONE
     dfm["n_valid"] = (dfm["n_utt"] - dfm["n_sfp_OTHER"] - dfm["n_sfp_NONLEX"] - dfm["n_sfp_NONE"]).clip(lower=0)
     dfm["coverage"] = (dfm["n_valid"] / dfm["n_utt"]).where(dfm["n_utt"] > 0, 0.0)
 
@@ -552,22 +650,14 @@ def build_metrics_sfp(df_seg: pd.DataFrame) -> pd.DataFrame:
 
 
 def _entropy_from_first_token_counts(counts_df: pd.DataFrame, key_cols: List[str], out_col: str) -> pd.DataFrame:
-    """
-    counts_df columns: key_cols + ['resp_first_token', 'n']
-    Vectorized entropy calculation:
-      H = - sum_i p_i log2 p_i
-    """
     if counts_df.empty:
         return pd.DataFrame(columns=key_cols + [out_col])
 
-    # per-group total
     totals = counts_df.groupby(key_cols)["n"].transform("sum").astype(float)
     p = counts_df["n"].astype(float) / totals
-    # p*log2(p)
     plogp = p * np.log2(p)
     ent = (-counts_df.assign(_plogp=plogp).groupby(key_cols)["_plogp"].sum()).reset_index()
     ent = ent.rename(columns={"_plogp": out_col})
-    # numerical cleanup
     ent[out_col] = ent[out_col].where(ent[out_col].abs() > 1e-12, 0.0)
     return ent
 
@@ -609,7 +699,6 @@ def build_metrics_resp(df_pairs: pd.DataFrame) -> pd.DataFrame:
         .reset_index()
     )
 
-    # ---- Entropy (NO groupby.apply, so no FutureWarning) ----
     def token_counts(sub: pd.DataFrame) -> pd.DataFrame:
         x = sub[key + ["resp_first_token"]].copy()
         x["resp_first_token"] = x["resp_first_token"].fillna("").astype(str)
@@ -684,18 +773,15 @@ def main() -> None:
         loose_aizuchi=bool(args.loose_aizuchi),
     )
 
-    # Load utterances
     src_path = s3_download_to_temp(cfg.utterances_s3, region=cfg.region)
     df_u = pq.read_table(src_path).to_pandas()
     df_u = ensure_required_columns(df_u)
 
-    # Build tables
     seg = build_segments(df_u)
     pairs = build_pairs(seg, loose_aizuchi=cfg.loose_aizuchi)
     met_sfp = build_metrics_sfp(seg)
     met_resp = build_metrics_resp(pairs)
 
-    # Write outputs
     out_seg = make_out_uri(cfg.out_s3_prefix, cfg.out_version, cfg.corpus, "segments")
     out_pairs = make_out_uri(cfg.out_s3_prefix, cfg.out_version, cfg.corpus, "pairs")
     out_msfp = make_out_uri(cfg.out_s3_prefix, cfg.out_version, cfg.corpus, "metrics_sfp")
@@ -711,10 +797,14 @@ def main() -> None:
     print(" ", out_msfp)
     print(" ", out_mresp)
 
-    # ---- Summary prints ----
     print("\n====================")
     print("CORPUS:", cfg.corpus)
-    print("segments rows:", len(seg), "pairs rows:", len(pairs), "metrics_sfp:", len(met_sfp), "metrics_resp:", len(met_resp))
+    print(
+        "segments rows:", len(seg),
+        "pairs rows:", len(pairs),
+        "metrics_sfp:", len(met_sfp),
+        "metrics_resp:", len(met_resp),
+    )
 
     vc = seg["sfp_group"].value_counts()
     ratio = (vc / vc.sum()).round(4)
@@ -730,9 +820,14 @@ def main() -> None:
         print("pairs rows:", len(pairs))
         print("aizuchi rate:", aiz_rate)
 
-        short = pairs[(pairs["resp_is_aizuchi"] == False) & (pairs["resp_text"].astype(str).str.len() <= 12)]
-        top = short["resp_text"].value_counts().head(20)
-        print("\nTOP20 short responses still non-aizuchi:")
+        resp_norm = pairs["resp_text"].astype(str).map(norm_for_aizuchi)
+        short_non = pairs[
+            (pairs["resp_is_aizuchi"] == False)
+            & (resp_norm.str.len() <= 4)
+            & (resp_norm != "")
+        ]
+        top = short_non["resp_text"].value_counts().head(20)
+        print("\nTOP20 TRUE short responses still non-aizuchi:")
         print(top.astype("Int64"))
 
 
