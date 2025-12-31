@@ -9,4 +9,7 @@ scipy
 scikit-learn
 numpy
 pandas
-PyYAML
+duckdb
+pyarrow
+matplotlib
+boto3
