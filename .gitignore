@@ -36,3 +36,7 @@
 # macOS のゴミ
 .DS_Store
 
+
+# docs: report（PDF）を許可
+!docs/report/
+!docs/report/*.pdf
