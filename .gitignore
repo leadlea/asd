@@ -40,3 +40,8 @@
 # docs: report（PDF）を許可
 !docs/report/
 !docs/report/*.pdf
+# Phase3 pipeline
+!scripts/phase3/
+!scripts/phase3/**
+
+
