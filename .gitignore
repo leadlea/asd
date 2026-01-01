@@ -47,3 +47,10 @@
 !docs/report/*.html
 !docs/report/*.md
 
+
+# ---- generated artifacts (local) ----
+docs/
+scripts/**/__pycache__/
+**/__pycache__/
+*.pyc
+artifacts/
