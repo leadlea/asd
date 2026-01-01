@@ -50,9 +50,7 @@
     tbody tr:hover { background:#fcfcfc; cursor:pointer; }
 
     .mono { font-family:var(--mono); font-size:12px; }
-    .chip { display:inline-block; padding:2px 8px; border-radius:999px; background:var(--chip); border:1px solid var(--line); font-size:11px; margin-right:6px; margin-top:4px; }
     .muted { color:var(--muted); }
-    .score { font-variant-numeric: tabular-nums; font-weight: 600; }
 
     .details { border:1px solid var(--line); border-radius:var(--radius); box-shadow:var(--shadow); background:#fff; padding:14px; min-height:340px; }
     .details h2 { font-size:15px; margin:0 0 10px; }
@@ -62,6 +60,62 @@
     .btn:hover { background:#f7f7f7; }
     .row2 { display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
     @media (max-width: 960px) { .row2 { grid-template-columns: 1fr; } }
+
+    /* ---- table layout improvements ---- */
+    .mainTable { table-layout: fixed; }
+    thead th, tbody td { padding: 10px 10px; }
+    thead th { font-weight: 700; letter-spacing: .2px; }
+
+    td:nth-child(1), td:nth-child(2), td:nth-child(4) { white-space: nowrap; }
+    td:nth-child(3) { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    .summaryCell { padding-right: 14px; }
+    .summaryClamp{
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      line-height: 1.35;
+      word-break: break-word;
+    }
+    .summaryHint{ font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+    tbody tr { transition: background .12s ease, box-shadow .12s ease; }
+    tbody tr:hover { background:#fbfbfb; }
+    tbody tr.selected { background:#f7faff; }
+    tbody tr.selected td:first-child { box-shadow: inset 3px 0 0 #4a76ff; }
+
+    /* gentle chips */
+    .dsChip, .labelChip{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      padding: 2px 9px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      font-size: 11px;
+      background: #fff;
+    }
+    .dsChip[data-ds="cejc"]{ background:#fff7ed; border-color:#fed7aa; }
+    .dsChip[data-ds="csj"]{  background:#eff6ff; border-color:#bfdbfe; }
+
+    .labelChip[data-label="QUESTION"]{ background:#eef6ff; border-color:#cde3ff; }
+    .labelChip[data-label="BACKCHANNEL"]{ background:#f0fdf4; border-color:#bbf7d0; }
+    .labelChip[data-label="REPAIR"]{ background:#fff7ed; border-color:#fed7aa; }
+    .labelChip[data-label="TOPIC_SHIFT"]{ background:#faf5ff; border-color:#e9d5ff; }
+    .labelChip[data-label="DISCOURSE_MARKER"]{ background:#ecfeff; border-color:#a5f3fc; }
+    .labelChip[data-label="HESITATION"]{ background:#f8fafc; border-color:#e2e8f0; }
+    .labelChip[data-label="NEGATION_OPPOSITION"]{ background:#fef2f2; border-color:#fecaca; }
+    .labelChip[data-label="OTHER"]{ background:#f8fafc; border-color:#e2e8f0; }
+
+    /* score mini bar */
+    .scoreBox{ display:flex; flex-direction:column; gap:6px; }
+    .scoreRow{ display:flex; align-items:baseline; gap:8px; }
+    .scoreVal{ font-variant-numeric: tabular-nums; font-weight: 800; }
+    .scorePct{ font-size:11px; color:var(--muted); }
+    .scoreBarWrap{ height:6px; border-radius:999px; background:#f1f5f9; border:1px solid #e2e8f0; overflow:hidden; }
+    .scoreBar{ height:100%; width: calc(var(--p) * 100%); background: linear-gradient(90deg, #a5b4fc, #60a5fa); }
+
   </style>
 </head>
 <body>
@@ -90,7 +144,7 @@
     <div class="controls">
       <div>
         <label>Search (speaker_id / summary)</label>
-        <input id="q" placeholder="例: C001_001:IC01 / cejc / REPAIR ..." />
+        <input id="q" placeholder="例: D01M0047:R / cejc / REPAIR ..." />
       </div>
       <div>
         <label>Dataset</label>
@@ -113,13 +167,20 @@
 
     <div class="layout">
       <div class="tableWrap">
-        <table>
+        <table class="mainTable">
+          <colgroup>
+            <col style="width:72px;" />
+            <col style="width:92px;" />
+            <col style="width:220px;" />
+            <col style="width:210px;" />
+            <col />
+          </colgroup>
           <thead>
             <tr>
-              <th style="width: 90px;">dataset</th>
-              <th style="width: 120px;">score</th>
-              <th style="width: 280px;">speaker_id</th>
-              <th style="width: 220px;">primary label</th>
+              <th>dataset</th>
+              <th>score</th>
+              <th>speaker_id</th>
+              <th>primary label</th>
               <th>summary</th>
             </tr>
           </thead>
@@ -167,10 +228,6 @@
     function fmt(n, d=3) {
       if (n === null || n === undefined || Number.isNaN(Number(n))) return "-";
       return Number(n).toFixed(d);
-    }
-
-    function chipsFromList(items) {
-      return (items || []).map(x => `<span class="chip">${esc(x)}</span>`).join("");
     }
 
     function fillStats() {
@@ -247,17 +304,42 @@
 
     function renderTable() {
       const rs = filterRows();
+
+      // score normalize for mini bar
+      const scores = rs.map(r => Number(r.atypicality_v0||0));
+      const sMin = scores.length ? Math.min(...scores) : 0;
+      const sMax = scores.length ? Math.max(...scores) : 1;
+      const denom = (sMax - sMin) || 1;
+
       const htmlRows = rs.map((r) => {
         const pl = primaryLabel(r);
         const pc = primaryConf(r);
         const summary = (r.labels && r.labels.summary) ? r.labels.summary : "";
+        const score = Number(r.atypicality_v0||0);
+        const p = Math.max(0, Math.min(1, (score - sMin) / denom)); // 0..1
+        const summaryTitle = summary.replace(/\s+/g, " ").trim();
+
         return `
           <tr>
-            <td><span class="chip">${esc(r.dataset)}</span></td>
-            <td class="score">${esc(fmt(r.atypicality_v0, 3))}</td>
-            <td class="mono">${esc(r.speaker_id || "")}</td>
-            <td>${esc(pl)} <span class="muted">(${esc(pc.toFixed(2))})</span></td>
-            <td>${esc(summary).slice(0, 220)}</td>
+            <td><span class="dsChip" data-ds="${esc(r.dataset)}">${esc(r.dataset)}</span></td>
+            <td>
+              <div class="scoreBox">
+                <div class="scoreRow">
+                  <span class="scoreVal">${esc(fmt(score, 3))}</span>
+                  <span class="scorePct">${esc((p*100).toFixed(0))}p</span>
+                </div>
+                <div class="scoreBarWrap"><div class="scoreBar" style="--p:${p};"></div></div>
+              </div>
+            </td>
+            <td class="mono" title="${esc(r.speaker_id || "")}">${esc(r.speaker_id || "")}</td>
+            <td>
+              <span class="labelChip" data-label="${esc(pl)}">${esc(pl)}</span>
+              <span class="muted">(${esc(pc.toFixed(2))})</span>
+            </td>
+            <td class="summaryCell" title="${esc(summaryTitle)}">
+              <div class="summaryClamp">${esc(summary)}</div>
+              <div class="summaryHint">click for details →</div>
+            </td>
           </tr>
         `;
       }).join("");
@@ -266,7 +348,11 @@
 
       const visible = rs;
       [...els.tbody.querySelectorAll("tr")].forEach((tr, i) => {
-        tr.addEventListener("click", () => showDetails(visible[i]));
+        tr.addEventListener("click", () => {
+          [...els.tbody.querySelectorAll("tr")].forEach(x => x.classList.remove("selected"));
+          tr.classList.add("selected");
+          showDetails(visible[i]);
+        });
       });
     }
 
@@ -280,11 +366,15 @@
       const labelList = labels.map((x) => {
         const uf = (x.used_features || []);
         const ue = (x.used_examples || []);
+        const chips = (uf || []).map(z => `<span class="labelChip" data-label="OTHER">${esc(z)}</span>`).join("");
         return `
           <div style="margin-bottom:10px;">
-            <div><span class="chip">${esc(x.label||"OTHER")}</span> <span class="muted">conf=${esc((x.confidence??0).toFixed(2))}</span></div>
+            <div>
+              <span class="labelChip" data-label="${esc(x.label||"OTHER")}">${esc(x.label||"OTHER")}</span>
+              <span class="muted">conf=${esc((x.confidence??0).toFixed(2))}</span>
+            </div>
             <div class="muted" style="margin-top:6px;">${esc(x.why||"")}</div>
-            <div style="margin-top:6px;">${chipsFromList(uf)}</div>
+            <div style="margin-top:6px;">${chips}</div>
             <div class="muted" style="margin-top:6px;">used_examples: <code>${esc(JSON.stringify(ue))}</code></div>
           </div>
         `;
