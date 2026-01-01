@@ -44,4 +44,6 @@
 !scripts/phase3/
 !scripts/phase3/**
 
+!docs/report/*.html
+!docs/report/*.md
 
