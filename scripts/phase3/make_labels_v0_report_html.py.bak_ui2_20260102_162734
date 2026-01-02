@@ -610,12 +610,7 @@ HTML_TEMPLATE = """<!doctype html>
 
     .btn { border:1px solid var(--line); background:#fff; border-radius:12px; padding:8px 10px; font-size:12px; cursor:pointer; }
     .btn:hover { background:#f7f7f7; }
-  
-.pgLine{ margin: 6px 0; line-height: 1.55; }
-.num{ font-weight: 900; }
-td:last-child{ padding-right:16px; }
-
-</style>
+  </style>
 </head>
 <body>
   <div class="wrap">
@@ -677,12 +672,12 @@ td:last-child{ padding-right:16px; }
       <div class="tableWrap">
         <table class="mainTable">
           <colgroup>
-          <col style="width:70px;" />
-          <col style="width:110px;" />
-          <col style="width:190px;" />
-          <col style="width:170px;" />
-          <col />
-        </colgroup>
+            <col style="width:64px;" />
+            <col style="width:116px;" />
+            <col style="width:180px;" />
+            <col style="width:170px;" />
+            <col />
+          </colgroup>
           <thead>
             <tr>
               <th>dataset</th>
@@ -1079,63 +1074,10 @@ td:last-child{ padding-right:16px; }
       els.needsOnly.addEventListener(evt, renderTable);
     });
   </script>
-
-<script>
-(function(){
-  function esc(s){return String(s)
-    .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
-    .replace(/"/g,"&quot;").replace(/'/g,"&#39;");}
-  function decoratePgSummary(){
-    var el = document.getElementById("pgSummaryBox");
-    if(!el) return;
-    var txt = (el.textContent||"").trim();
-    if(!txt) return;
-    var lines = txt.split(/\r?\n/).filter(Boolean);
-    el.innerHTML = lines.map(function(l){
-      var safe = esc(l).replace(/(\d+(?:\.\d+)?)/g,'<span class="num">$1</span>');
-      return '<div class="pgLine">'+safe+'</div>';
-    }).join("");
-  }
-  try{ decoratePgSummary(); }catch(e){}
-  // もし後から fillStats 等で上書きされても再適用できるように
-  document.addEventListener("click", function(){ try{decoratePgSummary();}catch(e){} }, true);
-})();
-</script>
-
 </body>
 </html>
 """
 
-
-
-def _json_sanitize(obj):
-    """Convert NaN/Inf (and numpy scalars) to JSON-safe values."""
-    try:
-        import numpy as np
-    except Exception:
-        np = None
-    if obj is None:
-        return None
-    if isinstance(obj, float):
-        return None if (math.isnan(obj) or math.isinf(obj)) else obj
-    if isinstance(obj, (str, int, bool)):
-        return obj
-    if np is not None:
-        try:
-            if isinstance(obj, (np.floating,)):
-                v = float(obj)
-                return None if (math.isnan(v) or math.isinf(v)) else v
-            if isinstance(obj, (np.integer,)):
-                return int(obj)
-            if isinstance(obj, (np.bool_,)):
-                return bool(obj)
-        except Exception:
-            pass
-    if isinstance(obj, dict):
-        return {str(k): _json_sanitize(v) for k, v in obj.items()}
-    if isinstance(obj, (list, tuple)):
-        return [_json_sanitize(v) for v in obj]
-    return str(obj)
 
 def main():
     ap = argparse.ArgumentParser()
@@ -1244,8 +1186,8 @@ def main():
         "OTHER",
     ]
 
-    data_json = _script_json(json.dumps(_json_sanitize(rows), ensure_ascii=False, allow_nan=False))
-    stats_json = _script_json(json.dumps(_json_sanitize(stats), ensure_ascii=False, allow_nan=False))
+    data_json = _script_json(json.dumps(rows, ensure_ascii=False, allow_nan=False))
+    stats_json = _script_json(json.dumps(stats, ensure_ascii=False, allow_nan=False))
     allowed_json = _script_json(json.dumps(allowed_labels, ensure_ascii=False, allow_nan=False))
 
     title_esc = htmlmod.escape(args.title)

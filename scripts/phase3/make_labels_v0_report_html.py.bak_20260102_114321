@@ -5,7 +5,6 @@ from __future__ import annotations
 import argparse
 import html as htmlmod
 import json
-import math
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
@@ -36,17 +35,12 @@ def _safe_json_list(s: Any) -> List[Any]:
 
 
 def _safe_float(v: Any) -> float | None:
-    """Convert to float; return None for None/NaN/Inf."""
     try:
         if v is None:
             return None
-        x = float(v)
-        if math.isnan(x) or math.isinf(x):
-            return None
-        return x
+        return float(v)
     except Exception:
         return None
-
 
 
 def _collect_parquet_paths(path_str: str) -> List[Path]:
@@ -110,8 +104,6 @@ def build_pg_index(pg_paths: List[Path]) -> Tuple[Dict[str, Dict[str, Any]], int
         for _, r in df.iterrows():
             conv = str(r.get("conversation_id") or "").strip()
             spk = str(r.get("speaker_id") or "").strip()
-            conv = conv.split("/")[-1]
-            spk = spk.split("/")[-1]
             if not conv or not spk:
                 continue
             key = f"{conv}:{spk}"
@@ -128,103 +120,13 @@ def build_pg_index(pg_paths: List[Path]) -> Tuple[Dict[str, Dict[str, Any]], int
                 "PG_n_resp_events": _safe_float(pick(r, "PG_n_resp_events", "n_resp_events")),
                 "source_file": str(fp),
             }
-            keys = {key}
+            idx[key] = m
 
             if ":" in spk:
 
-                keys.add(spk)
-
-            if ":" in conv:
-
-                keys.add(conv)
-
-            for k in keys:
-
-                idx[k] = m
+                idx[spk] = m
     return idx, total
 
-
-
-
-def build_pg_index_v2(pg_metrics_parquet_or_dir: str) -> Tuple[Dict[str, Dict[str, Any]], int]:
-    """
-    Robust PG index builder.
-    Inputs: comma-separated list of parquet files or directories.
-    Key strategy:
-      - If pg speaker_id already includes ":" (e.g., D01M0019:L), use it directly.
-      - Else use conv + ":" + speaker_id (e.g., T007_007 + IC06 => T007_007:IC06).
-    """
-    def pick(row, *names):
-        for n in names:
-            if n in row and row[n] is not None:
-                return _safe_float(row[n])
-        return None
-
-    def norm(x):
-        return ("" if x is None else str(x)).strip().split("/")[-1]
-
-        # inputs: list[Path]/list[str] OR comma-separated string
-    files = []
-    if isinstance(pg_metrics_parquet_or_dir, (list, tuple)):
-        for x in pg_metrics_parquet_or_dir:
-            xp = Path(str(x))
-            if xp.is_dir():
-                files += [q for q in xp.rglob("*.parquet") if q.is_file()]
-            elif xp.is_file() and xp.suffix.lower() == ".parquet":
-                files.append(xp)
-    else:
-        roots = [x.strip() for x in (pg_metrics_parquet_or_dir or "").split(",") if x.strip()]  # (legacy path)
-        for r in roots:
-            rp = Path(r)
-            if rp.is_dir():
-                files += [q for q in rp.rglob("*.parquet") if q.is_file()]
-            elif rp.is_file() and rp.suffix.lower() == ".parquet":
-                files.append(rp)
-
-    files = sorted(set(files))
-    if not files:
-        return {}, 0
-
-    idx: Dict[str, Dict[str, Any]] = {}
-    total = 0
-
-    for fp in files:
-        df = pd.read_parquet(fp)
-        total += len(df)
-        if not {"conversation_id","speaker_id"}.issubset(df.columns):
-            continue
-
-        for _, r in df.iterrows():
-            conv = norm(r.get("conversation_id"))
-            spk  = norm(r.get("speaker_id"))
-            if not conv or not spk:
-                continue
-
-            m = {
-                "PG_total_time":        pick(r, "PG_total_time", "total_time"),
-                "PG_pause_mean":        pick(r, "PG_pause_mean", "pause_mean"),
-                "PG_resp_gap_mean":     pick(r, "PG_resp_gap_mean", "resp_gap_mean"),
-                "PG_resp_gap_p50":      pick(r, "PG_resp_gap_p50", "resp_gap_p50"),
-                "PG_resp_gap_p90":      pick(r, "PG_resp_gap_p90", "resp_gap_p90"),
-                "PG_resp_overlap_rate": pick(r, "PG_resp_overlap_rate", "resp_overlap_rate"),
-                "PG_n_resp_events":     pick(r, "PG_n_resp_events", "n_resp_events"),
-                "source_file": str(fp),
-            }
-
-            keys = set()
-            if ":" in spk:
-                keys.add(spk)  # already "conv:role"
-                # also add conv:role if conv differs / safety
-                parts = spk.split(":", 1)
-                if len(parts) == 2 and parts[1]:
-                    keys.add(f"{conv}:{parts[1]}")
-            else:
-                keys.add(f"{conv}:{spk}")
-
-            for k in keys:
-                idx[k] = m
-
-    return idx, total
 
 def load_pg_summary(pg_summary_parquet: str) -> Dict[str, Dict[str, Any]]:
     """
@@ -250,7 +152,7 @@ def load_pg_summary(pg_summary_parquet: str) -> Dict[str, Dict[str, Any]]:
             if c == "dataset":
                 continue
             v = r.get(c)
-            d[c] = _safe_float(v)
+            d[c] = float(v) if v is not None else None
         out[ds] = d
     return out
 
@@ -437,9 +339,7 @@ HTML_TEMPLATE = """<!doctype html>
     .card h3 { margin:0 0 8px; font-size:14px; }
     .kv { font-size:13px; color:var(--muted); line-height:1.65; }
     .kv code { font-family:var(--mono); font-size:12px; background:#fff; border:1px solid var(--line); padding:2px 6px; border-radius:10px; color:var(--text); }
-    .kv .num{ font-weight:900; color:#111; font-variant-numeric: tabular-nums;   font-size: 15px;
-    }
-
+    .kv .num{ font-weight:900; color:#111; font-variant-numeric: tabular-nums; }
     .kv .hl{ color: var(--accent); font-weight:800; }
 
     /* controls */
@@ -610,12 +510,7 @@ HTML_TEMPLATE = """<!doctype html>
 
     .btn { border:1px solid var(--line); background:#fff; border-radius:12px; padding:8px 10px; font-size:12px; cursor:pointer; }
     .btn:hover { background:#f7f7f7; }
-  
-.pgLine{ margin: 6px 0; line-height: 1.55; }
-.num{ font-weight: 900; }
-td:last-child{ padding-right:16px; }
-
-</style>
+  </style>
 </head>
 <body>
   <div class="wrap">
@@ -677,12 +572,12 @@ td:last-child{ padding-right:16px; }
       <div class="tableWrap">
         <table class="mainTable">
           <colgroup>
-          <col style="width:70px;" />
-          <col style="width:110px;" />
-          <col style="width:190px;" />
-          <col style="width:170px;" />
-          <col />
-        </colgroup>
+            <col style="width:64px;" />
+            <col style="width:110px;" />
+            <col style="width:180px;" />
+            <col style="width:170px;" />
+            <col />
+          </colgroup>
           <thead>
             <tr>
               <th>dataset</th>
@@ -1079,63 +974,10 @@ td:last-child{ padding-right:16px; }
       els.needsOnly.addEventListener(evt, renderTable);
     });
   </script>
-
-<script>
-(function(){
-  function esc(s){return String(s)
-    .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
-    .replace(/"/g,"&quot;").replace(/'/g,"&#39;");}
-  function decoratePgSummary(){
-    var el = document.getElementById("pgSummaryBox");
-    if(!el) return;
-    var txt = (el.textContent||"").trim();
-    if(!txt) return;
-    var lines = txt.split(/\r?\n/).filter(Boolean);
-    el.innerHTML = lines.map(function(l){
-      var safe = esc(l).replace(/(\d+(?:\.\d+)?)/g,'<span class="num">$1</span>');
-      return '<div class="pgLine">'+safe+'</div>';
-    }).join("");
-  }
-  try{ decoratePgSummary(); }catch(e){}
-  // もし後から fillStats 等で上書きされても再適用できるように
-  document.addEventListener("click", function(){ try{decoratePgSummary();}catch(e){} }, true);
-})();
-</script>
-
 </body>
 </html>
 """
 
-
-
-def _json_sanitize(obj):
-    """Convert NaN/Inf (and numpy scalars) to JSON-safe values."""
-    try:
-        import numpy as np
-    except Exception:
-        np = None
-    if obj is None:
-        return None
-    if isinstance(obj, float):
-        return None if (math.isnan(obj) or math.isinf(obj)) else obj
-    if isinstance(obj, (str, int, bool)):
-        return obj
-    if np is not None:
-        try:
-            if isinstance(obj, (np.floating,)):
-                v = float(obj)
-                return None if (math.isnan(v) or math.isinf(v)) else v
-            if isinstance(obj, (np.integer,)):
-                return int(obj)
-            if isinstance(obj, (np.bool_,)):
-                return bool(obj)
-        except Exception:
-            pass
-    if isinstance(obj, dict):
-        return {str(k): _json_sanitize(v) for k, v in obj.items()}
-    if isinstance(obj, (list, tuple)):
-        return [_json_sanitize(v) for v in obj]
-    return str(obj)
 
 def main():
     ap = argparse.ArgumentParser()
@@ -1165,7 +1007,7 @@ def main():
     pg_rows_loaded = 0
     pg_paths = _collect_parquet_paths(args.pg_metrics_parquet)
     if pg_paths:
-        pg_index, pg_rows_loaded = build_pg_index_v2(pg_paths)
+        pg_index, pg_rows_loaded = build_pg_index(pg_paths)
     pg_attached = bool(pg_index)
     pg_summary = load_pg_summary(args.pg_summary_parquet) if args.pg_summary_parquet else {}
 
@@ -1176,7 +1018,7 @@ def main():
 
         # labels側にexamples_jsonがあれば優先、無ければ index から後付け
         examples = _safe_json_list(r.get("examples_json"))
-        speaker_key = str(r.get("speaker_id") or "").strip().split("/")[-1]
+        speaker_key = str(r.get("speaker_id") or "")
 
 
         # attach phase4 pg metrics by speaker_key (conversation_id:speaker_id)
@@ -1244,9 +1086,9 @@ def main():
         "OTHER",
     ]
 
-    data_json = _script_json(json.dumps(_json_sanitize(rows), ensure_ascii=False, allow_nan=False))
-    stats_json = _script_json(json.dumps(_json_sanitize(stats), ensure_ascii=False, allow_nan=False))
-    allowed_json = _script_json(json.dumps(allowed_labels, ensure_ascii=False, allow_nan=False))
+    data_json = _script_json(json.dumps(rows, ensure_ascii=False))
+    stats_json = _script_json(json.dumps(stats, ensure_ascii=False))
+    allowed_json = _script_json(json.dumps(allowed_labels, ensure_ascii=False))
 
     title_esc = htmlmod.escape(args.title)
     subtitle_esc = htmlmod.escape(args.subtitle)
