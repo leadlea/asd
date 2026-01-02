@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import os
 import re
 import subprocess
@@ -14,6 +15,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import boto3
+from botocore.config import Config
 import duckdb
 import pandas as pd
 
@@ -29,8 +31,11 @@ TEMPERATURE = float(os.getenv("TEMPERATURE", "0.2"))
 
 S3_KMS_KEY_ARN = os.getenv("S3_KMS_KEY_ARN", "").strip()
 
-bedrock_runtime = boto3.client("bedrock-runtime", region_name=AWS_REGION)
-
+bedrock_runtime = boto3.client(
+    "bedrock-runtime",
+    region_name=AWS_REGION,
+    config=Config(connect_timeout=10, read_timeout=300, retries={"max_attempts": 10, "mode": "adaptive"}),
+)
 # =========================
 # JSON helpers
 # =========================
@@ -74,6 +79,90 @@ def _clamp01(x: Any) -> float:
     except Exception:
         return 0.0
     return 0.0 if v < 0.0 else 1.0 if v > 1.0 else v
+
+
+def _is_nan(x):
+    try:
+        return x is None or (isinstance(x, float) and math.isnan(x))
+    except Exception:
+        return x is None
+
+def _fmt_num(x):
+    if _is_nan(x):
+        return None
+    if isinstance(x, (int, float)):
+        return f"{x:.3f}"
+    return str(x)
+
+def _collect_prefixed(row: Dict[str, Any], prefix: str) -> Dict[str, str]:
+    out: Dict[str, str] = {}
+    for k, v in row.items():
+        if isinstance(k, str) and k.startswith(prefix):
+            fv = _fmt_num(v)
+            if fv is not None:
+                out[k] = fv
+    return out
+
+def _collect_keys(row: Dict[str, Any], keys: List[str]) -> Dict[str, str]:
+    out: Dict[str, str] = {}
+    for k in keys:
+        if k in row:
+            fv = _fmt_num(row.get(k))
+            if fv is not None:
+                out[k] = fv
+    return out
+
+def _render_feature_block(title: str, d: Dict[str, str]) -> str:
+    if not d:
+        return ""
+    lines = [f"[{title}]"]
+    # 再現性のためソート（列順依存を避ける）
+    for k in sorted(d.keys()):
+        lines.append(f"- {k}: {d[k]}")
+    return "\n".join(lines)
+
+def _build_extra_blocks(row: Dict[str, Any]) -> tuple[str, List[str]]:
+    # (A) 会話タイミング（Phase4: Pause/Gap）
+    timing_keys = [
+        "pause_mean", "pause_p50", "pause_p90",
+        "resp_gap_mean", "resp_gap_p50", "resp_gap_p90",
+        "overlap_rate", "resp_overlap_rate",
+        "speech_ratio", "speech_time", "total_time",
+        "n_segments", "n_resp_events",
+    ]
+    timing = _collect_keys(row, timing_keys)
+
+    # normalize overlap keys: keep prompts comparable across corpora
+    if "overlap_rate" not in timing and "resp_overlap_rate" in timing:
+        timing["overlap_rate"] = timing["resp_overlap_rate"]
+    if "resp_overlap_rate" not in timing and "overlap_rate" in timing:
+        timing["resp_overlap_rate"] = timing["overlap_rate"]
+
+    # (B) フィラー（将来）: FILL_*
+    fillers = _collect_prefixed(row, "FILL_")
+
+    # (C) 話者属性（将来）: SPK_*
+    speaker_attr = _collect_prefixed(row, "SPK_")
+
+    extra_blocks: List[str] = []
+    used: List[str] = []
+
+    tb = _render_feature_block("Conversation timing (Pause/Gap)", timing)
+    if tb:
+        extra_blocks.append(tb)
+        used.extend(sorted(timing.keys()))
+
+    fb = _render_feature_block("Fillers (planned)", fillers)
+    if fb:
+        extra_blocks.append(fb)
+        used.extend(sorted(fillers.keys()))
+
+    sb = _render_feature_block("Speaker attributes (planned)", speaker_attr)
+    if sb:
+        extra_blocks.append(sb)
+        used.extend(sorted(speaker_attr.keys()))
+
+    return ("\n\n".join(extra_blocks) if extra_blocks else ""), used
 
 
 # =========================
@@ -335,6 +424,13 @@ def label_one(
         allowed_labels_json=json.dumps(ALLOWED_LABELS, ensure_ascii=False),
     )
 
+    # ---- ここから：LLMに渡す本文に “カテゴリ別特徴” を自動追記 ----
+    extra_text, extra_used = _build_extra_blocks(row)
+    if extra_text:
+        user_prompt += "\n\n" + extra_text
+    # ---- 追記ここまで ----
+
+
     try:
         raw = invoke_claude(SYSTEM_PROMPT, user_prompt, max_tokens=MAX_TOKENS, temperature=TEMPERATURE)
         obj = _parse_json_lenient(raw)
@@ -349,6 +445,7 @@ def label_one(
                 "raw_head": (raw or "")[:800],
                 "top_features_json": json.dumps(top_features, ensure_ascii=False),
                 "examples_json": json.dumps(examples, ensure_ascii=False),
+                "prompt_features_used_json": json.dumps(extra_used, ensure_ascii=False),
             }
 
         labels_in = _safe_list(obj.get("labels"))[:3]
@@ -395,6 +492,7 @@ def label_one(
             "raw_head": "",
             "top_features_json": json.dumps(top_features, ensure_ascii=False),
             "examples_json": json.dumps(examples, ensure_ascii=False),
+            "prompt_features_used_json": json.dumps(extra_used, ensure_ascii=False),
         }
 
     except Exception as e:
@@ -408,6 +506,7 @@ def label_one(
             "raw_head": "",
             "top_features_json": json.dumps(top_features, ensure_ascii=False),
             "examples_json": json.dumps(examples, ensure_ascii=False),
+            "prompt_features_used_json": json.dumps(extra_used, ensure_ascii=False),
         }
 
 
@@ -441,7 +540,10 @@ def main():
     examples_index = build_examples_index(args.examples_dir) if args.examples_dir else None
 
     rows: List[Dict[str, Any]] = []
-    for _, r in df.iterrows():
+    for i, (_, r) in enumerate(df.iterrows(), start=1):
+        ds = str(r.get("dataset") or r.get("corpus") or "")
+        sp = str(r.get("speaker_id") or "")
+        print(f"[labeling] {i}/{len(df)} dataset={ds} speaker_id={sp}", flush=True)
         rec = label_one(r.to_dict(), examples_index)
         rec["model_id"] = MODEL_ID
         rec["region"] = AWS_REGION

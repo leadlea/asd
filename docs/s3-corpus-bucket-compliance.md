@@ -543,11 +543,10 @@ done
 
 ### 12.1 目的
 
-* Phase3で抽出した「外れ値（outlier）例」を、LLM（Bedrock Claude Opus 4.5）で **人間が読める説明ラベル**に変換し、
-
-  * 研究者レビューの省力化（理由・根拠付き）
-  * HTML ダッシュボードでの共有・議論を可能にする
-* 追加で、labels の各話者に **Pause/Gap 指標を紐づけて表示**し、語用論特徴と会話タイミング特徴を同一画面で確認できるようにする。
+* Phase3で抽出した「外れ値（outlier）例」を、LLM（Bedrock Claude Opus 4.5）で **人間が読める説明ラベル**（根拠付き）に変換し、研究者レビューを省力化する。
+* LLMが参照する根拠として、`top_features（z）` / `examples（例文）` に加え、**会話タイミング（Phase4: Pause/Gap/overlap/speech_ratio）** を自動でプロンプトへ追記し、“説明にタイミング根拠が登場しうる”状態を作る。
+* 将来の拡張として、outliers/labels 側に `FILL_*`（フィラー）や `SPK_*`（話者属性）列を追加したら、**コード改修なしで prompt に自動反映**される構成にする。
+* 監査・再現性のため、LLMに渡した追加特徴の一覧を `prompt_features_used_json` に保存し、「この説明は何の特徴を見て言ったか」を追跡可能にする。
 
 ### 12.2 使ったモデル / リージョン
 
@@ -556,49 +555,72 @@ done
 
 ### 12.3 入出力（S3/ローカル）
 
-* 入力（LLMラベル付与対象）
+**入力（LLMラベル付与対象）**
+* outliers CSV（Phase4 timing 列を付与済み）:
+  * `artifacts/phase3/outliers_v0_topK_enriched_v4.csv`
+* （任意）examples parquet（analysis/v1/gold=v13 由来）:
+  * `artifacts/phase3/examples_v13/`
 
-  * `artifacts/phase3/labels_v0.parquet`（ローカル）
-  * （参照）examples parquet: `artifacts/phase3/examples_v13/`（任意）
-* 出力（共有用レポート）
+**出力（S3）**
+* labels parquet（SSE-KMS必須）:
+  * `s3://leadlea-asd-curated-982534361827-20251230/analysis/v1/gold=v13/labels/labels_v4.parquet`
 
-  * HTML: `docs/report/labels_v0.html`
+**出力（ローカル）**
+* labels parquet:
+  * `artifacts/phase3/labels_v4.parquet`
+* report HTML（ダッシュボード）:
+  * `docs/report/labels_v4.html`
+* GitHub Pages 用トップ:
+  * `docs/index.html`（labels_v4.html を配置、旧 index は `docs/_archive/` に退避）
 
-### 12.4 Pause/Gap の labels への付与（最終構成：椅子埋め無し）
+### 12.4 会話タイミングの “prompt 自動反映” と 60/60 紐付け
 
-* 方針: **pg_summary で欠損を埋めない**（研究趣旨上、実測（TextGrid由来）のみを採用）
-* labels の Pause/Gap 付与は、以下2ソースを結合して 60/60 を満たす：
+**(1) prompt 自動反映（カテゴリ別に収集）**
+* 会話タイミング（Phase4）: `pause_* / resp_gap_* / overlap_* / speech_* / n_*` を、rowに存在する分だけ prompt に自動追記
+* フィラー（将来）: `FILL_*` プレフィックス列を追加したら自動で prompt に載る
+* 話者属性（将来）: `SPK_*` プレフィックス列を追加したら自動で prompt に載る
+* 追跡: 実際に prompt に追記した特徴名を `prompt_features_used_json` に保存
 
+**(2) CEJC/CSJ で pause/gap を 60/60 紐付け**
+* labels の pause/gap 表示（HTML側）は、以下2ソースを結合して 60/60 を満たす（欠損埋めはしない）
   * CEJC（labels対象 50）: `artifacts/phase4/out/metrics_pausegap_cejc_for_labels_v4.parquet`
   * CSJ（labels対象 10）: `artifacts/phase4/verify/pg_gold/csj_metrics_pausegap.parquet`
+* CEJC は outliers 側 `speaker_id` が `会話ID:ICxx`、pause/gap 側が `ICxx` のみだったため、
+  pause/gap parquet 内の **会話ID列（conv_id）を自動検出**して `conv_id:ICxx` の join_key を生成し、CEJC も完全に紐付けた。
 
-（参考）最終到達時の確認値
+**(3) 検証結果（prompt_features_used_json）**
+* `prompt_features_used_json` は **全60行で非空**になり、会話タイミングが LLM プロンプトに自動反映される状態を確認。
+  * CEJC: 50行（多くは12特徴）
+  * CSJ : 10行（多くは13特徴）
+  ※ corpus により `overlap_rate` 等の列有無が異なるため、件数が1つずれることがある（データ仕様差）。
 
-* `pg_has_source: 60`
-* `pg_has_value: 60 / 60`
+### 12.5 最終コマンド（再現性担保）
 
-### 12.5 HTML レポート生成（最終コマンド）
+**(A) labels_v4 生成（S3へ出力）**
+```bash
+export AWS_REGION="ap-northeast-1"
+export MODEL_ID="global.anthropic.claude-opus-4-5-20251101-v1:0"
+export S3_KMS_KEY_ARN="arn:aws:kms:ap-northeast-1:982534361827:key/5dc3c3b6-251c-4cbd-b1a4-40f92db8f58c"
+
+python scripts/phase3/label_outliers_with_bedrock_v0.py \
+  --outliers_csv artifacts/phase3/outliers_v0_topK_enriched_v4.csv \
+  --examples_dir artifacts/phase3/examples_v13 \
+  --out_parquet "s3://leadlea-asd-curated-982534361827-20251230/analysis/v1/gold=v13/labels/labels_v4.parquet"
+
+aws s3 cp \
+  "s3://leadlea-asd-curated-982534361827-20251230/analysis/v1/gold=v13/labels/labels_v4.parquet" \
+  "artifacts/phase3/labels_v4.parquet"
+````
+
+**(B) HTML レポート（labels_v4）生成**
 
 ```bash
 python scripts/phase3/make_labels_v0_report_html.py \
-  --labels_parquet artifacts/phase3/labels_v0.parquet \
+  --labels_parquet artifacts/phase3/labels_v4.parquet \
   --examples_dir artifacts/phase3/examples_v13 \
   --pg_metrics_parquet "artifacts/phase4/out/metrics_pausegap_cejc_for_labels_v4.parquet,artifacts/phase4/verify/pg_gold/csj_metrics_pausegap.parquet" \
   --pg_summary_parquet artifacts/phase4/verify/pg_refresh/summary.parquet \
-  --out_html docs/report/labels_v0.html
-```
-
-（任意）生成HTMLの pg 付与チェック
-
-```bash
-python - <<'PY'
-import re, json
-txt=open("docs/report/labels_v0.html",encoding="utf-8").read()
-rows=json.loads(re.search(r'<script id="DATA" type="application/json">(.*?)</script>',txt,re.S).group(1))
-n_src=sum(1 for r in rows if (r.get("pg") or {}).get("source_file"))
-n_val=sum(1 for r in rows if (r.get("pg") or {}).get("PG_pause_mean") is not None)
-print("pg_has_source:", n_src, "pg_has_value:", n_val, "/", len(rows))
-PY
+  --out_html docs/report/labels_v4.html
 ```
 
 ---
