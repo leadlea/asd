@@ -858,3 +858,409 @@ EOF
   - `artifacts/phase3/labels_v0.parquet`
 - report（local）:
   - `docs/report/labels_v0.html`
+
+---
+
+## ✅ 1発更新パッチ（mdにセクション14を追記/更新）
+
+````bash
+python - <<'PY'
+from pathlib import Path
+import re, datetime
+
+MD = Path("docs/s3-corpus-bucket-compliance.md")
+if not MD.exists():
+    raise SystemExit(f"[ERROR] not found: {MD}")
+
+old = MD.read_text(encoding="utf-8")
+
+bak = MD.with_suffix(MD.suffix + f".bak_{datetime.datetime.now():%Y%m%d_%H%M%S}")
+bak.write_text(old, encoding="utf-8")
+print("[OK] backup:", bak)
+
+section14 = r"""
+## 14. Phase4-2: labels_v0.html への Pause/Gap 統合（pg 60/60 達成）
+
+### 14.1 結論（今回の到達点）
+
+- `docs/report/labels_v0.html` の全 60 行（CEJC 50 + CSJ 10）に対して、**Pause/Gap 指標（PG）が 60/60 で attach** された。
+  - `pg_has_source: 60 / 60`
+  - `pg_has_value : 60 / 60`
+- “全話者にpgを保証するために pg_summary で埋める” 方式は採用していない（研究趣旨と反するため）。
+  - **必要なCEJC TextGridをS3バックアップから取得し、実データから `metrics_pausegap_cejc_for_labels_v4.parquet` を再計算**して揃えた。
+  - `--pg_summary_parquet` は「右上の Pause/Gap summary 表示用（集計）」であり、**行データの穴埋め用途ではない**。
+
+---
+
+### 14.2 使用した入力・出力（再現性の核）
+
+#### 入力
+- labels:
+  - `artifacts/phase3/labels_v0.parquet`
+- examples（右カラム evidence を出す場合）:
+  - `artifacts/phase3/examples_v13/`（任意）
+- PG（Pause/Gap）指標のソース（“正”）
+  - CEJC（labels用 v4）:
+    - `artifacts/phase4/out/metrics_pausegap_cejc_for_labels_v4.parquet`（rows=50, coverage=50/50）
+  - CSJ（gold由来の確定版）:
+    - `artifacts/phase4/verify/pg_gold/csj_metrics_pausegap.parquet`（rows=402, conv=201）
+  - （任意）PG summary（右上summary用）:
+    - `artifacts/phase4/verify/pg_refresh/summary.parquet`
+
+#### 出力
+- HTMLダッシュボード:
+  - `docs/report/labels_v0.html`
+
+---
+
+### 14.3 CEJC TextGrid をS3バックアップから取得（labelsで必要な会話のみ）
+
+CEJCの TextGrid はバックアップバケットに存在する。
+- `CEJC_RAW="s3://leadlea-cejc-backup-982534361827-20251219"`
+- 例：
+  - `CEJC/data/T007/T007_007/T007_007-transUnit.TextGrid`
+  - `CEJC/data/C002/C002_014/C002_014b-transUnit.TextGrid`（※ディレクトリは末尾 a/b を落とした `C002_014`）
+
+取得先（ローカル）:
+- `artifacts/phase4/textgrid/cejc/`
+
+以下で **labels_v0.parquet から必要なCEJC会話ID集合を抽出**し、TextGrid（transUnit）をまとめてDLする。
+
+```bash
+export CEJC_RAW="s3://leadlea-cejc-backup-982534361827-20251219"
+export CEJC_TG_DIR="artifacts/phase4/textgrid/cejc"
+mkdir -p "$CEJC_TG_DIR"
+
+python - <<'PY'
+import pandas as pd, re, subprocess, os
+from pathlib import Path
+
+CEJC_RAW = os.environ["CEJC_RAW"]
+OUTDIR = Path(os.environ["CEJC_TG_DIR"])
+OUTDIR.mkdir(parents=True, exist_ok=True)
+
+labels = pd.read_parquet("artifacts/phase3/labels_v0.parquet")
+labels["dataset"] = labels["dataset"].astype(str).str.lower()
+
+# CEJC speaker_id は "conversation_id:ICxx" 形式が基本
+cejc = labels.loc[labels["dataset"]=="cejc", "speaker_id"].astype(str)
+conv = sorted({x.split(":",1)[0] for x in cejc if ":" in x})
+
+def base_dir(cid: str) -> str:
+    # 末尾 a/b 等の英字があれば落とす（C002_014b -> C002_014）
+    return cid[:-1] if re.search(r"[a-zA-Z]$", cid) else cid
+
+for cid in conv:
+    bd = base_dir(cid)
+    head = bd.split("_",1)[0]  # C002 / T007 / K010 / W010 ...
+    s3_key = f"{CEJC_RAW}/CEJC/data/{head}/{bd}/{cid}-transUnit.TextGrid"
+    dst = OUTDIR / f"{cid}-transUnit.TextGrid"
+    if dst.exists():
+        continue
+    # 失敗しても次へ（存在しない場合があるので）
+    subprocess.run(["aws","s3","cp",s3_key,str(dst)], check=False)
+
+print("[OK] conv_needed:", len(conv), "local_files:", len(list(OUTDIR.glob("*.TextGrid"))))
+PY
+````
+
+---
+
+### 14.4 CEJC Pause/Gap 指標（labels用 v4）をローカルTextGridから生成
+
+TextGridの tier 名は `"IC01_玲子"` のように suffix が付くため、`IC\d{2}` を抽出して speaker_id（ICxx）に正規化する。
+Pause は `text="pz"` を沈黙として扱い、Turn列から response gap / overlap を算出する（負値は被りを意味する）。
+
+```bash
+python - <<'PY'
+from __future__ import annotations
+from pathlib import Path
+import re
+import numpy as np
+import pandas as pd
+
+TG_DIR = Path("artifacts/phase4/textgrid/cejc")
+OUT_PQ = Path("artifacts/phase4/out/metrics_pausegap_cejc_for_labels_v4.parquet")
+OUT_PQ.parent.mkdir(parents=True, exist_ok=True)
+
+labels = pd.read_parquet("artifacts/phase3/labels_v0.parquet")
+labels["dataset"] = labels["dataset"].astype(str).str.lower()
+need = labels.loc[labels["dataset"]=="cejc","speaker_id"].astype(str)
+need_keys = sorted({x for x in need if ":" in x})
+need_conv = sorted({x.split(":",1)[0] for x in need_keys})
+need_spk = sorted({x.split(":",1)[1] for x in need_keys})
+
+re_ic = re.compile(r"IC\d{2}")
+def tier_to_spk(name: str) -> str:
+    m = re_ic.search(name or "")
+    return m.group(0) if m else (name or "").strip()
+
+def parse_textgrid(path: Path):
+    """Minimal Praat TextGrid(ooTextFile) IntervalTier parser."""
+    lines = path.read_text(encoding="utf-8", errors="ignore").splitlines()
+    xmin = xmax = None
+    tiers = []
+    i=0
+    while i < len(lines):
+        s = lines[i].strip()
+        if s.startswith("xmin =") and xmin is None:
+            try: xmin=float(s.split("=",1)[1].strip())
+            except: pass
+        if s.startswith("xmax =") and xmax is None:
+            try: xmax=float(s.split("=",1)[1].strip())
+            except: pass
+        if s == 'class = "IntervalTier"':
+            name = ""
+            txmin = txmax = None
+            intervals = []
+            # scan forward for name/xmin/xmax/intervals
+            j = i+1
+            while j < len(lines):
+                t = lines[j].strip()
+                if t.startswith('name = "'):
+                    name = t.split('"',2)[1]
+                elif t.startswith("xmin =") and txmin is None:
+                    try: txmin=float(t.split("=",1)[1].strip())
+                    except: pass
+                elif t.startswith("xmax =") and txmax is None:
+                    try: txmax=float(t.split("=",1)[1].strip())
+                    except: pass
+                elif t.startswith("intervals ["):
+                    # parse one interval block
+                    kxmin=kxmax=None
+                    ktxt=""
+                    # next lines should contain xmin/xmax/text
+                    jj=j+1
+                    while jj < len(lines):
+                        u = lines[jj].strip()
+                        if u.startswith("xmin ="):
+                            try: kxmin=float(u.split("=",1)[1].strip())
+                            except: pass
+                        elif u.startswith("xmax ="):
+                            try: kxmax=float(u.split("=",1)[1].strip())
+                            except: pass
+                        elif u.startswith('text = "'):
+                            ktxt = u.split('"',2)[1]
+                        elif u.startswith("intervals [") and (kxmin is not None and kxmax is not None):
+                            # next interval starts; rewind 1 line
+                            break
+                        elif u.startswith("item [") and (kxmin is not None and kxmax is not None):
+                            break
+                        jj += 1
+                    if kxmin is not None and kxmax is not None:
+                        intervals.append((kxmin, kxmax, ktxt))
+                    j = jj-1  # continue from here
+                elif t.startswith("item [") and j>i+1:
+                    break
+                j += 1
+            tiers.append((name, intervals))
+            i = j
+            continue
+        i += 1
+    if xmin is None: xmin = 0.0
+    if xmax is None:
+        # fallback: last interval end
+        mx = 0.0
+        for _, itv in tiers:
+            for a,b,_ in itv:
+                mx = max(mx, b)
+        xmax = mx
+    return float(xmin), float(xmax), tiers
+
+def intervals_to_segments(intervals):
+    # speech intervals: not empty, not "pz"
+    seg=[]
+    for a,b,txt in intervals:
+        t=(txt or "").strip()
+        if not t: 
+            continue
+        if t.lower()=="pz": 
+            continue
+        seg.append((float(a), float(b)))
+    seg.sort()
+    return seg
+
+def merge(segs, gap=0.0):
+    if not segs: return []
+    out=[list(segs[0])]
+    for a,b in segs[1:]:
+        if a <= out[-1][1] + gap:
+            out[-1][1]=max(out[-1][1], b)
+        else:
+            out.append([a,b])
+    return [(a,b) for a,b in out]
+
+def overlap_duration(segs_a, segs_b):
+    i=j=0
+    total=0.0
+    while i<len(segs_a) and j<len(segs_b):
+        a1,a2=segs_a[i]; b1,b2=segs_b[j]
+        lo=max(a1,b1); hi=min(a2,b2)
+        if hi>lo: total += (hi-lo)
+        if a2<b2: i+=1
+        else: j+=1
+    return total
+
+rows=[]
+missing=[]
+for cid in need_conv:
+    fp = TG_DIR / f"{cid}-transUnit.TextGrid"
+    if not fp.exists():
+        missing.append(cid)
+        continue
+    xmin,xmax,tiers = parse_textgrid(fp)
+    total_time = max(0.0, xmax-xmin)
+
+    # build speaker -> segments
+    spk_to_seg={}
+    for tname, itv in tiers:
+        spk=tier_to_spk(tname)
+        seg=merge(intervals_to_segments(itv), gap=0.0)
+        if seg:
+            spk_to_seg[spk]=seg
+
+    # turn list
+    turns=[]
+    for spk, segs in spk_to_seg.items():
+        for a,b in segs:
+            turns.append((a,b,spk))
+    turns.sort(key=lambda x:(x[0],x[1]))
+    n_speakers = len({spk for *_,spk in turns})
+
+    # per speaker metrics
+    for spk in set(spk_to_seg.keys()):
+        key = f"{cid}:{spk}"
+        if key not in need_keys:
+            continue
+
+        segs = spk_to_seg.get(spk, [])
+        speech_time = sum(b-a for a,b in segs)
+        speech_ratio = (speech_time/total_time) if total_time>0 else np.nan
+        n_segments = float(len(segs))
+
+        # pause durations from original intervals
+        # (pause = "pz")
+        # re-parse tier intervals for that speaker
+        pause_durs=[]
+        for tname,itv in tiers:
+            if tier_to_spk(tname)!=spk:
+                continue
+            for a,b,txt in itv:
+                if (txt or "").strip().lower()=="pz":
+                    pause_durs.append(float(b-a))
+        pause_mean = float(np.mean(pause_durs)) if pause_durs else np.nan
+        pause_p50  = float(np.percentile(pause_durs, 50)) if pause_durs else np.nan
+        pause_p90  = float(np.percentile(pause_durs, 90)) if pause_durs else np.nan
+
+        # overlap_rate: overlap with any other speaker / own speech_time
+        other_union=[]
+        for ospk, osegs in spk_to_seg.items():
+            if ospk==spk: 
+                continue
+            other_union.extend(osegs)
+        other_union = merge(sorted(other_union), gap=0.0)
+        ov = overlap_duration(segs, other_union)
+        overlap_rate = (ov/speech_time) if speech_time>0 else np.nan
+
+        # response gaps: for each turn of this speaker, gap to immediately previous turn by other speaker
+        gaps=[]
+        for idx,(a,b,s) in enumerate(turns):
+            if s!=spk:
+                continue
+            if idx==0:
+                continue
+            pa,pb,ps = turns[idx-1]
+            if ps==spk:
+                continue
+            gaps.append(float(a - pb))
+        resp_gap_mean = float(np.mean(gaps)) if gaps else np.nan
+        resp_gap_p50  = float(np.percentile(gaps, 50)) if gaps else np.nan
+        resp_gap_p90  = float(np.percentile(gaps, 90)) if gaps else np.nan
+        resp_overlap_rate = float(np.mean([g<0 for g in gaps])) if gaps else np.nan
+        n_resp_events = float(len(gaps))
+
+        rows.append(dict(
+            dataset="cejc",
+            conversation_id=cid,
+            speaker_id=spk,
+            src_textgrid=str(fp),
+            speech_extract_mode="labels_v4_transUnit_pz",
+            total_time=float(total_time),
+            speech_time=float(speech_time),
+            speech_ratio=float(speech_ratio) if speech_ratio==speech_ratio else np.nan,
+            n_segments=float(n_segments),
+            pause_mean=pause_mean,
+            pause_p50=pause_p50,
+            pause_p90=pause_p90,
+            overlap_rate=overlap_rate,
+            resp_gap_mean=resp_gap_mean,
+            resp_gap_p50=resp_gap_p50,
+            resp_gap_p90=resp_gap_p90,
+            resp_overlap_rate=resp_overlap_rate,
+            n_resp_events=n_resp_events,
+            n_speakers=float(n_speakers),
+        ))
+
+df = pd.DataFrame(rows)
+df.to_parquet(OUT_PQ, index=False)
+
+have = set(df["conversation_id"].astype(str)+":"+df["speaker_id"].astype(str))
+need_set = set(need_keys)
+
+print("[INFO] need CEJC keys:", len(need_set), "need conv:", len(need_conv))
+print("[OK] wrote:", OUT_PQ, "rows=", len(df))
+print("[CEJC] coverage:", len(need_set & have), "/", len(need_set))
+miss = sorted(list(need_set - have))
+print("[CEJC] missing keys:", len(miss))
+print("missing sample:", miss[:20])
+if missing:
+    print("[WARN] missing TextGrid conv:", len(missing), "sample:", missing[:20])
+PY
+```
+
+---
+
+### 14.5 labels_v0.html をPG付きで再生成（最終コマンド）
+
+```bash
+python scripts/phase3/make_labels_v0_report_html.py \
+  --labels_parquet artifacts/phase3/labels_v0.parquet \
+  --examples_dir artifacts/phase3/examples_v13 \
+  --pg_metrics_parquet "artifacts/phase4/out/metrics_pausegap_cejc_for_labels_v4.parquet,artifacts/phase4/verify/pg_gold/csj_metrics_pausegap.parquet" \
+  --pg_summary_parquet artifacts/phase4/verify/pg_refresh/summary.parquet \
+  --out_html docs/report/labels_v0.html
+```
+
+---
+
+### 14.6 統合チェック（pg 60/60）
+
+```bash
+python - <<'PY'
+import re, json
+txt=open("docs/report/labels_v0.html",encoding="utf-8").read()
+rows=json.loads(re.search(r'<script id="DATA" type="application/json">(.*?)</script>',txt,re.S).group(1))
+n_src=sum(1 for r in rows if (r.get("pg") or {}).get("source_file"))
+n_val=sum(1 for r in rows if (r.get("pg") or {}).get("PG_pause_mean") is not None)
+print("pg_has_source:", n_src, "pg_has_value:", n_val, "/", len(rows))
+PY
+```
+
+期待値:
+
+* `pg_has_source: 60 pg_has_value: 60 / 60`
+  """
+
+# replace or append Section 14
+
+pat = r"\n## 14. Phase4-2: labels_v0.html.*?(?=\n## |\Z)"
+if re.search(pat, old, flags=re.S):
+new = re.sub(pat, "\n" + section14.strip() + "\n", old, flags=re.S)
+else:
+new = old.rstrip() + "\n\n" + section14.strip() + "\n"
+
+MD.write_text(new, encoding="utf-8")
+print("[OK] updated:", MD)
+PY
+
+```
