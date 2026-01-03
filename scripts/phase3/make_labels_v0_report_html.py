@@ -946,6 +946,14 @@ td:last-child{ padding-right:16px; }
 
       const pg = rec.pg || {};
 
+
+      const fill = rec.fill || {};
+      const fillKeys = Object.keys(fill || {});
+      const fillHtml = fillKeys
+        .sort((a,b) => Math.abs(Number(fill[b]||0)) - Math.abs(Number(fill[a]||0)))
+        .slice(0, 20)
+        .map((k) => `<div><span class="mono">${esc(k)}</span>: <span class="num">${esc(fmt(fill[k], 4))}</span></div>`)
+        .join("");
       const pgPairs = [
         ["total_time", pg.PG_total_time],
         ["pause_mean", pg.PG_pause_mean],
@@ -1037,6 +1045,7 @@ td:last-child{ padding-right:16px; }
         labels: rec.labels,
         examples: rec.examples,
         pg: rec.pg,
+        fill: rec.fill,
         meta: rec.meta
       };
 
@@ -1068,7 +1077,10 @@ td:last-child{ padding-right:16px; }
         <div class="sectionTitle">Examples (evidence)</div>
         ${examplesHtml}
 
-
+        <div class="sectionTitle">Filler metrics</div>
+        <div class="panel">
+          ${fillHtml || `<div class="muted">No filler metrics attached for this speaker.</div>`}
+        </div>
 
         <div class="sectionTitle">Pause/Gap metrics</div>
         <div class="panel">
@@ -1210,6 +1222,16 @@ def main():
         # attach phase4 pg metrics by speaker_key (conversation_id:speaker_id)
         pg = pg_index.get(speaker_key, {}) if (pg_attached and speaker_key) else {}
 
+        # attach filler metrics (speaker-level columns starting with FILL_)
+        fill = {}
+        for c in r.index:
+            if str(c).startswith("FILL_"):
+                fill[c] = _safe_float(r.get(c))
+        # keep only non-null; limit size for JSON
+        fill = {k:v for k,v in fill.items() if v is not None}
+        if len(fill) > 25:
+            fill = dict(sorted(fill.items(), key=lambda kv: abs(kv[1]) if kv[1] is not None else 0, reverse=True)[:25])
+
         if (not examples) and examples_attached and speaker_key:
             examples = ex_index.get(speaker_key, [])[: args.max_examples_per_speaker]
 
@@ -1220,6 +1242,7 @@ def main():
             "labels": labels,
             "examples": examples,
             "pg": pg,
+            "fill": fill,
             "meta": {
                 "model_id": str(r.get("model_id") or ""),
                 "region": str(r.get("region") or ""),
