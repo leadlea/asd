@@ -149,21 +149,25 @@ def build_pg_index(pg_paths: List[Path]) -> Tuple[Dict[str, Dict[str, Any]], int
 def build_pg_index_v2(pg_metrics_parquet_or_dir: str) -> Tuple[Dict[str, Dict[str, Any]], int]:
     """
     Robust PG index builder.
-    Inputs: comma-separated list of parquet files or directories.
-    Key strategy:
-      - If pg speaker_id already includes ":" (e.g., D01M0019:L), use it directly.
-      - Else use conv + ":" + speaker_id (e.g., T007_007 + IC06 => T007_007:IC06).
-    """
-    def pick(row, *names):
-        for n in names:
-            if n in row and row[n] is not None:
-                return _safe_float(row[n])
-        return None
+    Inputs: parquet file/dir or list of them (or comma-separated).
 
+    Supports BOTH schemas:
+      A) speaker-level (Phase5 PG parquet): columns ['dataset','speaker_id','PG_*...']
+         - speaker_id is already "conv:role" (e.g., D01M0047:R, T007_007:IC06)
+      B) legacy: columns ['conversation_id','speaker_id', ...] (+ optional PG_* without prefix)
+
+    Key strategy (matches this script's speaker_key = labels.speaker_id):
+      - If speaker_id already contains ":" => use it directly as key.
+      - Else if conversation_id exists => key = f"{conversation_id}:{speaker_id}".
+      - Else => key = speaker_id.
+    """
     def norm(x):
         return ("" if x is None else str(x)).strip().split("/")[-1]
 
-        # inputs: list[Path]/list[str] OR comma-separated string
+    def safe_num(x):
+        return _safe_float(x)
+
+    # inputs: list[Path]/list[str] OR comma-separated string
     files = []
     if isinstance(pg_metrics_parquet_or_dir, (list, tuple)):
         for x in pg_metrics_parquet_or_dir:
@@ -173,7 +177,7 @@ def build_pg_index_v2(pg_metrics_parquet_or_dir: str) -> Tuple[Dict[str, Dict[st
             elif xp.is_file() and xp.suffix.lower() == ".parquet":
                 files.append(xp)
     else:
-        roots = [x.strip() for x in (pg_metrics_parquet_or_dir or "").split(",") if x.strip()]  # (legacy path)
+        roots = [x.strip() for x in (pg_metrics_parquet_or_dir or "").split(",") if x.strip()]
         for r in roots:
             rp = Path(r)
             if rp.is_dir():
@@ -190,41 +194,65 @@ def build_pg_index_v2(pg_metrics_parquet_or_dir: str) -> Tuple[Dict[str, Dict[st
 
     for fp in files:
         df = pd.read_parquet(fp)
-        total += len(df)
-        if not {"conversation_id","speaker_id"}.issubset(df.columns):
+        if "speaker_id" not in df.columns:
             continue
 
+        total += len(df)
+        has_conv = "conversation_id" in df.columns
+        has_ds = "dataset" in df.columns
+
+        # collect PG columns (future-proof)
+        pg_cols = [c for c in df.columns if str(c).startswith("PG_")]
+
         for _, r in df.iterrows():
-            conv = norm(r.get("conversation_id"))
-            spk  = norm(r.get("speaker_id"))
-            if not conv or not spk:
+            conv = norm(r.get("conversation_id")) if has_conv else ""
+            spk = norm(r.get("speaker_id"))
+            if not spk:
                 continue
 
-            m = {
-                "PG_total_time":        pick(r, "PG_total_time", "total_time"),
-                "PG_pause_mean":        pick(r, "PG_pause_mean", "pause_mean"),
-                "PG_resp_gap_mean":     pick(r, "PG_resp_gap_mean", "resp_gap_mean"),
-                "PG_resp_gap_p50":      pick(r, "PG_resp_gap_p50", "resp_gap_p50"),
-                "PG_resp_gap_p90":      pick(r, "PG_resp_gap_p90", "resp_gap_p90"),
-                "PG_resp_overlap_rate": pick(r, "PG_resp_overlap_rate", "resp_overlap_rate"),
-                "PG_n_resp_events":     pick(r, "PG_n_resp_events", "n_resp_events"),
-                "source_file": str(fp),
-            }
+            # metrics dict
+            m: Dict[str, Any] = {"source_file": str(fp)}
+            if has_ds:
+                m["dataset_full"] = str(r.get("dataset") or "")
+
+            # PG_* direct
+            for c in pg_cols:
+                m[c] = safe_num(r.get(c))
+
+            # legacy fallback (when PG_* columns are not present)
+            if not pg_cols:
+                m.update({
+                    "PG_total_time":        safe_num(r.get("total_time")),
+                    "PG_pause_mean":        safe_num(r.get("pause_mean")),
+                    "PG_pause_p50":         safe_num(r.get("pause_p50")),
+                    "PG_pause_p90":         safe_num(r.get("pause_p90")),
+                    "PG_resp_gap_mean":     safe_num(r.get("resp_gap_mean")),
+                    "PG_resp_gap_p50":      safe_num(r.get("resp_gap_p50")),
+                    "PG_resp_gap_p90":      safe_num(r.get("resp_gap_p90")),
+                    "PG_overlap_rate":      safe_num(r.get("overlap_rate")),
+                    "PG_resp_overlap_rate": safe_num(r.get("resp_overlap_rate")),
+                    "PG_n_resp_events":     safe_num(r.get("n_resp_events")),
+                })
 
             keys = set()
             if ":" in spk:
                 keys.add(spk)  # already "conv:role"
                 # also add conv:role if conv differs / safety
-                parts = spk.split(":", 1)
-                if len(parts) == 2 and parts[1]:
-                    keys.add(f"{conv}:{parts[1]}")
+                if conv:
+                    parts = spk.split(":", 1)
+                    if len(parts) == 2 and parts[1]:
+                        keys.add(f"{conv}:{parts[1]}")
             else:
-                keys.add(f"{conv}:{spk}")
+                if conv:
+                    keys.add(f"{conv}:{spk}")
+                else:
+                    keys.add(spk)
 
             for k in keys:
                 idx[k] = m
 
     return idx, total
+
 
 def load_pg_summary(pg_summary_parquet: str) -> Dict[str, Dict[str, Any]]:
     """
