@@ -85,7 +85,7 @@
     /* controls */
     .controls {
       display:grid;
-      grid-template-columns: 1.2fr 0.8fr 0.8fr 0.6fr;
+      grid-template-columns: 1.2fr 0.8fr 0.8fr 0.8fr 0.6fr;
       gap:10px;
       margin-top:14px;
       align-items:end;
@@ -315,6 +315,10 @@ td:last-child{ padding-right:16px; }
         <label>Primary label</label>
         <select id="labelSel"></select>
       </div>
+      <div>
+        <label>Cluster</label>
+        <select id="clusterSel"></select>
+      </div>
       <div class="toggle">
         <div>
           <label>Needs more context</label>
@@ -362,6 +366,64 @@ td:last-child{ padding-right:16px; }
 
   <script>
     const rows = JSON.parse(document.getElementById("DATA").textContent);
+    // --- PG summary (hotfix v2): render from rows (robust DOM selection) ---
+    (function(){
+      function meanFinite(vals){
+        const xs = (vals||[]).filter(v => Number.isFinite(v));
+        if(!xs.length) return {mean:null, n:0};
+        const m = xs.reduce((a,b)=>a+b,0)/xs.length;
+        return {mean:m, n:xs.length};
+      }
+      function fmt3(x){ return Number.isFinite(x) ? (Math.round(x*1000)/1000).toFixed(3) : "-"; }
+
+      function pgLine(sub, label){
+        const pause  = meanFinite(sub.map(r=>r.PG_pause_mean));
+        const gap    = meanFinite(sub.map(r=>r.PG_resp_gap_mean));
+        const ov     = meanFinite(sub.map(r=>r.PG_overlap_rate));
+        const respOv = meanFinite(sub.map(r=>r.PG_resp_overlap_rate));
+        return (
+          '<div style="margin-bottom:6px;">' +
+            '<span class="muted" style="display:inline-block;min-width:42px;">'+label+'</span> ' +
+            'pause=<b>'+fmt3(pause.mean)+'</b> ' +
+            'gap=<b>'+fmt3(gap.mean)+'</b> ' +
+            'ov=<b>'+fmt3(ov.mean)+'</b> ' +
+            'respOv=<b>'+fmt3(respOv.mean)+'</b>' +
+          '</div>'
+        );
+      }
+
+      function findPgCardBody(){
+        // find card title by text, then pick first direct child that is NOT the title element
+        const titles = Array.from(document.querySelectorAll('*'))
+          .filter(el => (el.textContent||'').trim() === 'Pause/Gap summary');
+        const titleEl = titles.find(el => el.classList && el.classList.contains('cardTitle')) || titles[0];
+        if(!titleEl) return null;
+        const card = titleEl.closest('.card') || titleEl.parentElement;
+        if(!card) return null;
+        const kids = Array.from(card.children);
+        const body = kids.find(k => k !== titleEl); // first non-title
+        return body || null;
+      }
+
+      function renderPgSummaryCard(){
+        const body = findPgCardBody();
+        if(!body) return;
+
+        const datasets = Array.from(new Set(rows.map(r=>r.dataset))).filter(Boolean).sort();
+        let html = '';
+        html += pgLine(rows, 'ALL');
+        for(const ds of datasets){
+          const sub = rows.filter(r => r.dataset === ds);
+          html += pgLine(sub, ds);
+        }
+        body.innerHTML = html || '-';
+      }
+
+      // expose for manual call/debug + run once now
+      window.renderPgSummaryCard = renderPgSummaryCard;
+      try { renderPgSummaryCard(); } catch(e){ console.warn("pgSummary render failed", e); }
+    })();
+
     // flatten nested metrics (pg/fill) to top-level for distribution panels
     rows.forEach(r => {
       if (!r || typeof r !== "object") return;
@@ -383,6 +445,7 @@ td:last-child{ padding-right:16px; }
       q: document.getElementById("q"),
       datasetSel: document.getElementById("datasetSel"),
       labelSel: document.getElementById("labelSel"),
+      clusterSel: document.getElementById("clusterSel"),
       needsOnly: document.getElementById("needsOnly"),
       tbody: document.getElementById("tbody"),
       details: document.getElementById("details"),
@@ -582,18 +645,22 @@ td:last-child{ padding-right:16px; }
       const s2 = ((rec.labels && rec.labels.summary) ? rec.labels.summary : "").toLowerCase();
       const s3 = (primaryLabel(rec) || "").toLowerCase();
       const s4 = (rec.dataset || "").toLowerCase();
-      return (s1.includes(q) || s2.includes(q) || s3.includes(q) || s4.includes(q));
+      const s5 = (rec.CL_dom_filler || "").toLowerCase();
+      const s6 = (rec.CL_fillpg_cluster===null || rec.CL_fillpg_cluster===undefined) ? "" : ("c" + String(rec.CL_fillpg_cluster)).toLowerCase();
+      return (s1.includes(q) || s2.includes(q) || s3.includes(q) || s4.includes(q) || s5.includes(q) || s6.includes(q));
     }
 
     function filterRows() {
       const q = els.q.value.trim();
       const ds = els.datasetSel.value;
       const lb = els.labelSel.value;
+      const cl = els.clusterSel.value;
       const needsOnly = els.needsOnly.checked;
 
       return rows
         .filter(r => ds==="ALL" ? true : (r.dataset===ds))
         .filter(r => lb==="ALL" ? true : (primaryLabel(r)===lb))
+        .filter(r => cl==="ALL" ? true : (String(r.CL_fillpg_cluster??"")===cl))
         .filter(r => needsOnly ? Boolean(r.labels && r.labels.needs_more_context) : true)
         .filter(r => matchText(r, q))
         .sort((a,b) => Number(b.atypicality_v0||0) - Number(a.atypicality_v0||0));
@@ -694,6 +761,16 @@ td:last-child{ padding-right:16px; }
 
       const labels = ["ALL", ...allowed];
       els.labelSel.innerHTML = labels.map(x => `<option value="${esc(x)}">${esc(x)}</option>`).join("");
+
+      // cluster selector (from rows)
+      const clVals = [...new Set((rows||[]).map(r => r.CL_fillpg_cluster).filter(v => v!==null && v!==undefined).map(v => String(v)))]
+        .sort((a,b)=>Number(a)-Number(b));
+      const clOpts = ["ALL", ...clVals]
+        .map(v => v==="ALL"
+          ? `<option value="ALL">ALL</option>`
+          : `<option value="${esc(v)}">C${esc(v)}</option>`
+        ).join("");
+      els.clusterSel.innerHTML = clOpts;
     }
 
     function renderTable() {
@@ -856,17 +933,7 @@ td:last-child{ padding-right:16px; }
           </div>
         `;
       }
-
-      const raw = {
-        dataset: rec.dataset,
-        speaker_id: rec.speaker_id,
-        atypicality_v0: rec.atypicality_v0,
-        labels: rec.labels,
-        examples: rec.examples,
-        pg: rec.pg,
-        fill: rec.fill,
-        meta: rec.meta
-      };
+      const raw = rec; // full record (includes CL_*, PG_*, FILL_* top-level keys)
 
       els.details.innerHTML = `
         <h2>Details</h2>
@@ -875,6 +942,8 @@ td:last-child{ padding-right:16px; }
           <span class="badgeBig">${esc(fmt(rec.atypicality_v0, 6))} <small>score</small></span>
           <span class="dsChip" data-ds="${esc(rec.dataset)}">${esc(rec.dataset)}</span>
           <span class="mono">${esc(rec.speaker_id||"")}</span>
+          ${(rec.CL_fillpg_cluster!==null && rec.CL_fillpg_cluster!==undefined) ? `<span class="tag gray">C${esc(rec.CL_fillpg_cluster)}</span>` : ``}
+          ${rec.CL_dom_filler ? `<span class="tag orange">dom=${esc(rec.CL_dom_filler)}</span>` : ``}
           <span class="labelChip" data-label="${esc(pl)}">${esc(pl)}</span>
           <span class="muted">(${esc(pc.toFixed(2))})</span>
           ${needsBadge}
@@ -901,6 +970,11 @@ td:last-child{ padding-right:16px; }
           <div class="muted">Click a row to render.</div>
         </div>
 
+        <div class="sectionTitle">PCA scatter (fill+pg)</div>
+        <div class="panel" id="pcaPanel">
+          <div class="muted">Click a row to render.</div>
+        </div>
+
 
         <div class="sectionTitle">Filler metrics</div>
         <div class="panel">
@@ -921,6 +995,7 @@ td:last-child{ padding-right:16px; }
       `;
 
       try { renderDistPanel(rec); } catch(e) { console.warn("renderDistPanel failed", e); }
+      try { renderPcaPanel(rec); } catch(e) { console.warn("renderPcaPanel failed", e); }
       const btn = document.getElementById("copyBtn");
       btn.addEventListener("click", async () => {
         try {
@@ -934,14 +1009,230 @@ td:last-child{ padding-right:16px; }
       });
     }
 
-    fillStats();
-    fillSelectors();
-    renderTable();
 
+    // ---- PCA scatter helpers ----
+    function _isFiniteNum(x){ return typeof x === "number" && Number.isFinite(x); }
+    function _clusterTag(v){
+      if (v === null || v === undefined || v === "") return "—";
+      const n = Number(v);
+      return Number.isFinite(n) ? `C${n}` : String(v);
+    }
+    function _pcaPointsForDataset(ds){
+      const pts = [];
+      for (const r of rows){
+        if (r.dataset !== ds) continue;
+        const x = r.CL_pca_x, y = r.CL_pca_y;
+        if (!_isFiniteNum(x) || !_isFiniteNum(y)) continue;
+        pts.push({
+          x, y,
+          dataset: r.dataset,
+          speaker_id: r.speaker_id,
+          cluster: r.CL_fillpg_cluster,
+          dom: r.CL_dom_filler
+        });
+      }
+      return pts;
+    }
+    function _pcaDomain(pts){
+      let minX=Infinity, maxX=-Infinity, minY=Infinity, maxY=-Infinity;
+      for (const p of pts){
+        if (p.x < minX) minX = p.x;
+        if (p.x > maxX) maxX = p.x;
+        if (p.y < minY) minY = p.y;
+        if (p.y > maxY) maxY = p.y;
+      }
+      if (!Number.isFinite(minX)) return null;
+      const padX = (maxX - minX) * 0.06 || 1;
+      const padY = (maxY - minY) * 0.06 || 1;
+      return {minX:minX-padX, maxX:maxX+padX, minY:minY-padY, maxY:maxY+padY};
+    }
+    function _palette(k){
+      const cols = ["#64748b","#2563eb","#16a34a","#f59e0b","#db2777","#7c3aed","#0ea5e9","#ef4444"];
+      const n = Number(k);
+      if (!Number.isFinite(n)) return "#64748b";
+      return cols[((n%cols.length)+cols.length)%cols.length];
+    }
+    function _setCanvasHiDPI(canvas, cssW, cssH){
+      const dpr = window.devicePixelRatio || 1;
+      canvas.style.width = cssW + "px";
+      canvas.style.height = cssH + "px";
+      canvas.width  = Math.floor(cssW * dpr);
+      canvas.height = Math.floor(cssH * dpr);
+      const ctx = canvas.getContext("2d");
+      ctx.setTransform(dpr,0,0,dpr,0,0);
+      return ctx;
+    }
+    function _downsampleDeterministic(pts, maxN){
+      if (pts.length <= maxN) return pts;
+      const out = [];
+      const step = pts.length / maxN;
+      for (let i=0;i<maxN;i++){
+        out.push(pts[Math.floor(i*step)]);
+      }
+      return out;
+    }
+
+    function renderPcaPanel(rec){
+      const panel = document.getElementById("pcaPanel");
+      if (!panel) return;
+
+      const ds = rec.dataset;
+      const hasX = _isFiniteNum(rec.CL_pca_x);
+      const hasY = _isFiniteNum(rec.CL_pca_y);
+      if (!hasX || !hasY){
+        panel.innerHTML = `<div class="muted">PCA not available (missing CL_pca_x/CL_pca_y).</div>`;
+        return;
+      }
+
+      let pts = _pcaPointsForDataset(ds);
+      const N = pts.length;
+      if (!N){
+        panel.innerHTML = `<div class="muted">No PCA points for dataset=${esc(ds)}.</div>`;
+        return;
+      }
+
+      const MAX_PTS = 6000;
+      pts = _downsampleDeterministic(pts, MAX_PTS);
+
+      const dom = _pcaDomain(pts);
+      if (!dom){
+        panel.innerHTML = `<div class="muted">Failed to compute PCA domain.</div>`;
+        return;
+      }
+
+      panel.innerHTML = `
+        <div class="muted" style="margin-bottom:8px;">
+          base distribution: <b>${esc(ds)}</b> (N=${N})  marker=this speaker
+          <span style="margin-left:10px;">cluster=<b>${esc(_clusterTag(rec.CL_fillpg_cluster))}</b></span>
+          <span style="margin-left:10px;">dom=<b>${esc(String(rec.CL_dom_filler || ""))}</b></span>
+        </div>
+        <canvas id="pcaCanvas" style="width:100%;max-width:720px;height:360px;border:1px solid #e5e7eb;border-radius:12px;"></canvas>
+        <div id="pcaLegend" class="muted" style="margin-top:8px;"></div>
+      `;
+
+      const canvas = document.getElementById("pcaCanvas");
+      const rect = canvas.getBoundingClientRect();
+      const W = Math.max(520, Math.floor(rect.width || 720));
+      const H = 360;
+      const ctx = _setCanvasHiDPI(canvas, W, H);
+
+      const padL=44, padR=16, padT=16, padB=32;
+      const iw = W - padL - padR;
+      const ih = H - padT - padB;
+      const sx = (x)=> padL + ( (x - dom.minX) / (dom.maxX - dom.minX) ) * iw;
+      const sy = (y)=> padT + ( 1 - ( (y - dom.minY) / (dom.maxY - dom.minY) ) ) * ih;
+
+      ctx.clearRect(0,0,W,H);
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(0,0,W,H);
+
+      ctx.strokeStyle = "#e5e7eb";
+      ctx.lineWidth = 1;
+      ctx.strokeRect(padL, padT, iw, ih);
+
+      ctx.fillStyle = "#6b7280";
+      ctx.font = "12px ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace";
+      ctx.fillText(`x:${dom.minX.toFixed(2)}`, padL, H-10);
+      const xTxt = `x:${dom.maxX.toFixed(2)}`;
+      ctx.fillText(xTxt, padL + iw - ctx.measureText(xTxt).width, H-10);
+      ctx.save(); ctx.translate(12, padT+12); ctx.rotate(-Math.PI/2);
+      ctx.fillText(`y:${dom.minY.toFixed(2)}`, 0, 0); ctx.restore();
+      ctx.save(); ctx.translate(12, padT+ih); ctx.rotate(-Math.PI/2);
+      ctx.fillText(`y:${dom.maxY.toFixed(2)}`, 0, 0); ctx.restore();
+
+      const counts = {};
+      for (const p of pts){
+        const ctag = _clusterTag(p.cluster);
+        counts[ctag] = (counts[ctag]||0) + 1;
+        ctx.beginPath();
+        ctx.fillStyle = _palette(p.cluster);
+        ctx.globalAlpha = 0.20;
+        ctx.arc(sx(p.x), sy(p.y), 3, 0, Math.PI*2);
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1.0;
+
+      const mx = sx(rec.CL_pca_x), my = sy(rec.CL_pca_y);
+      ctx.beginPath(); ctx.fillStyle = "#111827";
+      ctx.arc(mx, my, 6, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 2;
+      ctx.arc(mx, my, 6, 0, Math.PI*2); ctx.stroke();
+
+      const leg = document.getElementById("pcaLegend");
+      const items = Object.keys(counts).sort().map(k=>{
+        const n = counts[k];
+        const kn = Number(String(k).replace(/^C/,""));
+        const col = _palette(Number.isFinite(kn)?kn:null);
+        return `<span class="chip" style="border-color:${col};">${esc(k)} ${n}</span>`;
+      }).join(" ");
+      leg.innerHTML = `cluster counts: ${items || "(none)"}`;
+    }
+
+    // --- PG summary (hotfix): render from rows to avoid missing stats ---
+    function _meanFinite(vals){
+      const xs = (vals||[]).filter(v => Number.isFinite(v));
+      if(!xs.length) return {mean: null, n: 0};
+      const m = xs.reduce((a,b)=>a+b,0) / xs.length;
+      return {mean: m, n: xs.length};
+    }
+    function _fmt3(x){
+      return Number.isFinite(x) ? (Math.round(x*1000)/1000).toFixed(3) : "-";
+    }
+    function _pgLine(sub, label){
+      const pause  = _meanFinite(sub.map(r=>r.PG_pause_mean));
+      const gap    = _meanFinite(sub.map(r=>r.PG_resp_gap_mean));
+      const ov     = _meanFinite(sub.map(r=>r.PG_overlap_rate));
+      const respOv = _meanFinite(sub.map(r=>r.PG_resp_overlap_rate));
+      return (
+        '<div style="margin-bottom:6px;">' +
+          '<span class="muted" style="display:inline-block;min-width:42px;">'+label+'</span> ' +
+          'pause=<b>'+_fmt3(pause.mean)+'</b> ' +
+          'gap=<b>'+_fmt3(gap.mean)+'</b> ' +
+          'ov=<b>'+_fmt3(ov.mean)+'</b> ' +
+          'respOv=<b>'+_fmt3(respOv.mean)+'</b>' +
+        '</div>'
+      );
+    }
+    function renderPgSummaryCard(){
+      // find the card by title text (robust to id changes)
+      const titleEl = Array.from(document.querySelectorAll('.cardTitle'))
+        .find(el => (el.textContent||'').trim() === 'Pause/Gap summary');
+      if(!titleEl) return;
+      const card = titleEl.closest('.card');
+      if(!card) return;
+
+      // body: prefer #pgSummary / .small / .panel
+      const body = card.querySelector('#pgSummary') || card.querySelector('.small') || card.querySelector('.panel');
+      if(!body) return;
+
+      const datasets = Array.from(new Set(rows.map(r=>r.dataset))).filter(Boolean).sort();
+      let html = '';
+      html += _pgLine(rows, 'ALL');
+      for(const ds of datasets){
+        const sub = rows.filter(r => r.dataset === ds);
+        html += _pgLine(sub, ds);
+      }
+      body.innerHTML = html || '-';
+    }
+
+
+
+
+    fillStats();
+
+
+    try { renderPgSummaryCard(); } catch(e) { console.warn('pgSummary render failed', e); }
+
+
+    fillSelectors();
+
+
+    renderTable();
     ["input","change"].forEach(evt => {
       els.q.addEventListener(evt, renderTable);
       els.datasetSel.addEventListener(evt, renderTable);
       els.labelSel.addEventListener(evt, renderTable);
+      els.clusterSel.addEventListener(evt, renderTable);
       els.needsOnly.addEventListener(evt, renderTable);
     });
   </script>
