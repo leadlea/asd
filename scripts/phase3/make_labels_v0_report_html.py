@@ -750,6 +750,20 @@ td:last-child{ padding-right:16px; }
 
   <script>
     const rows = JSON.parse(document.getElementById("DATA").textContent);
+    // flatten nested metrics (pg/fill) to top-level for distribution panels
+    rows.forEach(r => {
+      if (!r || typeof r !== "object") return;
+      if (r.pg && typeof r.pg === "object") {
+        Object.keys(r.pg).forEach(k => {
+          if (k.startsWith("PG_") && r[k] === undefined) r[k] = r.pg[k];
+        });
+      }
+      if (r.fill && typeof r.fill === "object") {
+        Object.keys(r.fill).forEach(k => {
+          if (k.startsWith("FILL_") && r[k] === undefined) r[k] = r.fill[k];
+        });
+      }
+    });
     const stats = JSON.parse(document.getElementById("STATS").textContent);
     const allowed = JSON.parse(document.getElementById("ALLOWED").textContent);
 
@@ -837,7 +851,7 @@ td:last-child{ padding-right:16px; }
         const keys = Object.keys(base[ds] || {});
         for (let ki=0; ki<keys.length; ki++){
           const k = keys[ki];
-          base[ds][k] = (base[ds][k] || []).filter(v=>v!==null).sort((a,b)=>a-b);
+          base[ds][k] = (base[ds][k] || []).filter(v=>v!==null && v!==undefined).sort((a,b)=>a-b);
         }
       }
       return base;
@@ -1430,8 +1444,15 @@ def main():
                 "error": str(r.get("error") or ""),
             },
         }
+        # --- flatten nested fill dict for dist/boxplot ---
+        if isinstance(rec.get("fill"), dict):
+            rec.update(rec["fill"])
+        # --- expose PG_* at top-level for dist/boxplot ---
+        if isinstance(rec.get("pg"), dict):
+            for _k, _v in rec["pg"].items():
+                if isinstance(_k, str) and _k.startswith("PG_") and rec.get(_k) is None:
+                    rec[_k] = _v
         rows.append(rec)
-
     dataset_counts = df.groupby("dataset").size().to_dict() if "dataset" in df.columns else {}
 
     # primary label counts
@@ -1524,6 +1545,21 @@ def main():
         "NEGATION_OPPOSITION",
         "OTHER",
     ]
+
+    # --- CL_* passthrough (cluster columns) ---
+    cl_cols = [c for c in df.columns if str(c).startswith("CL_")]
+    if cl_cols and len(rows):
+        key_cols = [c for c in ("dataset", "speaker_id") if c in df.columns]
+        if key_cols:
+            sub = df[key_cols + cl_cols].drop_duplicates(subset=key_cols, keep="first")
+            cl_map = {
+                tuple(r[k] for k in key_cols): {c: r[c] for c in cl_cols}
+                for _, r in sub.iterrows()
+            }
+            for rr in rows:
+                k = tuple(rr.get(kc) for kc in key_cols)
+                if k in cl_map:
+                    rr.update(cl_map[k])
 
     data_json = _script_json(json.dumps(_json_sanitize(rows), ensure_ascii=False, allow_nan=False))
     stats_json = _script_json(json.dumps(_json_sanitize(stats), ensure_ascii=False, allow_nan=False))
