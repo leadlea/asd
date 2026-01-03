@@ -453,7 +453,7 @@ HTML_TEMPLATE = """<!doctype html>
     .pill.gray .dot{ background:#9ca3af; }
 
     /* cards */
-    .grid { display:grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap:12px; margin-top:12px; }
+    .grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap:12px; margin-top:12px; }
     @media (max-width: 960px) { .grid { grid-template-columns: 1fr; } }
     .card {
       border:1px solid var(--line);
@@ -638,6 +638,15 @@ HTML_TEMPLATE = """<!doctype html>
 
     .btn { border:1px solid var(--line); background:#fff; border-radius:12px; padding:8px 10px; font-size:12px; cursor:pointer; }
     .btn:hover { background:#f7f7f7; }
+
+  
+    /* ---- population position (boxplot) ---- */
+    .distMeta{ font-size:11px; color:var(--muted); margin:6px 0; line-height:1.35; }
+    .distGrid{ display:grid; gap:10px; grid-template-columns: 1fr; }
+    .distItem{ border:1px solid var(--line); background:#fff; border-radius:14px; padding:10px; }
+    .distLabel{ font-weight:900; font-size:12px; margin-bottom:4px; }
+    .distSvgWrap{ border:1px solid var(--line); background:#fafafa; border-radius:12px; padding:8px; }
+    .distSvg{ width:100%; height:34px; display:block; }
   
 .pgLine{ margin: 6px 0; line-height: 1.55; }
 .num{ font-weight: 900; }
@@ -674,6 +683,10 @@ td:last-child{ padding-right:16px; }
       <div class="card">
         <h3>Pause/Gap summary</h3>
         <div class="kv" id="pgBox"></div>
+      </div>
+      <div class="card">
+        <h3>Filler summary</h3>
+        <div class="kv" id="fillBox"></div>
       </div>
     </div>
 
@@ -752,6 +765,7 @@ td:last-child{ padding-right:16px; }
       labelBox: document.getElementById("labelBox"),
       kpiStrip: document.getElementById("kpiStrip"),
       pgBox: document.getElementById("pgBox"),
+      fillBox: document.getElementById("fillBox"),
     };
 
     function esc(s) {
@@ -766,6 +780,156 @@ td:last-child{ padding-right:16px; }
     function fmt(n, d=3) {
       if (n === null || n === undefined || Number.isNaN(Number(n))) return "-";
       return Number(n).toFixed(d);
+    }
+
+    // ---- population position (boxplot) ----
+    function num(x){
+      const v = Number(x);
+      return Number.isFinite(v) ? v : null;
+    }
+    function quantileSorted(arr, p){
+      if (!arr || !arr.length) return null;
+      const n = arr.length;
+      const idx = (n - 1) * p;
+      const lo = Math.floor(idx);
+      const hi = Math.ceil(idx);
+      if (lo === hi) return arr[lo];
+      const w = idx - lo;
+      return arr[lo] * (1 - w) + arr[hi] * w;
+    }
+    function buildDistIndex(rows){
+      const base = { ALL: {} };
+
+      function push(ds, key, v){
+        if (v === null) return;
+        if (!base[ds]) base[ds] = {};
+        if (!base[ds][key]) base[ds][key] = [];
+        base[ds][key].push(v);
+      }
+
+      for (let i=0;i<rows.length;i++){
+        const r = rows[i];
+        const ds = String(r.dataset || "unknown").toLowerCase();
+
+        // score
+        push("ALL", "score", num(r.atypicality_v0));
+        push(ds,   "score", num(r.atypicality_v0));
+
+        // fillers (optional)
+        push("ALL", "fill_z",    num(r.FILL_z_log_rate_per_100chars));
+        push(ds,   "fill_z",    num(r.FILL_z_log_rate_per_100chars));
+        push("ALL", "fill_rate", num(r.FILL_rate_per_100chars));
+        push(ds,   "fill_rate", num(r.FILL_rate_per_100chars));
+
+        // pause/gap (from rec.pg)
+        const pg = r.pg || {};
+        push("ALL", "pg_pause",  num(pg.PG_pause_mean));
+        push(ds,   "pg_pause",  num(pg.PG_pause_mean));
+        push("ALL", "pg_gap",    num(pg.PG_resp_gap_mean));
+        push(ds,   "pg_gap",    num(pg.PG_resp_gap_mean));
+        push("ALL", "pg_respOv", num(pg.PG_resp_overlap_rate));
+        push(ds,   "pg_respOv", num(pg.PG_resp_overlap_rate));
+      }
+
+      const dsKeys = Object.keys(base);
+      for (let di=0; di<dsKeys.length; di++){
+        const ds = dsKeys[di];
+        const keys = Object.keys(base[ds] || {});
+        for (let ki=0; ki<keys.length; ki++){
+          const k = keys[ki];
+          base[ds][k] = (base[ds][k] || []).filter(v=>v!==null).sort((a,b)=>a-b);
+        }
+      }
+      return base;
+    }
+
+    function boxSvg(valuesSorted, vSel){
+      if (!valuesSorted || valuesSorted.length < 5) return '<div class="muted">insufficient N</div>';
+      const q05 = quantileSorted(valuesSorted, 0.05);
+      const q25 = quantileSorted(valuesSorted, 0.25);
+      const q50 = quantileSorted(valuesSorted, 0.50);
+      const q75 = quantileSorted(valuesSorted, 0.75);
+      const q95 = quantileSorted(valuesSorted, 0.95);
+      if ([q05,q25,q50,q75,q95].some(x=>x===null)) return '<div class="muted">-</div>';
+
+      const w = 520, h = 34;
+      const padL = 10, padR = 10;
+      const xmin = q05, xmax = q95;
+      const den = (xmax - xmin) || 1;
+
+      function X(v){
+        const t = Math.max(0, Math.min(1, (v - xmin) / den));
+        return padL + t * (w - padL - padR);
+      }
+
+      const x05 = X(q05), x25 = X(q25), x50 = X(q50), x75 = X(q75), x95 = X(q95);
+      const vs = (vSel===null || vSel===undefined) ? null : Number(vSel);
+      const xm  = (vs===null || !Number.isFinite(vs)) ? null : X(Math.max(xmin, Math.min(xmax, vs)));
+
+      const stroke = "#cbd5e1";
+      const boxFill = "#eff6ff";
+      const boxStroke = "#93c5fd";
+      const median = "#1d4ed8";
+      const marker = "#111827";
+
+      let markerSvg = "";
+      if (xm !== null){
+        markerSvg =
+          '<line x1="'+xm+'" y1="6" x2="'+xm+'" y2="'+(h-6)+'" stroke="'+marker+'" stroke-width="2" />' +
+          '<polygon points="'+(xm-5)+',6 '+(xm+5)+',6 '+xm+',1" fill="'+marker+'" />';
+      }
+
+      let svg = '';
+      svg += '<svg class="distSvg" viewBox="0 0 '+w+' '+h+'" preserveAspectRatio="none" aria-hidden="true">';
+      svg += '<line x1="'+x05+'" y1="'+(h/2)+'" x2="'+x95+'" y2="'+(h/2)+'" stroke="'+stroke+'" stroke-width="2" />';
+      svg += '<line x1="'+x05+'" y1="'+(h/2-6)+'" x2="'+x05+'" y2="'+(h/2+6)+'" stroke="'+stroke+'" stroke-width="2" />';
+      svg += '<line x1="'+x95+'" y1="'+(h/2-6)+'" x2="'+x95+'" y2="'+(h/2+6)+'" stroke="'+stroke+'" stroke-width="2" />';
+      svg += '<rect x="'+x25+'" y="'+(h/2-8)+'" width="'+Math.max(2, x75-x25)+'" height="16" rx="6" ry="6" fill="'+boxFill+'" stroke="'+boxStroke+'" stroke-width="2" />';
+      svg += '<line x1="'+x50+'" y1="'+(h/2-8)+'" x2="'+x50+'" y2="'+(h/2+8)+'" stroke="'+median+'" stroke-width="2" />';
+      svg += markerSvg;
+      svg += '</svg>';
+      return svg;
+    }
+
+    const distIndex = buildDistIndex(rows);
+
+    function renderDistPanel(rec){
+      const el = document.getElementById("distPanel");
+      if (!el) return;
+
+      const ds = String(rec.dataset || "ALL").toLowerCase();
+      const base = (distIndex && distIndex[ds]) ? distIndex[ds] : (distIndex.ALL || {});
+      const nScore = (base.score || []).length;
+
+      const items = [
+        { key:"score",     label:"score (atypicality_v0)", sel: num(rec.atypicality_v0), d:3 },
+        { key:"fill_z",    label:"FILL z (log-rate)",      sel: num(rec.FILL_z_log_rate_per_100chars), d:2 },
+        { key:"fill_rate", label:"FILL rate/100chars",     sel: num(rec.FILL_rate_per_100chars), d:3 },
+        { key:"pg_pause",  label:"PG pause_mean",          sel: num((rec.pg||{}).PG_pause_mean), d:3 },
+        { key:"pg_gap",    label:"PG resp_gap_mean",       sel: num((rec.pg||{}).PG_resp_gap_mean), d:3 },
+        { key:"pg_respOv", label:"PG resp_overlap_rate",   sel: num((rec.pg||{}).PG_resp_overlap_rate), d:3 },
+      ];
+
+      let html = '';
+      html += '<div class="distMeta">base distribution: <b>'+esc(ds)+'</b> (N='+esc(nScore)+') whiskers=p05..p95 marker=this speaker</div>';
+      html += '<div class="distGrid">';
+
+      for (let i=0;i<items.length;i++){
+        const it = items[i];
+        const vals = base[it.key] || [];
+        const selTxt = (it.sel===null) ? "-" : fmt(it.sel, it.d);
+
+        html += '<div class="distItem">';
+        html +=   '<div>';
+        html +=     '<div class="distLabel">'+esc(it.label)+'</div>';
+        html +=     '<div class="distMeta">value: <b>'+esc(selTxt)+'</b></div>';
+        html +=   '</div>';
+        html +=   '<div class="distSvgWrap">'+ boxSvg(vals, it.sel) +'</div>';
+        html += '</div>';
+      }
+
+      html += '</div>';
+      el.innerHTML = html;
     }
 
     function primaryLabel(rec) {
@@ -867,6 +1031,35 @@ td:last-child{ padding-right:16px; }
           return `<div><span class="mono">${esc(ds)}</span> <span class="muted">pause</span>=<span class="num">${esc(pm)}</span> <span class="muted">gap</span>=<span class="num">${esc(rg)}</span> <span class="muted">ov</span>=<span class="num">${esc(ov)}</span> <span class="muted">respOv</span>=<span class="num">${esc(ro)}</span></div>`;
         }).join("");
       }
+      // Filler summary (dataset-level)
+      const fillSummary = stats.fill_summary || {};
+      const fKeys = Object.keys(fillSummary).sort();
+      if (!fKeys.length) {
+        (els.fillBox || document.getElementById("fillBox")).innerHTML = `<div class="muted">-</div>`;
+      } else {
+        (els.fillBox || document.getElementById("fillBox")).innerHTML = fKeys.map((ds) => {
+          const r = fillSummary[ds] || {};
+          const rate = fmt(r.fill_rate_mean, 3);
+          const p90  = fmt(r.fill_rate_p90, 3);
+          const anyr = (r.any_turn_rate_mean===null || r.any_turn_rate_mean===undefined)
+            ? "-"
+            : (Number(r.any_turn_rate_mean)*100).toFixed(0) + "%";
+          const top  = Array.isArray(r.top_types) ? r.top_types.slice(0,3) : [];
+          const topHtml = top.map(t =>
+            `<span class="tag gray">${esc(t.name)} ${esc((Number(t.share)*100).toFixed(0))}%</span>`
+          ).join("");
+          return `<div style="margin-top:6px;">
+            <span class="mono">${esc(ds)}</span>
+            <span class="muted">rate/100chars</span>=<span class="num">${esc(rate)}</span>
+            <span class="muted">p90</span>=<span class="num">${esc(p90)}</span>
+            <span class="muted">any</span>=<span class="num">${esc(anyr)}</span>
+            <div style="margin-top:4px; display:flex; gap:6px; flex-wrap:wrap;">
+              ${topHtml || `<span class="muted">top_types: -</span>`}
+            </div>
+          </div>`;
+        }).join("");
+      }
+
 }
 
     function fillSelectors() {
@@ -1077,6 +1270,12 @@ td:last-child{ padding-right:16px; }
         <div class="sectionTitle">Examples (evidence)</div>
         ${examplesHtml}
 
+        <div class="sectionTitle">Population position (boxplot)</div>
+        <div class="panel" id="distPanel">
+          <div class="muted">Click a row to render.</div>
+        </div>
+
+
         <div class="sectionTitle">Filler metrics</div>
         <div class="panel">
           ${fillHtml || `<div class="muted">No filler metrics attached for this speaker.</div>`}
@@ -1095,6 +1294,7 @@ td:last-child{ padding-right:16px; }
         </div>
       `;
 
+      try { renderDistPanel(rec); } catch(e) { console.warn("renderDistPanel failed", e); }
       const btn = document.getElementById("copyBtn");
       btn.addEventListener("click", async () => {
         try {
@@ -1120,27 +1320,6 @@ td:last-child{ padding-right:16px; }
     });
   </script>
 
-<script>
-(function(){
-  function esc(s){return String(s)
-    .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
-    .replace(/"/g,"&quot;").replace(/'/g,"&#39;");}
-  function decoratePgSummary(){
-    var el = document.getElementById("pgSummaryBox");
-    if(!el) return;
-    var txt = (el.textContent||"").trim();
-    if(!txt) return;
-    var lines = txt.split(/\r?\n/).filter(Boolean);
-    el.innerHTML = lines.map(function(l){
-      var safe = esc(l).replace(/(\d+(?:\.\d+)?)/g,'<span class="num">$1</span>');
-      return '<div class="pgLine">'+safe+'</div>';
-    }).join("");
-  }
-  try{ decoratePgSummary(); }catch(e){}
-  // もし後から fillStats 等で上書きされても再適用できるように
-  document.addEventListener("click", function(){ try{decoratePgSummary();}catch(e){} }, true);
-})();
-</script>
 
 </body>
 </html>
@@ -1269,6 +1448,56 @@ def main():
     if "created_at" in df.columns and len(df):
         created = [str(x) for x in df["created_at"].dropna().astype(str).tolist()]
 
+
+    # Filler summary (dataset-level) if FILL_* columns exist
+    def _build_fill_summary(df0: pd.DataFrame) -> Dict[str, Dict[str, Any]]:
+        if "FILL_rate_per_100chars" not in df0.columns:
+            return {}
+        out: Dict[str, Dict[str, Any]] = {}
+
+        def summarise(sub: pd.DataFrame) -> Dict[str, Any]:
+            rate = pd.to_numeric(sub.get("FILL_rate_per_100chars"), errors="coerce")
+
+            # any-turn ratio: (turns with any filler) / (turns total) per speaker
+            if "FILL_has_any" in sub.columns and "FILL_n_rows" in sub.columns:
+                any_turn = (
+                    pd.to_numeric(sub["FILL_has_any"], errors="coerce")
+                    / pd.to_numeric(sub["FILL_n_rows"], errors="coerce")
+                )
+            else:
+                any_turn = pd.Series([None] * len(sub))
+
+            d: Dict[str, Any] = {
+                "fill_rate_mean": _safe_float(rate.mean()),
+                "fill_rate_median": _safe_float(rate.median()),
+                "fill_rate_p90": _safe_float(rate.quantile(0.9)) if len(rate.dropna()) else None,
+                "any_turn_rate_mean": _safe_float(any_turn.mean()),
+            }
+
+            # top filler types by share (sum of counts)
+            type_cols = [c for c in sub.columns if c.startswith("FILL_cnt_") and c not in ("FILL_cnt_total",)]
+            sums = {}
+            for c in type_cols:
+                v = pd.to_numeric(sub[c], errors="coerce").sum()
+                if pd.notna(v) and v > 0:
+                    name = c.replace("FILL_cnt_", "")
+                    sums[name] = float(v)
+
+            tot = float(pd.to_numeric(sub.get("FILL_cnt_total"), errors="coerce").sum() or 0.0)
+            top = sorted(sums.items(), key=lambda kv: kv[1], reverse=True)[:5]
+            d["top_types"] = [{"name": k, "cnt": v, "share": (v / tot if tot > 0 else 0.0)} for k, v in top]
+            return d
+
+        out["ALL"] = summarise(df0)
+        if "dataset" in df0.columns:
+            for ds, sub in df0.groupby("dataset"):
+                ds = str(ds)
+                if ds:
+                    out[ds] = summarise(sub)
+        return out
+
+    fill_summary = _build_fill_summary(df)
+
     stats = {
         "total_rows": int(len(rows)),
         "dataset_counts": dataset_counts,
@@ -1282,6 +1511,7 @@ def main():
         "pg_attached": bool(pg_attached),
         "pg_rows_loaded": int(pg_rows_loaded),
         "pg_summary": pg_summary,
+        "fill_summary": fill_summary,
     }
 
     allowed_labels = [
