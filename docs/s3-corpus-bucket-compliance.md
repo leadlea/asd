@@ -654,3 +654,254 @@ cat >> .gitignore <<'EOF'
 !docs/report/*.pdf
 EOF
 ```
+
+---
+
+## 14. Phase5/6: LLMラベリング v0（500件 / Bedrock Claude Opus 4.5）＋ GitHub Pages UI統合（WITH CL / WITH NEYO）
+
+更新日: 2026-01-05  
+目的: Phase5/6 で抽出した outliers 上位 500件に対し、LLM説明ラベル（根拠付き）を付与し、クラスタ（PCA散布図＋cluster filter）と SFP/応答指標（NE/YO系）を UI でレビュー可能にする。
+
+### 14.1 実行前提（モデル/リージョン/KMS）
+
+```bash
+export AWS_REGION="ap-northeast-1"
+export MODEL_ID="global.anthropic.claude-opus-4-5-20251101-v1:0"
+export S3_KMS_KEY_ARN="arn:aws:kms:ap-northeast-1:982534361827:key/5dc3c3b6-251c-4cbd-b1a4-40f92db8f58c"
+````
+
+（注）Terminal が落ちる事故があったため、パッチ系は `set -u` を避け、**ヒアドキュメントで一発実行**を基本とする。
+また履歴系で落ちる場合があるため、必要なら以下を入れる。
+
+```bash
+export HISTTIMEFORMAT="${HISTTIMEFORMAT-}"
+```
+
+---
+
+### 14.2 LLMラベリング（500/500）
+
+#### 14.2.1 入力 outliers CSV の必須列
+
+`label_outliers_with_bedrock_v0.py` の入力 CSV には最低限以下が必要:
+
+* `dataset`
+* `speaker_id`
+* `atypicality_v0`（※今回 `score` と同値で OK）
+* `top_contrib_json`（上位寄与特徴のJSON）
+
+（ハマりポイント）最初の outliers CSV に `atypicality_v0` / `top_contrib_json` が無く、スクリプトが停止した。
+→ LLM用に列を補った `outliers_v0_topK_enriched_v500_for_llm.csv` を作成して対応。
+
+#### 14.2.2 LLM 実行（limit=0 で全件）
+
+```bash
+RUN_DIR="artifacts/phase56_full_20260104_024221/_llm500_opus45"
+OUTLIERS_CSV="$RUN_DIR/outliers_v0_topK_enriched_v500_for_llm.csv"
+EXAMPLES_DIR="artifacts/phase3/examples_v13"
+LABELS_OUT="$RUN_DIR/labels_v500_opus45.parquet"
+
+python scripts/phase3/label_outliers_with_bedrock_v0.py \
+  --outliers_csv "$OUTLIERS_CSV" \
+  --examples_dir "$EXAMPLES_DIR" \
+  --out_parquet "$LABELS_OUT" \
+  --limit 0
+```
+
+完了ログ（例）:
+
+* rows: 500
+* out: `.../labels_v500_opus45.parquet`
+* used_examples: false（※ examples_dir は与えたが、今回の run は未使用扱いになった）
+
+---
+
+### 14.3 UI表示用の統合 Parquet（UIFINAL / WITHCL / WITHNEYO）
+
+LLM出力の素の parquet は UI が期待する列（`conversation_id` / `summary` / `primary_label` / `top_contrib_json` 等）の揃い方が不足し、UI上で「全部OTHER」等の誤表示が起きた。
+→ UIが安定して表示できるように **統合済みテーブル**を作成して利用。
+
+成果物（最終）:
+
+* `labels_tb500_UIFINAL_opus45.parquet`（UI前提の列揃え）
+* `labels_tb500_UIFINAL_opus45_WITHCL.parquet`（クラスタ/PCA付与）
+* `labels_tb500_UIFINAL_opus45_WITHCL_WITHNEYO_FULL.parquet`（NE/YO系の応答指標を付与）
+
+---
+
+### 14.4 HTMLダッシュボード生成（make_labels_v0_report_html）
+
+#### 14.4.1 クラスタ/PCA入り（WITHCL）で HTML 生成
+
+```bash
+RUN_DIR="artifacts/phase56_full_20260104_024221/_llm500_opus45"
+
+python scripts/phase3/make_labels_v0_report_html.py \
+  --labels_parquet "$RUN_DIR/labels_tb500_UIFINAL_opus45_WITHCL.parquet" \
+  --examples_dir "artifacts/phase3/examples_v13" \
+  --pg_metrics_parquet "artifacts/phase56_full_20260104_024221/_htmlfix4/pg_metrics_for_html.parquet" \
+  --pg_summary_parquet "artifacts/phase56_full_20260104_024221/_htmlfix4/pg_summary_for_html.parquet" \
+  --out_html docs/index.html
+```
+
+確認（DATA に CL が入っていること）:
+
+```bash
+python - <<'PY'
+import re, json
+html=open("docs/index.html",encoding="utf-8").read()
+m=re.search(r'<script id="DATA"[^>]*>(.*?)</script>', html, re.S)
+rows=json.loads(m.group(1))
+nn=sum(1 for r in rows if r.get("CL_pca_x") is not None and r.get("CL_pca_y") is not None)
+clu=sorted({r.get("CL_fillpg_cluster") for r in rows if r.get("CL_fillpg_cluster") is not None})
+print("rows:", len(rows))
+print("CL points:", nn)
+print("clusters:", clu)
+PY
+```
+
+期待値（例）:
+
+* rows: 500
+* CL points: 370 / 500（欠損行ありは仕様）
+* clusters: [0.0, 1.0, 2.0, 3.0]
+
+---
+
+### 14.5 “全部 OTHER” になる問題と対処（UI 側 primary_label/score の再構成）
+
+#### 14.5.1 症状
+
+* `Primary label counts` は OTHER/BACKCHANNEL/HESITATION 等が出るのに、
+  テーブル行の primary_label 表示や絞り込みが **全部 OTHER（0.00）** になってしまう。
+
+#### 14.5.2 原因
+
+* UI が `labels_json` をパースして label の `score` を参照して primary_label を決める実装になっている一方、
+  Opus4.5 の出力は `confidence` を持つ（score が無い/または UI が拾えていない）ケースがあり、
+  primary_label を UI 側で作り直す段階で **OTHER に潰れる**。
+
+#### 14.5.3 対処（docs/index.html へのパッチ）
+
+* `confidence -> score` の正規化
+* primary_label/primary_label_score の再計算
+* stats（primary_label_counts）も rows から再集計
+* `NaN/Infinity` が混じると JSON.parse が死ぬため、`jsonParseLoose()` で null 化してから parse
+
+（注）パッチ適用は index.html の構造差で失敗することがあるため、**マーカー文字列（例: `__CONF2SCORE_PATCH__`）を入れて二重適用を防止**する。
+
+---
+
+### 14.6 NE/YO（終助詞）関連指標の UI 反映（PF_* として表示）
+
+#### 14.6.1 目的
+
+labels UI 上で、SFP由来の応答指標を “一目で” 見えるようにする:
+
+* `RESP_NE_AIZUCHI_RATE`
+* `RESP_NE_ENTROPY`
+* `RESP_YO_ENTROPY`
+* `n_pairs_after_NE`
+* `n_pairs_after_YO`
+
+#### 14.6.2 データ所在（CEJC は gold(v13) metrics_resp が最も網羅的）
+
+探索で以下が有効だった（rows が多く、CEJC 480件が埋まる）:
+
+* `artifacts/phase3/metrics_v13/corpus=cejc/table=metrics_resp/part-00000.parquet`
+
+#### 14.6.3 結合結果（最終）
+
+* UI rows: 500（cejc=480, csj=20）
+* `RESP_NE_*`, `RESP_YO_*`, `n_pairs_after_*` の non-null は CEJC 480 行で埋まった
+* UI では prefix 付き（`PF_*`）のフィーチャとして表示したかったため、
+  DATA に `PF_RESP_NE_AIZUCHI_RATE` 等を注入する方式を採用（UI既存仕様に追従）
+
+（成果物）
+
+* `labels_tb500_UIFINAL_opus45_WITHCL_WITHNEYO_FULL.parquet`（base列として RESP_/n_pairs_after_ が入った最終版）
+
+---
+
+### 14.7 最終HTMLの生成（WITHCL + WITHNEYO を入力）
+
+```bash
+RUN_DIR="artifacts/phase56_full_20260104_024221/_llm500_opus45"
+
+python scripts/phase3/make_labels_v0_report_html.py \
+  --labels_parquet "$RUN_DIR/labels_tb500_UIFINAL_opus45_WITHCL_WITHNEYO_FULL.parquet" \
+  --examples_dir "artifacts/phase3/examples_v13" \
+  --pg_metrics_parquet "artifacts/phase56_full_20260104_024221/_htmlfix4/pg_metrics_for_html.parquet" \
+  --pg_summary_parquet "artifacts/phase56_full_20260104_024221/_htmlfix4/pg_summary_for_html.parquet" \
+  --out_html docs/index.html
+```
+
+---
+
+### 14.8 成果物の退避（LLM 500件は高コストのため必ず保全）
+
+LLM 500件の出力は「再実行が高コスト」なため、ローカルで `_archive/` に退避し checksum を残す。
+
+```bash
+set -euo pipefail
+ts=$(date +%Y%m%d_%H%M%S)
+ARC="artifacts/_archive/llm500_opus45_${ts}"
+mkdir -p "$ARC"
+
+cp -av artifacts/phase56_full_20260104_024221/_llm500_opus45/labels_v500_opus45.parquet "$ARC/"
+cp -av artifacts/phase56_full_20260104_024221/_llm500_opus45/labels_tb500_UIFINAL_opus45.parquet "$ARC/"
+cp -av artifacts/phase56_full_20260104_024221/_llm500_opus45/outliers_v0_topK_enriched_v500_for_llm.csv "$ARC/" || true
+
+python - <<PY
+import hashlib
+from pathlib import Path
+p=Path("$ARC")
+for f in sorted(p.glob("*")):
+    if f.name == "SHA256SUMS.txt": 
+        continue
+    h=hashlib.sha256(f.read_bytes()).hexdigest()
+    print(h, f.name)
+PY | tee "$ARC/SHA256SUMS.txt"
+
+echo "archived -> $ARC"
+```
+
+---
+
+### 14.9 最終統計（sanity）
+
+最終 labels 分布（例）:
+
+* primary_label top:
+
+  * OTHER: 256
+  * BACKCHANNEL: 142
+  * HESITATION: 102
+
+* labels（複数ラベル）top:
+
+  * OTHER: 495
+  * BACKCHANNEL: 271
+  * HESITATION: 191
+  * REPAIR: 6
+  * DISCOURSE_MARKER: 3
+  * QUESTION: 1
+
+---
+
+## 15. 運用メモ（ハマりどころ）
+
+### 15.1 UI が JSON.parse で死ぬ（NaN/Infinity 問題）
+
+* DATA 内に `NaN` が混じると `JSON.parse` が `Unexpected token 'N'` で落ちる。
+* 対策: `jsonParseLoose()`（NaN/Infinity を null に置換）で parse する。
+
+### 15.2 Terminal が落ちる（set -u / 履歴変数）
+
+* `set -euo pipefail` の `-u`（未定義エラー）でヒストリ保存処理が落ちるケースあり。
+* 対策:
+
+  * パッチ系は `set -u` を外す
+  * 実行は `python - <<'PY' ... PY` のヒアドキュメント一発で行う
+  * 必要なら `export HISTTIMEFORMAT="${HISTTIMEFORMAT-}"`
+
