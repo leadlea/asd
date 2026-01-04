@@ -1,41 +1,6 @@
 # scripts/phase3/make_labels_v0_report_html.py
 # -*- coding: utf-8 -*-
 from __future__ import annotations
-def _parse_labels_payload(x):
-    """
-    Accepts:
-      - dict: {"A":0.2,"B":0.1}
-      - list: [{"label":"A","score":0.0}, ...]  (marker style)
-      - str : JSON text of either above
-    Returns dict[str, float|None] (score is kept as-is; 0.0 is valid)
-    """
-    import json
-    if x is None:
-        return {}
-    if isinstance(x, dict):
-        return x
-    if isinstance(x, list):
-        out = {}
-        for it in x:
-            if isinstance(it, dict) and "label" in it:
-                lab = str(it.get("label"))
-                sc = it.get("score", 0.0)
-                try:
-                    sc = float(sc) if sc is not None else None
-                except Exception:
-                    sc = None
-                out[lab] = sc
-        return out
-    if isinstance(x, str):
-        s = x.strip()
-        if not s or s.lower() in ("nan","null","none"):
-            return {}
-        try:
-            v = json.loads(s)
-        except Exception:
-            return {}
-        return _parse_labels_payload(v)
-    return {}
 
 import argparse
 import html as htmlmod
@@ -788,17 +753,7 @@ td:last-child{ padding-right:16px; }
   <script id="ALLOWED" type="application/json">__ALLOWED_JSON__</script>
 
   <script>
-    
-    // --- jsonParseLoose: tolerate NaN/Infinity emitted by python/json ---
-    function jsonParseLoose(s){
-      const t = (s || "")
-        .replace(/\b-?Infinity\b/g, "null")
-        .replace(/\bNaN\b/g, "null");
-      return JSON.parse(t);
-    }
-    // --- end jsonParseLoose ---
-
-    const rows = jsonParseLoose(document.getElementById("DATA").textContent);
+    const rows = JSON.parse(document.getElementById("DATA").textContent);
     // --- PG summary (hotfix v2): render from rows (robust DOM selection) ---
     (function(){
       function meanFinite(vals){
@@ -871,8 +826,8 @@ td:last-child{ padding-right:16px; }
         });
       }
     });
-    const stats = jsonParseLoose(document.getElementById("STATS").textContent);
-    const allowed = jsonParseLoose(document.getElementById("ALLOWED").textContent);
+    const stats = JSON.parse(document.getElementById("STATS").textContent);
+    const allowed = JSON.parse(document.getElementById("ALLOWED").textContent);
 
     const els = {
       q: document.getElementById("q"),
@@ -1366,7 +1321,8 @@ td:last-child{ padding-right:16px; }
           </div>
         `;
       }
-      const raw = rec; // full record (includes CL_*, PG_*, FILL_* top-level keys, "RESP_", "n_pairs_after_")
+      const raw = rec; // full record (includes CL_*, PG_*, FILL_* top-level keys)
+
       els.details.innerHTML = `
         <h2>Details</h2>
 
@@ -1787,17 +1743,6 @@ def main():
             for _k, _v in rec["pg"].items():
                 if isinstance(_k, str) and _k.startswith("PG_") and rec.get(_k) is None:
                     rec[_k] = _v
-        # --- compat: respect parquet primary_label; keep marker labels even if score==0.0
-        try:
-            _src_pl = r.get('primary_label') if hasattr(r, 'get') else None
-        except Exception:
-            _src_pl = None
-        if _src_pl is not None:
-            _s = str(_src_pl).strip()
-            if _s and _s.lower() != 'nan':
-                rec['primary_label'] = _s
-                if (not rec.get('labels')):
-                    rec['labels'] = {_s: 0.0}
         rows.append(rec)
     dataset_counts = df.groupby("dataset").size().to_dict() if "dataset" in df.columns else {}
 
@@ -1940,3 +1885,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

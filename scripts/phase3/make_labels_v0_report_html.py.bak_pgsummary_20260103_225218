@@ -1,41 +1,6 @@
 # scripts/phase3/make_labels_v0_report_html.py
 # -*- coding: utf-8 -*-
 from __future__ import annotations
-def _parse_labels_payload(x):
-    """
-    Accepts:
-      - dict: {"A":0.2,"B":0.1}
-      - list: [{"label":"A","score":0.0}, ...]  (marker style)
-      - str : JSON text of either above
-    Returns dict[str, float|None] (score is kept as-is; 0.0 is valid)
-    """
-    import json
-    if x is None:
-        return {}
-    if isinstance(x, dict):
-        return x
-    if isinstance(x, list):
-        out = {}
-        for it in x:
-            if isinstance(it, dict) and "label" in it:
-                lab = str(it.get("label"))
-                sc = it.get("score", 0.0)
-                try:
-                    sc = float(sc) if sc is not None else None
-                except Exception:
-                    sc = None
-                out[lab] = sc
-        return out
-    if isinstance(x, str):
-        s = x.strip()
-        if not s or s.lower() in ("nan","null","none"):
-            return {}
-        try:
-            v = json.loads(s)
-        except Exception:
-            return {}
-        return _parse_labels_payload(v)
-    return {}
 
 import argparse
 import html as htmlmod
@@ -788,24 +753,17 @@ td:last-child{ padding-right:16px; }
   <script id="ALLOWED" type="application/json">__ALLOWED_JSON__</script>
 
   <script>
-    
-    // --- jsonParseLoose: tolerate NaN/Infinity emitted by python/json ---
-    function jsonParseLoose(s){
-      const t = (s || "")
-        .replace(/\b-?Infinity\b/g, "null")
-        .replace(/\bNaN\b/g, "null");
-      return JSON.parse(t);
-    }
-    // --- end jsonParseLoose ---
-
-    const rows = jsonParseLoose(document.getElementById("DATA").textContent);
+    const rows = JSON.parse(document.getElementById("DATA").textContent);
     // --- PG summary (hotfix v2): render from rows (robust DOM selection) ---
+
+    // --- PG summary (hotfix v3): remove leftover placeholder nodes ---
+    
+    // --- PG summary (stable v4): render from rows + remove leftover '-' safely ---
     (function(){
       function meanFinite(vals){
         const xs = (vals||[]).filter(v => Number.isFinite(v));
-        if(!xs.length) return {mean:null, n:0};
-        const m = xs.reduce((a,b)=>a+b,0)/xs.length;
-        return {mean:m, n:xs.length};
+        if(!xs.length) return null;
+        return xs.reduce((a,b)=>a+b,0)/xs.length;
       }
       function fmt3(x){ return Number.isFinite(x) ? (Math.round(x*1000)/1000).toFixed(3) : "-"; }
 
@@ -817,31 +775,46 @@ td:last-child{ padding-right:16px; }
         return (
           '<div style="margin-bottom:6px;">' +
             '<span class="muted" style="display:inline-block;min-width:42px;">'+label+'</span> ' +
-            'pause=<b>'+fmt3(pause.mean)+'</b> ' +
-            'gap=<b>'+fmt3(gap.mean)+'</b> ' +
-            'ov=<b>'+fmt3(ov.mean)+'</b> ' +
-            'respOv=<b>'+fmt3(respOv.mean)+'</b>' +
+            'pause=<b>'+fmt3(pause)+'</b> ' +
+            'gap=<b>'+fmt3(gap)+'</b> ' +
+            'ov=<b>'+fmt3(ov)+'</b> ' +
+            'respOv=<b>'+fmt3(respOv)+'</b>' +
           '</div>'
         );
       }
 
-      function findPgCardBody(){
-        // find card title by text, then pick first direct child that is NOT the title element
-        const titles = Array.from(document.querySelectorAll('*'))
-          .filter(el => (el.textContent||'').trim() === 'Pause/Gap summary');
-        const titleEl = titles.find(el => el.classList && el.classList.contains('cardTitle')) || titles[0];
-        if(!titleEl) return null;
-        const card = titleEl.closest('.card') || titleEl.parentElement;
-        if(!card) return null;
-        const kids = Array.from(card.children);
-        const body = kids.find(k => k !== titleEl); // first non-title
-        return body || null;
+      function findTitleEl(){
+        // cardTitle を優先して探す（なければテキスト一致で拾う）
+        const t1 = Array.from(document.querySelectorAll('.cardTitle'))
+          .find(el => (el.textContent||'').trim() === 'Pause/Gap summary');
+        if(t1) return t1;
+        const t2 = Array.from(document.querySelectorAll('*'))
+          .find(el => (el.textContent||'').trim() === 'Pause/Gap summary');
+        return t2 || null;
       }
 
       function renderPgSummaryCard(){
-        const body = findPgCardBody();
-        if(!body) return;
+        const titleEl = findTitleEl();
+        if(!titleEl) return;
+        const card = titleEl.closest('.card') || titleEl.parentElement;
+        if(!card) return;
 
+        // body候補：cardBody があればそれ。なければ title以外の最初のDIV
+        let body = card.querySelector('.cardBody');
+        if(!body){
+          const kids = Array.from(card.children).filter(el => el !== titleEl);
+          body = kids.find(el => el.tagName === 'DIV') || null;
+        }
+        if(!body){
+          body = document.createElement('div');
+          card.appendChild(body);
+        }
+
+        // 余計な子要素（title以外）を削除して「-」残骸を防ぐ
+        const extra = Array.from(card.children).filter(el => el !== titleEl && el !== body);
+        extra.forEach(el => { try{ el.remove(); }catch(e){} });
+
+        // base rows -> datasetごとに表示
         const datasets = Array.from(new Set(rows.map(r=>r.dataset))).filter(Boolean).sort();
         let html = '';
         html += pgLine(rows, 'ALL');
@@ -850,13 +823,24 @@ td:last-child{ padding-right:16px; }
           html += pgLine(sub, ds);
         }
         body.innerHTML = html || '-';
+
+        // card直下/内部の「単独 '-'」を安全に掃除
+        Array.from(card.childNodes).forEach(n => {
+          if(n.nodeType === Node.TEXT_NODE){
+            const t = (n.textContent||'').trim();
+            if(t === '-' || t === '') { try{ n.remove(); }catch(e){} }
+          }
+        });
+        Array.from(card.querySelectorAll('*')).forEach(el => {
+          if(el.children.length === 0 && (el.textContent||'').trim() === '-') {
+            try{ el.remove(); }catch(e){}
+          }
+        });
       }
 
-      // expose for manual call/debug + run once now
       window.renderPgSummaryCard = renderPgSummaryCard;
-      try { renderPgSummaryCard(); } catch(e){ console.warn("pgSummary render failed", e); }
+      try { renderPgSummaryCard(); } catch(e) { console.warn("pgSummary render failed", e); }
     })();
-
     // flatten nested metrics (pg/fill) to top-level for distribution panels
     rows.forEach(r => {
       if (!r || typeof r !== "object") return;
@@ -871,8 +855,8 @@ td:last-child{ padding-right:16px; }
         });
       }
     });
-    const stats = jsonParseLoose(document.getElementById("STATS").textContent);
-    const allowed = jsonParseLoose(document.getElementById("ALLOWED").textContent);
+    const stats = JSON.parse(document.getElementById("STATS").textContent);
+    const allowed = JSON.parse(document.getElementById("ALLOWED").textContent);
 
     const els = {
       q: document.getElementById("q"),
@@ -1366,7 +1350,8 @@ td:last-child{ padding-right:16px; }
           </div>
         `;
       }
-      const raw = rec; // full record (includes CL_*, PG_*, FILL_* top-level keys, "RESP_", "n_pairs_after_")
+      const raw = rec; // full record (includes CL_*, PG_*, FILL_* top-level keys)
+
       els.details.innerHTML = `
         <h2>Details</h2>
 
@@ -1787,17 +1772,6 @@ def main():
             for _k, _v in rec["pg"].items():
                 if isinstance(_k, str) and _k.startswith("PG_") and rec.get(_k) is None:
                     rec[_k] = _v
-        # --- compat: respect parquet primary_label; keep marker labels even if score==0.0
-        try:
-            _src_pl = r.get('primary_label') if hasattr(r, 'get') else None
-        except Exception:
-            _src_pl = None
-        if _src_pl is not None:
-            _s = str(_src_pl).strip()
-            if _s and _s.lower() != 'nan':
-                rec['primary_label'] = _s
-                if (not rec.get('labels')):
-                    rec['labels'] = {_s: 0.0}
         rows.append(rec)
     dataset_counts = df.groupby("dataset").size().to_dict() if "dataset" in df.columns else {}
 
@@ -1940,3 +1914,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

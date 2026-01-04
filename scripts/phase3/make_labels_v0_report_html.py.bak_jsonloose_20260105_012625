@@ -788,17 +788,7 @@ td:last-child{ padding-right:16px; }
   <script id="ALLOWED" type="application/json">__ALLOWED_JSON__</script>
 
   <script>
-    
-    // --- jsonParseLoose: tolerate NaN/Infinity emitted by python/json ---
-    function jsonParseLoose(s){
-      const t = (s || "")
-        .replace(/\b-?Infinity\b/g, "null")
-        .replace(/\bNaN\b/g, "null");
-      return JSON.parse(t);
-    }
-    // --- end jsonParseLoose ---
-
-    const rows = jsonParseLoose(document.getElementById("DATA").textContent);
+    const rows = JSON.parse(document.getElementById("DATA").textContent);
     // --- PG summary (hotfix v2): render from rows (robust DOM selection) ---
     (function(){
       function meanFinite(vals){
@@ -871,8 +861,8 @@ td:last-child{ padding-right:16px; }
         });
       }
     });
-    const stats = jsonParseLoose(document.getElementById("STATS").textContent);
-    const allowed = jsonParseLoose(document.getElementById("ALLOWED").textContent);
+    const stats = JSON.parse(document.getElementById("STATS").textContent);
+    const allowed = JSON.parse(document.getElementById("ALLOWED").textContent);
 
     const els = {
       q: document.getElementById("q"),
