@@ -13,47 +13,6 @@ from typing import Any, Dict, List, Tuple
 import pandas as pd
 
 
-def _parse_labels_any(x):
-    """
-    Normalize labels_json payload into a dict that the JS expects:
-      {"labels":[{label,confidence,score,why,used_features,used_examples},...],
-       "summary": "...", "missing": [...], "needs_more_context": bool}
-    Accepts: dict / list / str(JSON) / None
-    """
-    import json
-    if x is None:
-        return {}
-    v = x
-    if isinstance(x, str):
-        s = x.strip()
-        if not s or s.lower() in ("nan","null","none"):
-            return {}
-        try:
-            v = json.loads(s)
-        except Exception:
-            return {}
-
-    # list -> {"labels": [...]}
-    if isinstance(v, list):
-        return {"labels": v}
-
-    # dict -> if already {"labels":[...]} keep; else treat as label->score mapping
-    if isinstance(v, dict):
-        if "labels" in v and isinstance(v.get("labels"), list):
-            return v
-        out = []
-        for k, sc in v.items():
-            try:
-                f = float(sc) if sc is not None else 0.0
-            except Exception:
-                f = 0.0
-            out.append({"label": str(k), "confidence": f, "score": f})
-        out.sort(key=lambda d: float(d.get("confidence") or d.get("score") or 0.0), reverse=True)
-        return {"labels": out}
-
-    return {}
-
-
 # -------------------------
 # JSON / parsing utils
 # -------------------------
@@ -223,197 +182,21 @@ def _collect_parquet_paths(path_str: str) -> List[Path]:
 # -------------------------
 # Phase4 PG index
 # -------------------------
-def build_pg_index_v2(pg_metrics_parquet_or_dir: str) -> Tuple[Dict[str, Dict[str, Any]], int]:
+def build_pg_index_v2(pg_metrics_parquet_or_dir: Any) -> Tuple[Dict[str, Dict[str, Any]], int]:
     """
     Robust PG index builder.
     Inputs: parquet file/dir or list of them (or comma-separated).
 
     Supports BOTH schemas:
       A) speaker-level: columns ['dataset','speaker_id','PG_*...']
-         - speaker_id already "conv:role" (e.g., D01M0047:R, T007_007:IC06)
+         - speaker_id is already "conv:role" (e.g., D01M0047:R, T007_007:IC06)
       B) legacy: columns ['conversation_id','speaker_id', ...] (+ optional PG_* without prefix)
 
-    Key strategy:
-      - If speaker_id contains ":" => use it directly as key.
+    Key strategy (matches labels.speaker_id):
+      - If speaker_id already contains ":" => use it directly as key.
       - Else if conversation_id exists => key = f"{conversation_id}:{speaker_id}".
       - Else => key = speaker_id.
     """
-    def norm(x):
-        return ("" if x is None else str(x)).strip().split("/")[-1]
-
-    def safe_num(x):
-        return _safe_float(x)
-
-    # inputs: list[Path]/list[str] OR comma-separated string
-    files = []
-    if isinstance(pg_metrics_parquet_or_dir, (list, tuple)):
-        for x in pg_metrics_parquet_or_dir:
-            xp = Path(str(x))
-            if xp.is_dir():
-                files += [q for q in xp.rglob("*.parquet") if q.is_file()]
-            elif xp.is_file() and xp.suffix.lower() == ".parquet":
-                files.append(xp)
-    else:
-        roots = [x.strip() for x in (pg_metrics_parquet_or_dir or "").split(",") if x.strip()]
-        for r in roots:
-            rp = Path(r)
-            if rp.is_dir():
-                files += [q for q in rp.rglob("*.parquet") if q.is_file()]
-            elif rp.is_file() and rp.suffix.lower() == ".parquet":
-                files.append(rp)
-
-    files = sorted(set(files))
-    if not files:
-        return {}, 0
-
-    idx: Dict[str, Dict[str, Any]] = {}
-    total = 0
-
-    for fp in files:
-        df = pd.read_parquet(fp)
-        if "speaker_id" not in df.columns:
-            continue
-
-        total += len(df)
-        has_conv = "conversation_id" in df.columns
-        has_ds = "dataset" in df.columns
-
-        pg_cols = [c for c in df.columns if str(c).startswith("PG_")]
-
-        for _, r in df.iterrows():
-            conv = norm(r.get("conversation_id")) if has_conv else ""
-            spk = norm(r.get("speaker_id"))
-            if not spk:
-                continue
-
-            m: Dict[str, Any] = {"source_file": str(fp)}
-            if has_ds:
-                m["dataset_full"] = str(r.get("dataset") or "")
-
-            for c in pg_cols:
-                m[c] = safe_num(r.get(c))
-
-            if not pg_cols:
-                m.update({
-                    "PG_total_time":        safe_num(r.get("total_time")),
-                    "PG_pause_mean":        safe_num(r.get("pause_mean")),
-                    "PG_pause_p50":         safe_num(r.get("pause_p50")),
-                    "PG_pause_p90":         safe_num(r.get("pause_p90")),
-                    "PG_resp_gap_mean":     safe_num(r.get("resp_gap_mean")),
-                    "PG_resp_gap_p50":      safe_num(r.get("resp_gap_p50")),
-                    "PG_resp_gap_p90":      safe_num(r.get("resp_gap_p90")),
-                    "PG_overlap_rate":      safe_num(r.get("overlap_rate")),
-                    "PG_resp_overlap_rate": safe_num(r.get("resp_overlap_rate")),
-                    "PG_n_resp_events":     safe_num(r.get("n_resp_events")),
-                })
-
-            keys = set()
-            if ":" in spk:
-                keys.add(spk)
-                if conv:
-                    parts = spk.split(":", 1)
-                    if len(parts) == 2 and parts[1]:
-                        keys.add(f"{conv}:{parts[1]}")
-            else:
-                if conv:
-                    keys.add(f"{conv}:{spk}")
-                else:
-                    keys.add(spk)
-
-            for k in keys:
-                idx[k] = m
-
-    return idx, total
-
-
-    def norm(x):
-        return ("" if x is None else str(x)).strip().split("/")[-1]
-
-    def safe_num(x):
-        return _safe_float(x)
-
-    # inputs: list[Path]/list[str] OR comma-separated string
-    files = []
-    if isinstance(pg_metrics_parquet_or_dir, (list, tuple)):
-        for x in pg_metrics_parquet_or_dir:
-            xp = Path(str(x))
-            if xp.is_dir():
-                files += [q for q in xp.rglob("*.parquet") if q.is_file()]
-            elif xp.is_file() and xp.suffix.lower() == ".parquet":
-                files.append(xp)
-    else:
-        roots = [x.strip() for x in (pg_metrics_parquet_or_dir or "").split(",") if x.strip()]
-        for r in roots:
-            rp = Path(r)
-            if rp.is_dir():
-                files += [q for q in rp.rglob("*.parquet") if q.is_file()]
-            elif rp.is_file() and rp.suffix.lower() == ".parquet":
-                files.append(rp)
-
-    files = sorted(set(files))
-    if not files:
-        return {}, 0
-
-    idx: Dict[str, Dict[str, Any]] = {}
-    total = 0
-
-    for fp in files:
-        df = pd.read_parquet(fp)
-        if "speaker_id" not in df.columns:
-            continue
-
-        total += len(df)
-        has_conv = "conversation_id" in df.columns
-        has_ds = "dataset" in df.columns
-
-        pg_cols = [c for c in df.columns if str(c).startswith("PG_")]
-
-        for _, r in df.iterrows():
-            conv = norm(r.get("conversation_id")) if has_conv else ""
-            spk = norm(r.get("speaker_id"))
-            if not spk:
-                continue
-
-            m: Dict[str, Any] = {"source_file": str(fp)}
-            if has_ds:
-                m["dataset_full"] = str(r.get("dataset") or "")
-
-            for c in pg_cols:
-                m[c] = safe_num(r.get(c))
-
-            if not pg_cols:
-                m.update({
-                    "PG_total_time":        safe_num(r.get("total_time")),
-                    "PG_pause_mean":        safe_num(r.get("pause_mean")),
-                    "PG_pause_p50":         safe_num(r.get("pause_p50")),
-                    "PG_pause_p90":         safe_num(r.get("pause_p90")),
-                    "PG_resp_gap_mean":     safe_num(r.get("resp_gap_mean")),
-                    "PG_resp_gap_p50":      safe_num(r.get("resp_gap_p50")),
-                    "PG_resp_gap_p90":      safe_num(r.get("resp_gap_p90")),
-                    "PG_overlap_rate":      safe_num(r.get("overlap_rate")),
-                    "PG_resp_overlap_rate": safe_num(r.get("resp_overlap_rate")),
-                    "PG_n_resp_events":     safe_num(r.get("n_resp_events")),
-                })
-
-            keys = set()
-            if ":" in spk:
-                keys.add(spk)
-                if conv:
-                    parts = spk.split(":", 1)
-                    if len(parts) == 2 and parts[1]:
-                        keys.add(f"{conv}:{parts[1]}")
-            else:
-                if conv:
-                    keys.add(f"{conv}:{spk}")
-                else:
-                    keys.add(spk)
-
-            for k in keys:
-                idx[k] = m
-
-    return idx, total
-
-
     def norm(x):
         return ("" if x is None else str(x)).strip().split("/")[-1]
 
@@ -1741,54 +1524,6 @@ def main() -> None:
 
     # Build rows for the dashboard
     rows: List[Dict[str, Any]] = []
-
-    for _, r in df.iterrows():
-        # --- LLM labels payload (robust v4) ---
-
-        # labels_json may be str OR list OR dict in parquet
-
-        labels_raw = r.get("labels_json")
-
-
-        if isinstance(labels_raw, dict) and isinstance(labels_raw.get("labels"), list):
-
-            labels_payload = labels_raw
-
-        elif isinstance(labels_raw, list):
-
-            labels_payload = {"labels": labels_raw}
-
-        else:
-
-            obj = _safe_json_obj(labels_raw)
-
-            if isinstance(obj, dict) and isinstance(obj.get("labels"), list):
-
-                labels_payload = obj
-
-            else:
-
-                lst = _safe_json_list(labels_raw)
-
-                labels_payload = {"labels": lst} if lst else {"labels": []}
-
-
-        summary_text = str(r.get("summary") or labels_payload.get("summary") or "")
-
-        needs_more_context = bool(r.get("needs_more_context") or labels_payload.get("needs_more_context") or False)
-
-
-        missing_val = r.get("missing") or labels_payload.get("missing") or []
-
-        missing = missing_val if isinstance(missing_val, list) else _safe_json_list(missing_val)
-
-
-        labels_payload["summary"] = summary_text
-
-        labels_payload["needs_more_context"] = needs_more_context
-
-        labels_payload["missing"] = missing
-
     for _, r in df.iterrows():
         labels = _coerce_labels_obj(r)
 
@@ -1816,7 +1551,7 @@ def main() -> None:
             "dataset": str(r.get("dataset") or ""),
             "speaker_id": speaker_key,
             "atypicality_v0": float(r.get("atypicality_v0")) if r.get("atypicality_v0") is not None else None,
-            "labels": labels_payload,
+            "labels": labels,
             "examples": examples,
             "pg": pg,
             "fill": fill,
@@ -1839,20 +1574,35 @@ def main() -> None:
                 if isinstance(_k, str) and _k.startswith("PG_") and rec.get(_k) is None:
                     rec[_k] = _v
 
-        # --- CL passthrough (robust) ---
+        # --- compat: respect parquet primary_label; do NOT break labels object shape ---
+        try:
+            _src_pl = r.get("primary_label") if hasattr(r, "get") else None
+        except Exception:
+            _src_pl = None
 
-        for c in r.index:
+        if _src_pl is not None:
+            _s = str(_src_pl).strip()
+            if _s and _s.lower() != "nan":
+                rec["primary_label"] = _s
+                pls = _safe_float(r.get("primary_label_score"))
+                if pls is not None:
+                    rec["primary_label_score"] = float(pls)
 
-            if str(c).startswith('CL_'):
+                # labels.labels が空なら最低1件入れる
+                if not isinstance(rec.get("labels"), dict):
+                    rec["labels"] = {"labels": [], "summary": "", "missing": [], "needs_more_context": False}
+                if not isinstance(rec["labels"].get("labels"), list):
+                    rec["labels"]["labels"] = []
 
-                try:
-
-                    rec[c] = _safe_float(r.get(c))
-
-                except Exception:
-
-                    rec[c] = r.get(c)
-
+                if len(rec["labels"]["labels"]) == 0:
+                    rec["labels"]["labels"] = [{
+                        "label": _s,
+                        "confidence": float(pls if pls is not None else 0.0),
+                        "score": float(pls if pls is not None else 0.0),
+                        "why": "",
+                        "used_features": [],
+                        "used_examples": [],
+                    }]
 
         rows.append(rec)
 

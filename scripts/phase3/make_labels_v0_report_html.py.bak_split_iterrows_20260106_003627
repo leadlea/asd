@@ -457,8 +457,7 @@ def build_pg_index_v2(pg_metrics_parquet_or_dir: str) -> Tuple[Dict[str, Dict[st
         # collect PG columns (future-proof)
         pg_cols = [c for c in df.columns if str(c).startswith("PG_")]
 
-        for _, r in df.iterrows():
-            conv = norm(r.get("conversation_id")) if has_conv else ""
+        for _, r in df.iterrows():            conv = norm(r.get("conversation_id")) if has_conv else ""
             spk = norm(r.get("speaker_id"))
             if not spk:
                 continue
@@ -1742,7 +1741,6 @@ def main() -> None:
     # Build rows for the dashboard
     rows: List[Dict[str, Any]] = []
 
-    for _, r in df.iterrows():
         # --- LLM labels payload (robust v4) ---
 
         # labels_json may be str OR list OR dict in parquet

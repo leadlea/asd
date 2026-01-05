@@ -1742,7 +1742,6 @@ def main() -> None:
     # Build rows for the dashboard
     rows: List[Dict[str, Any]] = []
 
-    for _, r in df.iterrows():
         # --- LLM labels payload (robust v4) ---
 
         # labels_json may be str OR list OR dict in parquet
