@@ -270,6 +270,52 @@
 .pcaSvg{ width:100%; height:240px; display:block; }
 .pcaLegend{ display:flex; flex-wrap:wrap; gap:8px; margin-top:8px; font-size:11px; color:var(--muted); }
 .pcaSw{ width:10px; height:10px; border-radius:3px; display:inline-block; margin-right:6px; border:1px solid var(--line); }
+
+/* __LAYOUT_PATCH_BIG_PCA_V1__ */
+
+/* 1) cardsを「行の最大高さ」に合わせて伸ばさない（内容の高さにする） */
+.grid, .grid2, .grid3, .grid4, .grid5{
+  align-items: start;
+  grid-auto-rows: auto; /* もし 1fr 指定されてても上書き */
+}
+.grid > .card, .grid2 > .card, .grid3 > .card, .grid4 > .card, .grid5 > .card{
+  height: auto;
+  min-height: unset;
+  align-self: start;
+}
+
+/* 2) PCAカードだけ横幅フルにして大きく（cardPCA があればそれ優先） */
+.card.cardPCA{
+  grid-column: 1 / -1;
+}
+
+/* 既にpcaBoxがあるがcardPCAが付いていない過去HTMLにも効かせる（Chrome向け） */
+.grid > .card:has(#pcaBox),
+.grid2 > .card:has(#pcaBox),
+.grid3 > .card:has(#pcaBox),
+.grid4 > .card:has(#pcaBox),
+.grid5 > .card:has(#pcaBox){
+  grid-column: 1 / -1;
+}
+
+/* PCAの見た目（既存の __PCA_PATCH_V1__ を上書き） */
+.card.cardPCA .pcaSvg{ height: 520px; }          /* ←好きな値に */
+.card.cardPCA .pcaWrap{ padding: 14px; }
+
+.grid > .card:has(#pcaBox) .pcaSvg,
+.grid2 > .card:has(#pcaBox) .pcaSvg,
+.grid3 > .card:has(#pcaBox) .pcaSvg,
+.grid4 > .card:has(#pcaBox) .pcaSvg,
+.grid5 > .card:has(#pcaBox) .pcaSvg{
+  height: 520px;                                  /* ←好きな値に */
+}
+.grid > .card:has(#pcaBox) .pcaWrap,
+.grid2 > .card:has(#pcaBox) .pcaWrap,
+.grid3 > .card:has(#pcaBox) .pcaWrap,
+.grid4 > .card:has(#pcaBox) .pcaWrap,
+.grid5 > .card:has(#pcaBox) .pcaWrap{
+  padding: 14px;
+}
 </style>
 </head>
 <body>
