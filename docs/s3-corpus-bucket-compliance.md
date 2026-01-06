@@ -823,85 +823,150 @@ labels UI 上で、SFP由来の応答指標を “一目で” 見えるよう�
 
 ---
 
-### 14.7 最終HTMLの生成（WITHCL + WITHNEYO を入力）
+## 14.7 成功版（永久保存）：UIFINAL（WITHCL + WITHNEYO + FILL）最終確認コマンド
+
+> 目的：
+>
+> * **Parquet に FILL_* が入っていること**
+> * **CL_pca_x/y が入っていること**（PCA点が有限値で存在）
+> * **docs/index.html の DATA に fill / PCA が反映されていること**
+
+### 14.7.1 Parquet：FILL_* の存在と non-null 率チェック（永久保存版）
+
+```bash
+python - <<'PY'
+import pyarrow.parquet as pq
+import pandas as pd
+import numpy as np
+
+P="artifacts/phase56_full_20260104_024221/_llm500_opus45/labels_tb500_UIFINAL_opus45_WITHCL_WITHNEYO_FULL__FIXED.parquet"
+df=pq.read_table(P).to_pandas()
+
+fill_cols=[c for c in df.columns if c.startswith("FILL_")]
+print("FILL cols:", len(fill_cols))
+print("head:", fill_cols[:20])
+
+if fill_cols:
+    nn = df[fill_cols].notna().mean().sort_values(ascending=False).head(15)
+    print("\nnon-null rate top15:\n", nn.to_string())
+    # 代表
+    for c in ["FILL_rate_per_100chars","FILL_has_any","FILL_cnt_ano","FILL_cnt_nanka","FILL_cnt_sono"]:
+        if c in df.columns:
+            print(c, "non-null:", df[c].notna().mean(), "min/max:",
+                  pd.to_numeric(df[c], errors="coerce").min(),
+                  pd.to_numeric(df[c], errors="coerce").max())
+else:
+    print("=> parquetにFILL_*列がありません（= そもそもフィラー特徴が未付与）")
+PY
+```
+
+期待される出力例（成功時）：
+
+* `FILL cols: 13`
+* `non-null rate ... 0.12`（※欠損が多いのは仕様でもOK。重要なのは “列が存在する” こと）
+
+---
+
+### 14.7.2 Parquet：CL（PCA/cluster）の存在と finite 点数（永久保存版）
+
+```bash
+python - <<'PY'
+import pyarrow.parquet as pq
+import numpy as np
+
+P="artifacts/phase56_full_20260104_024221/_llm500_opus45/labels_tb500_UIFINAL_opus45_WITHCL_WITHNEYO_FULL__FIXED.parquet"
+df=pq.read_table(P).to_pandas()
+
+for c in ["CL_pca_x","CL_pca_y","CL_fillpg_cluster"]:
+    print(c, "exists:", c in df.columns)
+
+if "CL_pca_x" in df.columns and "CL_pca_y" in df.columns:
+    # pandasで errors="ignore" が効かない環境があるので安全に：
+    import pandas as pd
+    x=pd.to_numeric(df["CL_pca_x"], errors="coerce")
+    y=pd.to_numeric(df["CL_pca_y"], errors="coerce")
+    ok = np.isfinite(x) & np.isfinite(y)
+    print("finite PCA points:", int(ok.sum()), "/", len(df))
+else:
+    print("=> parquetにCL_pca_x/yがありません（= WITHCLが実際は入ってない）")
+PY
+```
+
+期待される出力例（成功時）：
+
+* `CL_pca_x exists: True`
+* `CL_pca_y exists: True`
+* `CL_fillpg_cluster exists: True`
+* `finite PCA points: 370 / 500`
+
+---
+
+### 14.7.3 HTML：docs/index.html の DATA に fill / PCA が入っているか（永久保存版）
+
+```bash
+python - <<'PY'
+import re, json, math
+html=open("docs/index.html",encoding="utf-8").read()
+rows=json.loads(re.search(r'<script id="DATA"[^>]*>(.*?)</script>', html, re.S).group(1))
+
+# filler入ってる行
+has_fill=sum(1 for r in rows if isinstance(r.get("fill"), dict) and any(v is not None for v in r["fill"].values()))
+print("rows:", len(rows))
+print("rows with non-empty fill:", has_fill)
+
+# PCA点
+def fin(v):
+    try:
+        x=float(v);
+        return math.isfinite(x)
+    except:
+        return False
+pca=sum(1 for r in rows if fin(r.get("CL_pca_x")) and fin(r.get("CL_pca_y")))
+print("rows with PCA:", pca)
+PY
+```
+
+期待される出力例（成功時）：
+
+* `rows: 500`
+* `rows with non-empty fill: 500`
+* `rows with PCA: 370`
+
+---
+
+## 14.8 成功版（永久保存）：docs/index.html パッチ適用（confidence→score / primary_label再計算 / stats再集計）
+
+> 目的：UIで「全部OTHER化」「score欠損で潰れる」を確実に潰す。
+> FIXED parquet を入力にして、index.html を安全に更新する。
 
 ```bash
 RUN_DIR="artifacts/phase56_full_20260104_024221/_llm500_opus45"
 
-python scripts/phase3/make_labels_v0_report_html.py \
-  --labels_parquet "$RUN_DIR/labels_tb500_UIFINAL_opus45_WITHCL_WITHNEYO_FULL.parquet" \
-  --examples_dir "artifacts/phase3/examples_v13" \
-  --pg_metrics_parquet "artifacts/phase56_full_20260104_024221/_htmlfix4/pg_metrics_for_html.parquet" \
-  --pg_summary_parquet "artifacts/phase56_full_20260104_024221/_htmlfix4/pg_summary_for_html.parquet" \
-  --out_html docs/index.html
+python scripts/phase56/patch_labels_html_safe_plus.py \
+  --fixed_parquet "$RUN_DIR/labels_tb500_UIFINAL_opus45_WITHCL_WITHNEYO_FULL__FIXED.parquet" \
+  --html docs/index.html
 ```
 
----
+期待される出力例（成功時）：
 
-### 14.8 成果物の退避（LLM 500件は高コストのため必ず保全）
-
-LLM 500件の出力は「再実行が高コスト」なため、ローカルで `_archive/` に退避し checksum を残す。
-
-```bash
-set -euo pipefail
-ts=$(date +%Y%m%d_%H%M%S)
-ARC="artifacts/_archive/llm500_opus45_${ts}"
-mkdir -p "$ARC"
-
-cp -av artifacts/phase56_full_20260104_024221/_llm500_opus45/labels_v500_opus45.parquet "$ARC/"
-cp -av artifacts/phase56_full_20260104_024221/_llm500_opus45/labels_tb500_UIFINAL_opus45.parquet "$ARC/"
-cp -av artifacts/phase56_full_20260104_024221/_llm500_opus45/outliers_v0_topK_enriched_v500_for_llm.csv "$ARC/" || true
-
-python - <<PY
-import hashlib
-from pathlib import Path
-p=Path("$ARC")
-for f in sorted(p.glob("*")):
-    if f.name == "SHA256SUMS.txt": 
-        continue
-    h=hashlib.sha256(f.read_bytes()).hexdigest()
-    print(h, f.name)
-PY | tee "$ARC/SHA256SUMS.txt"
-
-echo "archived -> $ARC"
-```
+* `OK patched: docs/index.html`
+* `primary_label_counts: {'HESITATION': 102, 'OTHER': 256, 'BACKCHANNEL': 142}`
 
 ---
 
-### 14.9 最終統計（sanity）
+## 14.9 成功版（永久保存）：最終 sanity（この状態になっていればOK）
 
-最終 labels 分布（例）:
+* parquet：
 
-* primary_label top:
+  * `FILL_*` 列が **存在**する（欠損率が高くてもOK）
+  * `CL_pca_x/y` が **存在**し、`finite PCA points: 370 / 500` 程度が出る
+* HTML（docs/index.html）：
 
-  * OTHER: 256
-  * BACKCHANNEL: 142
-  * HESITATION: 102
+  * `rows: 500`
+  * `rows with non-empty fill: 500`
+  * `rows with PCA: 370`
+* パッチ：
 
-* labels（複数ラベル）top:
-
-  * OTHER: 495
-  * BACKCHANNEL: 271
-  * HESITATION: 191
-  * REPAIR: 6
-  * DISCOURSE_MARKER: 3
-  * QUESTION: 1
-
----
-
-## 15. 運用メモ（ハマりどころ）
-
-### 15.1 UI が JSON.parse で死ぬ（NaN/Infinity 問題）
-
-* DATA 内に `NaN` が混じると `JSON.parse` が `Unexpected token 'N'` で落ちる。
-* 対策: `jsonParseLoose()`（NaN/Infinity を null に置換）で parse する。
-
-### 15.2 Terminal が落ちる（set -u / 履歴変数）
-
-* `set -euo pipefail` の `-u`（未定義エラー）でヒストリ保存処理が落ちるケースあり。
-* 対策:
-
-  * パッチ系は `set -u` を外す
-  * 実行は `python - <<'PY' ... PY` のヒアドキュメント一発で行う
-  * 必要なら `export HISTTIMEFORMAT="${HISTTIMEFORMAT-}"`
+  * `OK patched: docs/index.html`
+  * `primary_label_counts` が **OTHER以外も出る**
 
