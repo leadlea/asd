@@ -1,0 +1,603 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>バイタル・睡眠データのLLM言語化におけるデータ取扱いレポート（AWSサーバーレス / Lambda→Bedrock）</title>
+
+  <!-- Fonts (system-first) -->
+  <style>
+    :root{
+      --bg:#ffffff;
+      --fg:#111111;
+      --muted:#555;
+      --line:#e6e6e6;
+      --card:#fafafa;
+      --accent:#111;
+      --good:#0b6;
+      --warn:#c80;
+      --bad:#c22;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sans: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans JP", "Hiragino Kaku Gothic ProN", "Yu Gothic", "Meiryo", Arial, sans-serif;
+    }
+    html,body{background:var(--bg); color:var(--fg); font-family:var(--sans); line-height:1.6; margin:0;}
+    .page{max-width:1200px; margin:0 auto; padding:40px 28px 80px;}
+    .topbar{display:flex; gap:16px; align-items:flex-end; justify-content:space-between; border-bottom:2px solid var(--fg); padding-bottom:16px; margin-bottom:22px;}
+    .doc-title{font-size:28px; font-weight:800; letter-spacing:0.2px;}
+    .meta{font-size:14px; color:var(--muted); text-align:right;}
+    .meta strong{color:var(--fg);}
+    h1,h2,h3{line-height:1.25; margin:28px 0 12px;}
+    h1{font-size:26px;}
+    h2{font-size:20px; border-left:6px solid var(--fg); padding-left:10px;}
+    h3{font-size:16px;}
+    p{margin:10px 0;}
+    .toc{border:1px solid var(--line); background:var(--card); padding:16px; border-radius:16px;}
+    .toc a{color:var(--fg); text-decoration:none;}
+    .toc a:hover{text-decoration:underline;}
+    .grid{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
+    .card{border:1px solid var(--line); background:var(--card); padding:16px; border-radius:16px;}
+    .badge{display:inline-block; font-size:12px; padding:2px 10px; border-radius:999px; border:1px solid var(--line); margin-right:6px; background:#fff;}
+    .pill-good{border-color:rgba(0,170,102,.35); color:var(--good);}
+    .pill-warn{border-color:rgba(204,136,0,.35); color:var(--warn);}
+    .pill-bad{border-color:rgba(204,34,34,.35); color:var(--bad);}
+    .callout{border-left:6px solid var(--fg); padding:12px 14px; background:#fff; border:1px solid var(--line); border-radius:12px; margin:12px 0;}
+    .callout .title{font-weight:800; margin-bottom:6px;}
+    .small{font-size:13px; color:var(--muted);}
+    ul{margin:8px 0 12px 22px;}
+    li{margin:6px 0;}
+    table{width:100%; border-collapse:collapse; margin:12px 0;}
+    th,td{border:1px solid var(--line); padding:10px; vertical-align:top;}
+    th{background:#fff; text-align:left;}
+    code,kbd,pre{font-family:var(--mono);}
+    pre{background:#fff; border:1px solid var(--line); padding:12px; border-radius:14px; overflow:auto;}
+    .hr{height:1px; background:var(--line); margin:22px 0;}
+    .footer{margin-top:40px; padding-top:14px; border-top:1px solid var(--line); color:var(--muted); font-size:12px;}
+    .mono{font-family:var(--mono);}
+    .kpi{display:flex; gap:10px; flex-wrap:wrap;}
+    .kpi .box{border:1px solid var(--line); background:#fff; border-radius:14px; padding:10px 12px; min-width:220px;}
+    .kpi .box .k{font-size:12px; color:var(--muted);}
+    .kpi .box .v{font-size:16px; font-weight:800;}
+    .mermaid{border:1px solid var(--line); background:#fff; border-radius:16px; padding:12px; margin:12px 0;}
+    @media (max-width:900px){
+      .grid{grid-template-columns:1fr;}
+      .meta{text-align:left;}
+      .topbar{flex-direction:column; align-items:flex-start;}
+    }
+    @media print{
+      .page{max-width:none; padding:18mm;}
+      a{color:var(--fg); text-decoration:none;}
+      .mermaid{break-inside:avoid;}
+      .card{break-inside:avoid;}
+    }
+  </style>
+
+  <!-- Mermaid -->
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <script>
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: "base",
+      themeVariables: {
+        primaryColor: "#ffffff",
+        primaryTextColor: "#111111",
+        primaryBorderColor: "#111111",
+        lineColor: "#111111",
+        secondaryColor: "#f6f6f6",
+        tertiaryColor: "#fafafa",
+        fontFamily: "ui-sans-serif, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans JP', 'Hiragino Kaku Gothic ProN', 'Yu Gothic', 'Meiryo', Arial, sans-serif",
+        fontSize: "14px"
+      },
+      flowchart: { curve: "linear" }
+    });
+  </script>
+</head>
+
+<body>
+  <div class="page">
+    <div class="topbar">
+      <div>
+        <div class="doc-title">バイタル・睡眠データのLLM言語化におけるデータ取扱いレポート</div>
+        <div class="small">AWS サーバーレス（Lambda駆動で Bedrock 推論）想定 / ガバナンス・コンプライアンス・セキュリティ観点</div>
+      </div>
+      <div class="meta">
+        <div><strong>宛先：</strong>リアライズ イノベーションズ</div>
+        <div><strong>作成者：</strong>Lead lea 福原 玄</div>
+        <div><strong>作成日：</strong>2026-01-07（JST）</div>
+        <div class="small mono">v1.0</div>
+      </div>
+    </div>
+
+    <div class="toc">
+      <div style="font-weight:800; margin-bottom:8px;">目次</div>
+      <ol style="margin:0; padding-left:18px;">
+        <li><a href="#summary">エグゼクティブサマリ</a></li>
+        <li><a href="#scope">前提・対象範囲</a></li>
+        <li><a href="#principles">設計原則（LLM×ヘルスデータ）</a></li>
+        <li><a href="#architecture">AWS構成（Lambda→Bedrock）リファレンス</a></li>
+        <li><a href="#dataflow">データフローと保存方針</a></li>
+        <li><a href="#governance">ガバナンス／コンプライアンス</a></li>
+        <li><a href="#security">セキュリティ対策（具体策）</a></li>
+        <li><a href="#ops">運用・監査・インシデント対応</a></li>
+        <li><a href="#checklist">本番リリース前チェックリスト</a></li>
+        <li><a href="#appendix">付録（推奨ポリシー雛形・RACI）</a></li>
+      </ol>
+    </div>
+
+    <div class="hr"></div>
+
+    <h2 id="summary">1. エグゼクティブサマリ</h2>
+    <div class="kpi">
+      <div class="box">
+        <div class="k">最重要結論</div>
+        <div class="v">生成された文章も「高機微データ」として扱う</div>
+      </div>
+      <div class="box">
+        <div class="k">推奨アーキテクチャ</div>
+        <div class="v">API Gateway / Lambda / Bedrock（PrivateLink）</div>
+      </div>
+      <div class="box">
+        <div class="k">最優先コントロール</div>
+        <div class="v">最小化・分離・暗号化・監査・ログ無害化</div>
+      </div>
+    </div>
+
+    <div class="callout">
+      <div class="title">要点（リアライズ イノベーションズ向け提案）</div>
+      <ul>
+        <li><span class="badge pill-bad">Tier S</span> バイタル/睡眠・推定健康状態・生成サマリは <b>センシティブ相当</b> として社内分類を固定。</li>
+        <li>LLMには <b>必要最小限の特徴量（集計値）</b> を渡し、波形・生ログ・長期全履歴の投入を避ける。</li>
+        <li>推論経路は <b>Bedrock PrivateLink</b> で閉域化し、KMS暗号化＋最小権限IAM＋CloudTrailで追跡可能にする。</li>
+        <li>生成文の保存は「目的がある場合のみ」。保存するなら <b>短い保持期間</b> と <b>アクセス制御（列/項目レベル）</b> をセットで実装。</li>
+        <li>Guardrails（入出力フィルタ）＋アプリ側マスキングで、PII混入・プロンプト注入・医療断定を二段で抑止。</li>
+      </ul>
+    </div>
+
+    <h2 id="scope">2. 前提・対象範囲</h2>
+    <div class="grid">
+      <div class="card">
+        <h3>2.1 想定ユースケース</h3>
+        <ul>
+          <li>ウェアラブル/スマホ計測のバイタル・睡眠データを、LLMで「わかりやすい日本語サマリ」に言語化</li>
+          <li>日次/週次の振り返り、生活改善の一般的アドバイス（<b>診断・治療目的ではない</b>）</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>2.2 対象データ（例）</h3>
+        <ul>
+          <li>心拍、HRV、SpO₂、体温、呼吸数</li>
+          <li>睡眠時間、睡眠段階、入眠潜時、中途覚醒、睡眠効率</li>
+          <li>活動量（歩数、運動時間）</li>
+          <li>（任意）本人申告メモ：飲酒/カフェイン/ストレス/体調</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="callout">
+      <div class="title">注意：LLM言語化の“副生成物”</div>
+      <p>生成された文章（例：「睡眠が浅く、回復が不十分の可能性」）は、元データよりも <b>健康状態の推定</b> を直接含みやすく、第三者に共有された際のリスクが増幅します。よって、<b>生成文も元データ同等以上の保護</b> が必要です。</p>
+    </div>
+
+    <h2 id="principles">3. 設計原則（LLM×ヘルスデータ）</h2>
+    <table>
+      <thead>
+        <tr>
+          <th style="width:22%;">原則</th>
+          <th>実装への落とし込み（Lambda→Bedrock）</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><b>最小化</b></td>
+          <td>LLM投入は「当日/直近7日」など短期に限定。入力は生データではなく <b>集計・特徴量</b>（例：平均心拍、睡眠効率、HRVトレンド）を基本。</td>
+        </tr>
+        <tr>
+          <td><b>分離</b></td>
+          <td>識別子（ユーザーID紐付け）とバイタル/睡眠をストレージ上で分離。鍵（KMS）も用途別に分割。</td>
+        </tr>
+        <tr>
+          <td><b>暗号化</b></td>
+          <td>S3/DynamoDB/RDS等は保存時暗号化を必須化（SSE-KMS）。転送はTLS。BedrockはPrivateLinkを利用。</td>
+        </tr>
+        <tr>
+          <td><b>監査可能性</b></td>
+          <td>「誰が・いつ・どのユーザーの・どの特徴量を・どのモデルに投入し、どの出力が返ったか」を追跡（CloudTrail + 監査ログ）。</td>
+        </tr>
+        <tr>
+          <td><b>ログ無害化</b></td>
+          <td>アプリログ/例外ログ/トレースにTier Sデータを出さない（マスキング、構造化ログ、PII検知）。</td>
+        </tr>
+        <tr>
+          <td><b>安全な生成</b></td>
+          <td>Guardrails + アプリ側検査で、PII混入、医療断定、危険な健康助言、プロンプト注入を抑止。</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2 id="architecture">4. AWS構成（Lambda→Bedrock）リファレンス</h2>
+
+    <div class="mermaid">
+flowchart LR
+  U[User App\n(スマホ/WEB)] -->|TLS| APIGW[Amazon API Gateway]
+  APIGW -->|JWT/OAuth| AUTH[Cognito\n(認証/認可)]
+  APIGW --> L1[Lambda\nOrchestrator]
+
+  subgraph VPC["VPC（推奨：Private Subnet）"]
+    L1 -->|VPC Endpoint| BR[Amazon Bedrock\n(PrivateLink)]
+    L1 -->|read/write| DDB[(DynamoDB\nメタ/状態)]
+    L1 -->|put/get| S3[(S3\nRaw/Feature/Report)]
+    L1 -->|events| EB[EventBridge\nスケジュール/通知]
+    L1 -->|logs| CW[(CloudWatch Logs)]
+  end
+
+  CW --> SH[Security Hub / GuardDuty\n(集約・検知)]
+  CT[CloudTrail\n(Org Trail)] --> LA[(Log Archive S3\n改ざん耐性)]
+  S3 --> LF[Lake Formation / Glue\n(必要に応じて分析基盤)]
+
+  classDef sec fill:#fff,stroke:#111,stroke-width:1px;
+  class BR,CT,LA,SH sec;
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <h3>4.1 コアコンポーネント</h3>
+        <ul>
+          <li><b>API Gateway</b>：外部入口。WAF連携（必要に応じて）</li>
+          <li><b>Cognito</b>：認証・認可（ユーザー/アプリ）</li>
+          <li><b>Lambda</b>：特徴量生成、プロンプト生成、Bedrock呼出し、後処理</li>
+          <li><b>Bedrock</b>：LLM推論（PrivateLink経由を推奨）</li>
+          <li><b>S3</b>：Raw/Feature/Reportをゾーン分割して保管</li>
+          <li><b>CloudTrail / CloudWatch</b>：監査・運用ログ</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>4.2 推奨オプション（規模に応じて）</h3>
+        <ul>
+          <li><b>Step Functions</b>：日次バッチや再試行、分岐が増える場合に有効</li>
+          <li><b>Lake Formation</b>：データ共有/分析が増える場合に列レベル制御</li>
+          <li><b>Macie</b>：S3上の機微データ検知（ログ混入の監視にも）</li>
+          <li><b>KMS CMK分割</b>：Tier S専用鍵・環境別鍵</li>
+        </ul>
+      </div>
+    </div>
+
+    <h2 id="dataflow">5. データフローと保存方針</h2>
+
+    <div class="mermaid">
+sequenceDiagram
+  autonumber
+  participant App as User App
+  participant APIGW as API Gateway
+  participant L as Lambda Orchestrator
+  participant S3 as S3 (Feature/Report)
+  participant DDB as DynamoDB (State)
+  participant BR as Bedrock (LLM)
+  participant LOG as CloudTrail/CloudWatch
+
+  App->>APIGW: リクエスト（JWT + 期間指定）
+  APIGW->>L: Invoke（認可済み）
+  L->>DDB: ユーザー状態/同意フラグ確認
+  L->>S3: 特徴量（集計）読み込み or 生成結果保存
+  L->>L: 入力マスキング + プロンプト構築
+  L->>BR: InvokeModel（最小化された特徴量のみ）
+  BR-->>L: 生成テキスト
+  L->>L: 後処理（医療断定抑止/PII再マスク/テンプレ整形）
+  L->>S3: レポート保存（必要時のみ・短期保持）
+  L-->>APIGW: 応答
+  APIGW-->>App: 表示
+  L->>LOG: 監査ログ（メタのみ、Tier Sは出さない）
+    </div>
+
+    <h3>5.1 S3ゾーニング（推奨）</h3>
+    <table>
+      <thead>
+        <tr>
+          <th style="width:22%;">ゾーン</th>
+          <th style="width:24%;">例パス</th>
+          <th>保存物</th>
+          <th style="width:22%;">保持の考え方</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><b>raw</b>（最小化推奨）</td>
+          <td class="mono">s3://.../raw/</td>
+          <td>元データ（必要なら）</td>
+          <td><span class="badge pill-warn">短期</span> 可能なら保持しない/最短化。必要なら暗号化・厳格権限。</td>
+        </tr>
+        <tr>
+          <td><b>feature</b>（推奨）</td>
+          <td class="mono">s3://.../feature/</td>
+          <td>集計・特徴量（LLM投入単位）</td>
+          <td><span class="badge pill-good">基本</span> 監査/再生成の必要性とバランス。PII分離。</td>
+        </tr>
+        <tr>
+          <td><b>report</b></td>
+          <td class="mono">s3://.../report/</td>
+          <td>生成レポート（文章）</td>
+          <td><span class="badge pill-warn">目的限定</span> 「保存する理由」がある場合のみ。短期保持、アクセス厳格化。</td>
+        </tr>
+        <tr>
+          <td><b>audit</b></td>
+          <td class="mono">s3://.../audit/</td>
+          <td>監査ログ（メタ情報）</td>
+          <td><span class="badge pill-good">長期</span> 改ざん耐性（Object Lock等）を検討。</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="callout">
+      <div class="title">保存ポリシーの基本</div>
+      <ul>
+        <li><b>原則：保存しない</b>（オンデマンド生成で済むなら、生成文は保存せずクライアント表示のみ）</li>
+        <li>保存する場合は、<b>保持期間をUIに明記</b>し、撤回/削除フローを用意</li>
+        <li>監査ログは「内容」ではなく「メタ（いつ、誰が、どのモデルを、どの分類データで）」を残す</li>
+      </ul>
+    </div>
+
+    <h2 id="governance">6. ガバナンス／コンプライアンス</h2>
+
+    <h3>6.1 データ分類（社内標準：推奨）</h3>
+    <table>
+      <thead>
+        <tr>
+          <th style="width:18%;">分類</th>
+          <th style="width:22%;">例</th>
+          <th>管理要件（抜粋）</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><b>Tier S</b><br><span class="small">高機微</span></td>
+          <td>バイタル、睡眠詳細、推定健康状態、生成文</td>
+          <td>
+            <ul>
+              <li>専用KMS鍵（用途/環境で分割）</li>
+              <li>アクセスは業務最小（管理者でも閲覧不可の設計を検討）</li>
+              <li>ログ出力禁止（マスキング必須）</li>
+              <li>共有/エクスポートは原則禁止 or 申請制</li>
+            </ul>
+          </td>
+        </tr>
+        <tr>
+          <td><b>Tier A</b><br><span class="small">準機微</span></td>
+          <td>匿名加工/仮名化された分析用特徴量</td>
+          <td>
+            <ul>
+              <li>再識別リスク評価</li>
+              <li>分析権限をロールで分割</li>
+            </ul>
+          </td>
+        </tr>
+        <tr>
+          <td><b>Tier B</b><br><span class="small">一般</span></td>
+          <td>個人に紐づかない運用ログ、メトリクス</td>
+          <td>
+            <ul>
+              <li>通常のセキュリティ統制</li>
+            </ul>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>6.2 同意・透明性（最低限UI/規約で担保）</h3>
+    <div class="grid">
+      <div class="card">
+        <h3>必須説明項目</h3>
+        <ul>
+          <li>言語化の目的（健康増進/可視化/行動提案）</li>
+          <li>入力データ範囲（どの項目/期間）</li>
+          <li>出力の性質（診断ではない、誤りの可能性）</li>
+          <li>保存期間（元データ/特徴量/生成文/ログ）</li>
+          <li>第三者提供/委託（AWS利用、国外移転の有無）</li>
+          <li>撤回・削除（手続きと反映タイミング）</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>運用上の“守り”</h3>
+        <ul>
+          <li>同意フラグをDynamoDBで管理し、Lambdaで必ず検証</li>
+          <li>同意撤回後は <b>生成処理を即停止</b>、保存物の削除キューを実行</li>
+          <li>分析用途へ二次利用する場合は、用途別同意を分離</li>
+        </ul>
+      </div>
+    </div>
+
+    <h3>6.3 責任分界（共有責任モデルを前提に）</h3>
+    <div class="callout">
+      <div class="title">AWSはクラウド基盤のセキュリティ、利用者は設定・データ・アクセス制御が責任範囲</div>
+      <p class="small">本レポートの対策は「利用者側責任」を中心に、AWSマネージドサービスを活用して実装負荷を下げる設計です。</p>
+    </div>
+
+    <h2 id="security">7. セキュリティ対策（具体策）</h2>
+
+    <h3>7.1 IAM（最小権限）</h3>
+    <div class="card">
+      <ul>
+        <li>Lambda実行ロールは <b>Bedrock Invoke</b> と必要なS3/DDBパスのみに限定（ワイルドカード禁止）</li>
+        <li>S3はバケット単位ではなく <b>prefix単位</b> で許可（例：feature/ のみ read）</li>
+        <li>本番/検証/開発でロールを分割し、権限の横流しを防止</li>
+      </ul>
+      <pre><code>// ポリシー設計の目安（概念）
+// - s3:GetObject は s3://bucket/feature/* のみ
+// - bedrock:InvokeModel は 指定モデルARNのみ
+// - kms:Decrypt は 特定キー + 特定暗号化コンテキストのみ</code></pre>
+    </div>
+
+    <h3>7.2 暗号化（KMS）</h3>
+    <div class="grid">
+      <div class="card">
+        <h3>推奨：鍵の分割</h3>
+        <ul>
+          <li><b>KMSキー（Tier S専用）</b>：raw/report</li>
+          <li><b>KMSキー（feature用）</b>：feature</li>
+          <li><b>KMSキー（監査用）</b>：audit/log archive</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>推奨：暗号化コンテキスト</h3>
+        <ul>
+          <li>暗号化コンテキストに <span class="mono">data_tier=TierS</span> などを付与し、誤復号を抑止</li>
+          <li>キー管理者とデータ閲覧者を分離（職務分掌）</li>
+        </ul>
+      </div>
+    </div>
+
+    <h3>7.3 ネットワーク（閉域化）</h3>
+    <div class="card">
+      <ul>
+        <li>可能な限りLambdaをVPC内（Private Subnet）で運用</li>
+        <li>Bedrockは <b>PrivateLink</b> を利用し、推論通信をインターネット非経由に</li>
+        <li>S3/DynamoDBもVPCエンドポイントの利用を検討（要件/コストと相談）</li>
+      </ul>
+    </div>
+
+    <h3>7.4 LLM安全対策（入力・出力）</h3>
+    <div class="grid">
+      <div class="card">
+        <h3>入力側（Lambda）</h3>
+        <ul>
+          <li>PII/識別子をプロンプトへ入れない（ユーザー名、メール、住所等）</li>
+          <li>特徴量は固定スキーマ化し、自由記述（ユーザー入力）は隔離して検査</li>
+          <li>プロンプト注入対策：ユーザー入力は「引用ブロック」化し、命令権限を与えない</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>出力側（後処理）</h3>
+        <ul>
+          <li>医療断定の禁止（「診断」「治療」「薬」などの断定表現を抑止）</li>
+          <li>危険な助言の禁止（睡眠薬、極端な行動、自己判断の医療行為）</li>
+          <li>再マスキング：出力に偶発的PIIが混入した場合に削除</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="callout">
+      <div class="title">推奨プロンプト設計（骨子）</div>
+      <ul>
+        <li><b>System</b>：医療診断をしない／一般的助言のみ／不確実性を明記／個人情報を推測しない</li>
+        <li><b>Input</b>：JSON形式の特徴量（固定キーのみ）</li>
+        <li><b>Output</b>：テンプレ化（「要約」「良かった点」「気になる点」「明日できること（3つまで）」「注意（免責）」）</li>
+      </ul>
+      <pre><code>{
+  "date":"2026-01-07",
+  "sleep_efficiency": 0.86,
+  "total_sleep_min": 420,
+  "awakenings": 2,
+  "resting_hr_avg": 58,
+  "hrv_rmssd_trend": "down",
+  "notes_user_text_sanitized": "（任意・検査済みの短文のみ）"
+}</code></pre>
+    </div>
+
+    <h3>7.5 ログ無害化（最重要の実装ポイント）</h3>
+    <table>
+      <thead>
+        <tr>
+          <th style="width:26%;">ログ種別</th>
+          <th>禁止事項</th>
+          <th style="width:30%;">推奨対応</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Lambdaアプリログ</td>
+          <td>特徴量全文、生成文全文、ユーザー自由記述の生テキスト</td>
+          <td>メタ情報のみ（リクエストID、処理時間、モデル名、Tier、サイズ）</td>
+        </tr>
+        <tr>
+          <td>例外ログ</td>
+          <td>例外メッセージに入力payloadが混入</td>
+          <td>例外ラップでpayloadを切り離し、ダンプ禁止</td>
+        </tr>
+        <tr>
+          <td>監査ログ</td>
+          <td>個人が特定できる値</td>
+          <td>擬似ID（ハッシュ化）＋追跡可能な参照ID</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2 id="ops">8. 運用・監査・インシデント対応</h2>
+
+    <h3>8.1 監査証跡（最低限）</h3>
+    <div class="card">
+      <ul>
+        <li>CloudTrail：Bedrock呼び出し、KMS利用、S3アクセス、権限変更を追跡</li>
+        <li>ログ保管：Log Archiveアカウント or バケットへ集約し、改ざん耐性（WORM/Lock）を検討</li>
+        <li>定期レビュー：高機微パスへのアクセス、権限逸脱、失敗リクエスト急増を点検</li>
+      </ul>
+    </div>
+
+    <h3>8.2 検知（アラートの作り方）</h3>
+    <div class="grid">
+      <div class="card">
+        <h3>セキュリティ系</h3>
+        <ul>
+          <li>権限変更（IAM/KMS/S3ポリシー）</li>
+          <li>S3公開設定の変更</li>
+          <li>Bedrock呼び出しの急増（不正利用・ボット）</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>品質/安全系</h3>
+        <ul>
+          <li>Guardrailsブロック率の急変</li>
+          <li>「医療断定」検知の増加</li>
+          <li>生成失敗率・タイムアウト増加</li>
+        </ul>
+      </div>
+    </div>
+
+    <h3>8.3 インシデント対応（推奨プレイブック）</h3>
+    <table>
+      <thead>
+        <tr>
+          <th style="width:18%;">フェーズ</th>
+          <th>具体アクション</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><b>封じ込め</b></td>
+          <td>該当IAMロール停止 / キー無効化 / 公開設定リバート / APIレート制限 / WAFブロック</td>
+        </tr>
+        <tr>
+          <td><b>影響評価</b></td>
+          <td>監査ログでアクセス範囲を特定（誰が、いつ、どのprefix、どのユーザー集合）</td>
+        </tr>
+        <tr>
+          <td><b>根因分析</b></td>
+          <td>設定変更点（Config/Trail）、デプロイ履歴、権限差分の突合</td>
+        </tr>
+        <tr>
+          <td><b>再発防止</b></td>
+          <td>SCP/ガードレール強化、CIでポリシーlint、キー分割、監視ルール追加</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h2 id="checklist">9. 本番リリース前チェックリスト</h2>
+    <div class="card">
+      <ul>
+        <li><input type="checkbox" /> Tier S（バイタル/睡眠/生成文）を社内分類に明記し、関係者合意済み</li>
+        <li><input type="checkbox" /> 同意UI：目的・範囲・保存・撤回・第三者提供を明示し、同意フラグで制御</li>
+        <li><input type="checkbox" /> LLM入力は特徴量（最小化）で、生データ投入を禁止する実装ガードがある</li>
+        <li><input type="checkbox" /> BedrockはPrivateLink経由（可能な範囲で）</li>
+        <li><input type="checkbox" /> S3/DDB/ログ保管はSSE-KMS、鍵は用途/環境で分割</li>
+        <li><input type="checkbox" /> LambdaログにTier Sが出ない（マスキング/例外処理含む）</li>
+        <li><input type="checkbox" /> CloudTrail集約＋改ざん耐性（Log Archive/Lock等）</li>
+        <li><input type="checkbox" /> Guardrails/後処理で医療断定・危険助言・PII混入を抑止</li>
+        <li><input type="checkbox" /> 権限レビュー（最小権限）が完了し、運用者でも無制限閲覧できない設計</li>
+        <li><input type="checkbox" /> インシデントプレイブック（封じ込め→影響評価→通知→再発防止）を文書化</li>
+      </ul>
+      <p class="small">※ チェックが揃わない場合は、本番公開を延期し「ログ無害化」「同意制御」「最小化」を優先して是正することを推奨します。</p>
+    </div>
+
+    <h2 id="appendix">10. 付録</h2>
+
+    <h3>10.1 RACI（例）</h3>
+    <table>
+      <thead>
+        <tr>
+          <th style="width:28%;">項目<
