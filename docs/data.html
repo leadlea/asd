@@ -217,21 +217,21 @@
 
     <div class="mermaid">
 flowchart LR
-  U[User App\nスマホ/WEB] -->|TLS| APIGW[Amazon API Gateway]
-  APIGW -->|JWT/OAuth| AUTH[Cognito\n認証/認可]
-  APIGW --> L1[Lambda\nOrchestrator]
+  U[User App<br/>スマホ/WEB] -->|TLS| APIGW[Amazon API Gateway]
+  APIGW -->|JWT/OAuth| AUTH[Cognito<br/>認証/認可]
+  APIGW --> L1[Lambda<br/>Orchestrator]
 
-  subgraph VPC["VPC 推奨：Private Subnet"]
-    L1 -->|VPC Endpoint| BR[Amazon Bedrock\nPrivateLink]
-    L1 -->|read/write| DDB[DynamoDB\nメタ/状態]
-    L1 -->|put/get| S3[S3\nRaw/Feature/Report]
-    L1 -->|events| EB[EventBridge\nスケジュール/通知]
+  subgraph VPC["VPC（推奨：Private Subnet）"]
+    L1 -->|VPC Endpoint| BR[Amazon Bedrock<br/>PrivateLink]
+    L1 -->|read/write| DDB[DynamoDB<br/>メタ/状態]
+    L1 -->|put/get| S3[S3<br/>Raw/Feature/Report]
+    L1 -->|events| EB[EventBridge<br/>スケジュール/通知]
     L1 -->|logs| CW[CloudWatch Logs]
   end
 
-  CW --> SH[Security Hub / GuardDuty\n集約・検知]
-  CT[CloudTrail\nOrg Trail] --> LA[Log Archive S3\n改ざん耐性]
-  S3 --> LF[Lake Formation / Glue\n必要に応じて分析基盤]
+  CW --> SH[Security Hub / GuardDuty<br/>集約・検知]
+  CT[CloudTrail<br/>Org Trail] --> LA[Log Archive S3<br/>改ざん耐性]
+  S3 --> LF[Lake Formation / Glue<br/>必要に応じて分析基盤]
 
   classDef sec fill:#fff,stroke:#111,stroke-width:1px;
   class BR,CT,LA,SH sec;
