@@ -230,7 +230,7 @@ flowchart LR
   end
 
   CW --> SH[Security Hub / GuardDuty\n集約・検知]
-  CT[CloudTrail\n(Org Trail)] --> LA[Log Archive S3\n改ざん耐性]
+  CT[CloudTrail\nOrg Trail] --> LA[Log Archive S3\n改ざん耐性]
   S3 --> LF[Lake Formation / Glue\n必要に応じて分析基盤]
 
   classDef sec fill:#fff,stroke:#111,stroke-width:1px;
