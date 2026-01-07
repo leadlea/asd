@@ -142,7 +142,7 @@
     </div>
 
     <div class="callout">
-      <div class="title">要点（リアライズ イノベーションズ向け提案）</div>
+      <div class="title">要点</div>
       <ul>
         <li><span class="badge pill-bad">Tier S</span> バイタル/睡眠・推定健康状態・生成サマリは <b>センシティブ相当</b> として社内分類を固定。</li>
         <li>LLMには <b>必要最小限の特徴量（集計値）</b> を渡し、波形・生ログ・長期全履歴の投入を避ける。</li>
@@ -217,21 +217,21 @@
 
     <div class="mermaid">
 flowchart LR
-  U[User App\n(スマホ/WEB)] -->|TLS| APIGW[Amazon API Gateway]
+  U[User App\nスマホ/WEB] -->|TLS| APIGW[Amazon API Gateway]
   APIGW -->|JWT/OAuth| AUTH[Cognito\n(認証/認可)]
   APIGW --> L1[Lambda\nOrchestrator]
 
-  subgraph VPC["VPC（推奨：Private Subnet）"]
-    L1 -->|VPC Endpoint| BR[Amazon Bedrock\n(PrivateLink)]
-    L1 -->|read/write| DDB[(DynamoDB\nメタ/状態)]
-    L1 -->|put/get| S3[(S3\nRaw/Feature/Report)]
+  subgraph VPC["VPC 推奨：Private Subnet"]
+    L1 -->|VPC Endpoint| BR[Amazon Bedrock\nPrivateLink]
+    L1 -->|read/write| DDB[DynamoDB\nメタ/状態]
+    L1 -->|put/get| S3[S3\nRaw/Feature/Report]
     L1 -->|events| EB[EventBridge\nスケジュール/通知]
-    L1 -->|logs| CW[(CloudWatch Logs)]
+    L1 -->|logs| CW[CloudWatch Logs]
   end
 
-  CW --> SH[Security Hub / GuardDuty\n(集約・検知)]
-  CT[CloudTrail\n(Org Trail)] --> LA[(Log Archive S3\n改ざん耐性)]
-  S3 --> LF[Lake Formation / Glue\n(必要に応じて分析基盤)]
+  CW --> SH[Security Hub / GuardDuty\n集約・検知]
+  CT[CloudTrail\n(Org Trail)] --> LA[Log Archive S3\n改ざん耐性]
+  S3 --> LF[Lake Formation / Glue\n必要に応じて分析基盤]
 
   classDef sec fill:#fff,stroke:#111,stroke-width:1px;
   class BR,CT,LA,SH sec;
