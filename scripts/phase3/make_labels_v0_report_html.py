@@ -506,6 +506,97 @@ def build_pg_index_v2(pg_metrics_parquet_or_dir: str) -> Tuple[Dict[str, Dict[st
     return idx, total
 
 
+# -------------------------
+# Phase5/6 IX index
+# -------------------------
+def build_ix_index_v1(ix_metrics_parquet_or_dir: str | list) -> tuple[dict[str, dict[str, Any]], int]:
+    """Interaction metrics (IX_*) index builder.
+
+    Inputs: parquet file/dir or list of them (or comma-separated string).
+
+    Supports multiple schemas:
+      A) speaker-level: columns ['dataset','speaker_id','IX_*...'] where speaker_id may already be "conv:role"
+      B) legacy: columns ['conversation_id','speaker_id', ...] where key should be f"{conversation_id}:{speaker_id}"
+
+    Key strategy mirrors build_pg_index_v2:
+      - If speaker_id contains ":" => use it directly as key.
+      - Else if conversation_id exists => key = f"{conversation_id}:{speaker_id}".
+      - Else => key = speaker_id.
+    """
+    def norm(x):
+        return ("" if x is None else str(x)).strip().split("/")[-1]
+
+    def safe_num(x):
+        return _safe_float(x)
+
+    # inputs: list[Path]/list[str] OR comma-separated string
+    files = []
+    if isinstance(ix_metrics_parquet_or_dir, (list, tuple)):
+        for x in ix_metrics_parquet_or_dir:
+            xp = Path(str(x))
+            if xp.is_dir():
+                files += [q for q in xp.rglob("*.parquet") if q.is_file()]
+            elif xp.is_file() and xp.suffix.lower() == ".parquet":
+                files.append(xp)
+    else:
+        roots = [x.strip() for x in (ix_metrics_parquet_or_dir or "").split(",") if x.strip()]
+        for r in roots:
+            rp = Path(r)
+            if rp.is_dir():
+                files += [q for q in rp.rglob("*.parquet") if q.is_file()]
+            elif rp.is_file() and rp.suffix.lower() == ".parquet":
+                files.append(rp)
+
+    files = sorted(set(files))
+    if not files:
+        return {}, 0
+
+    idx: dict[str, dict[str, Any]] = {}
+    total = 0
+
+    for fp in files:
+        df = pd.read_parquet(fp)
+        if "speaker_id" not in df.columns:
+            continue
+
+        total += len(df)
+        has_conv = "conversation_id" in df.columns
+        has_ds = "dataset" in df.columns
+
+        ix_cols = [c for c in df.columns if str(c).startswith("IX_")]
+
+        for _, r in df.iterrows():
+            conv = norm(r.get("conversation_id")) if has_conv else ""
+            spk = norm(r.get("speaker_id"))
+            if not spk:
+                continue
+
+            m: dict[str, Any] = {"source_file": str(fp)}
+            if has_ds:
+                m["dataset_full"] = str(r.get("dataset") or "")
+
+            for c in ix_cols:
+                m[c] = safe_num(r.get(c))
+
+            keys = set()
+            if ":" in spk:
+                keys.add(spk)
+                if conv:
+                    parts = spk.split(":", 1)
+                    if len(parts) == 2 and parts[1]:
+                        keys.add(f"{conv}:{parts[1]}")
+            else:
+                if conv:
+                    keys.add(f"{conv}:{spk}")
+                else:
+                    keys.add(spk)
+
+            for k in keys:
+                idx[k] = m
+
+    return idx, total
+
+
 def load_pg_summary(pg_summary_parquet: str) -> Dict[str, Dict[str, Any]]:
     """
     dataset -> summary stats dict (json-friendly)
@@ -1177,6 +1268,14 @@ HTML_TEMPLATE = """<!doctype html>
         push(ds,   "pg_gap",    num(r.PG_resp_gap_mean));
         push("ALL", "pg_respOv", num(r.PG_resp_overlap_rate));
         push(ds,   "pg_respOv", num(r.PG_resp_overlap_rate));
+
+        // interaction (IX_*)
+        push("ALL", "ix_topic_drift", num(r.IX_topic_drift_mean));
+        push(ds,   "ix_topic_drift", num(r.IX_topic_drift_mean));
+        push("ALL", "ix_lex_overlap", num(r.IX_lex_overlap_mean));
+        push(ds,   "ix_lex_overlap", num(r.IX_lex_overlap_mean));
+        push("ALL", "ix_yesno_rate", num(r.IX_yesno_rate));
+        push(ds,   "ix_yesno_rate", num(r.IX_yesno_rate));
       }
 
       const dsKeys = Object.keys(base);
@@ -1256,6 +1355,9 @@ HTML_TEMPLATE = """<!doctype html>
         { key:"pg_pause",  label:"PG pause_mean",          sel: num(rec.PG_pause_mean), d:3 },
         { key:"pg_gap",    label:"PG resp_gap_mean",       sel: num(rec.PG_resp_gap_mean), d:3 },
         { key:"pg_respOv", label:"PG resp_overlap_rate",   sel: num(rec.PG_resp_overlap_rate), d:3 },
+        { key:"ix_topic_drift", label:"IX topic_drift_mean",   sel: num(rec.IX_topic_drift_mean), d:3 },
+        { key:"ix_lex_overlap", label:"IX lex_overlap_mean",    sel: num(rec.IX_lex_overlap_mean), d:3 },
+        { key:"ix_yesno_rate", label:"IX yesno_rate",           sel: num(rec.IX_yesno_rate), d:3 },
       ];
 
       let html = '';
@@ -1521,6 +1623,18 @@ HTML_TEMPLATE = """<!doctype html>
         .map(([k,v]) => `<div><span class="mono">${esc(k)}</span>: <span class="num">${esc(fmt(v, 3))}</span></div>`)
         .join("");
 
+      // ---- Interaction metrics (IX_*) ----
+      const ixKeys = Object.keys(rec || {}).filter(k => k.startsWith("IX_")).sort();
+      const ixHtml = ixKeys
+        .slice(0, 60)
+        .map((k) => {
+          const v = rec[k];
+          const nv = Number(v);
+          const vv = (v === null || v === undefined) ? "-" : (Number.isFinite(nv) ? fmt(nv, 4) : String(v));
+          return `<div><span class="mono">${esc(k)}</span>: <span class="num">${esc(vv)}</span></div>`;
+        })
+        .join("");
+
       const pl = primaryLabel(rec);
       const pc = primaryConf(rec);
 
@@ -1640,6 +1754,11 @@ HTML_TEMPLATE = """<!doctype html>
           <div class="muted" style="margin-top:6px;">source: <span class="mono">${esc(pg.source_file || rec.pg?.source_file || "")}</span></div>
         </div>
 
+        <div class="sectionTitle">Interaction metrics</div>
+        <div class="panel">
+          ${ixHtml || `<div class="muted">No interaction metrics (IX_*) attached for this speaker.</div>`}
+        </div>
+
         <div style="margin-top:12px;">
           <button class="btn" id="copyBtn">Copy raw JSON</button>
           <pre id="rawPre">${esc(JSON.stringify(raw, null, 2))}</pre>
@@ -1717,6 +1836,7 @@ def main() -> None:
     ap.add_argument("--max_examples_per_speaker", type=int, default=8)
     ap.add_argument("--pg_metrics_parquet", default="", help="optional: phase4 pause/gap parquet(s): file/dir or comma-separated")
     ap.add_argument("--pg_summary_parquet", default="", help="optional: phase4 summary.parquet (dataset-level means)")
+    ap.add_argument("--ix_metrics_parquet", default="", help="optional: phase5/6 interaction metrics parquet(s): file/dir or comma-separated")
     ap.add_argument("--title", default="LLM labeling v0 (Bedrock Claude Opus 4.5)")
     ap.add_argument("--subtitle", default="Phase3-2: outliers_v0_topK -> labels_v0 (GitHub Pages)")
     args = ap.parse_args()
@@ -1739,58 +1859,44 @@ def main() -> None:
     pg_attached = bool(pg_index)
     pg_summary = load_pg_summary(args.pg_summary_parquet) if args.pg_summary_parquet else {}
 
+    # Phase5/6 Interaction metrics index (optional)
+    ix_index: Dict[str, Dict[str, Any]] = {}
+    ix_rows_loaded = 0
+    ix_paths = _collect_parquet_paths(args.ix_metrics_parquet)
+    if ix_paths:
+        ix_index, ix_rows_loaded = build_ix_index_v1(ix_paths)
+    ix_attached = bool(ix_index)
+
     # Build rows for the dashboard
     rows: List[Dict[str, Any]] = []
-
     for _, r in df.iterrows():
-        # --- LLM labels payload (robust v4) ---
+        # --- LLM labels payload (robust v4; per-row) ---
 
         # labels_json may be str OR list OR dict in parquet
-
         labels_raw = r.get("labels_json")
 
-
         if isinstance(labels_raw, dict) and isinstance(labels_raw.get("labels"), list):
-
             labels_payload = labels_raw
-
         elif isinstance(labels_raw, list):
-
             labels_payload = {"labels": labels_raw}
-
         else:
-
             obj = _safe_json_obj(labels_raw)
-
             if isinstance(obj, dict) and isinstance(obj.get("labels"), list):
-
                 labels_payload = obj
-
             else:
-
                 lst = _safe_json_list(labels_raw)
-
                 labels_payload = {"labels": lst} if lst else {"labels": []}
 
-
         summary_text = str(r.get("summary") or labels_payload.get("summary") or "")
-
         needs_more_context = bool(r.get("needs_more_context") or labels_payload.get("needs_more_context") or False)
 
-
         missing_val = r.get("missing") or labels_payload.get("missing") or []
-
         missing = missing_val if isinstance(missing_val, list) else _safe_json_list(missing_val)
 
-
         labels_payload["summary"] = summary_text
-
         labels_payload["needs_more_context"] = needs_more_context
-
         labels_payload["missing"] = missing
 
-    for _, r in df.iterrows():
-        labels = _coerce_labels_obj(r)
 
         # labels側にexamples_jsonがあれば優先、無ければ index から後付け
         examples = _safe_json_list_any(r.get("examples_json"))
@@ -1798,6 +1904,9 @@ def main() -> None:
 
         # attach phase4 pg metrics by speaker_key
         pg = pg_index.get(speaker_key, {}) if (pg_attached and speaker_key) else {}
+
+        # attach interaction metrics (IX_*) by speaker_key
+        ix = ix_index.get(speaker_key, {}) if (ix_attached and speaker_key) else {}
 
         # attach filler metrics (speaker-level columns starting with FILL_)
         fill: Dict[str, Any] = {}
@@ -1819,6 +1928,7 @@ def main() -> None:
             "labels": labels_payload,
             "examples": examples,
             "pg": pg,
+            "ix": ix,
             "fill": fill,
             "meta": {
                 "model_id": str(r.get("model_id") or ""),
@@ -1837,6 +1947,12 @@ def main() -> None:
         if isinstance(rec.get("pg"), dict):
             for _k, _v in rec["pg"].items():
                 if isinstance(_k, str) and _k.startswith("PG_") and rec.get(_k) is None:
+                    rec[_k] = _v
+
+        # expose IX_* at top-level for details/dist panels
+        if isinstance(rec.get("ix"), dict):
+            for _k, _v in rec["ix"].items():
+                if isinstance(_k, str) and _k.startswith("IX_") and rec.get(_k) is None:
                     rec[_k] = _v
 
         # --- CL passthrough (robust) ---
@@ -1933,6 +2049,8 @@ def main() -> None:
         "examples_rows_loaded": int(ex_rows_loaded),
         "pg_attached": bool(pg_attached),
         "pg_rows_loaded": int(pg_rows_loaded),
+        "ix_attached": bool(ix_attached),
+        "ix_rows_loaded": int(ix_rows_loaded),
         "pg_summary": pg_summary,
         "fill_summary": fill_summary,
     }
@@ -1993,6 +2111,8 @@ def main() -> None:
             "examples_rows_loaded": ex_rows_loaded,
             "pg_attached": bool(pg_attached),
             "pg_rows_loaded": int(pg_rows_loaded),
+            "ix_attached": bool(ix_attached),
+            "ix_rows_loaded": int(ix_rows_loaded),
             "build_stamp": build_stamp,
         },
         ensure_ascii=False, indent=2
