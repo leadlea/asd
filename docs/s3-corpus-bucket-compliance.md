@@ -970,3 +970,162 @@ python scripts/phase56/patch_labels_html_safe_plus.py \
   * `OK patched: docs/index.html`
   * `primary_label_counts` が **OTHER以外も出る**
 
+---
+
+# 追記（2026-01-18）：labels UI を “one-pass” で再生成（WITHIX__FIXED → docs/index.html）
+
+更新日: 2026-01-18  
+目的: 研究実験検証を最短で回すため、**HTML生成→パッチ適用の2段階をやめて**、  
+「統合済み Parquet（WITHCL/WITHNEYO/WITHIX を含む FIXED）」から **1コマンドで docs/index.html を生成**できる状態にした。  
+また、Interaction 指標（IX_*）を **詳細パネル表示 + Population position（箱ひげ）**の双方に反映し、UI上で確認できることを検証した。
+
+## A. 成果（山下先生向け要点）
+
+- **Interaction metrics（IX_*）が UI に表示される**
+  - 右側詳細パネルに **Interaction metrics セクション**として表示される
+  - 代表例：`IX_n_pairs`, `IX_topic_drift_mean`, `IX_lex_overlap_mean`, `IX_yesno_rate` 等
+- **Population position（箱ひげ）に IX を3指標追加して個体位置が見える**
+  - `IX_topic_drift_mean`
+  - `IX_lex_overlap_mean`
+  - `IX_yesno_rate`
+- **再現手順は 1コマンド（one-pass）**
+  - 入力 Parquet を差し替えるだけで、ダッシュボードを何度でも再生成できる
+  - `patch_labels_html_safe_plus.py` は不要（研究運用が軽くなる）
+
+---
+
+## B. 入力（今回の検証で使用した FIXED parquet）
+
+今回の検証で使用した “WITHIX__FIXED” parquet（例）：
+
+```bash
+artifacts/phase56_full_20260104_024221/_llm500_opus45/labels_tb500_UIFINAL_opus45_WITHCL_WITHNEYO_WITHIX__FIXED.parquet
+````
+
+この parquet に **IX_* が12列**入っていることを確認済み（例：`IX_topic_drift_mean`, `IX_lex_overlap_mean` 等）。
+
+---
+
+## C. 再現手順（最短：one-pass で docs/index.html を生成）
+
+### C.1 env（毎回の実験を安定化）
+
+```bash
+cat > env_asd.sh <<'SH'
+export IN_IX="artifacts/phase56_full_20260104_024221/_llm500_opus45/labels_tb500_UIFINAL_opus45_WITHCL_WITHNEYO_WITHIX__FIXED.parquet"
+export EXAMPLES_DIR="artifacts/phase3/examples_v13"
+export OUT_HTML="docs/index.html"
+SH
+
+source env_asd.sh
+echo "$IN_IX"
+```
+
+### C.2 生成（1コマンド）
+
+```bash
+python scripts/phase3/make_labels_v0_report_html_onepass.py \
+  --fixed_parquet "$IN_IX" \
+  --out_html "$OUT_HTML" \
+  --examples_dir "$EXAMPLES_DIR"
+```
+
+---
+
+## D. 検証コマンド（研究会での説明に使える “短い根拠”）
+
+### D.1 parquet に IX_* 列が存在すること
+
+```bash
+python - <<'PY'
+import pandas as pd
+p="artifacts/phase56_full_20260104_024221/_llm500_opus45/labels_tb500_UIFINAL_opus45_WITHCL_WITHNEYO_WITHIX__FIXED.parquet"
+df=pd.read_parquet(p)
+ix=[c for c in df.columns if str(c).startswith("IX_")]
+print("IX cols:", len(ix))
+print("head:", ix[:20])
+if ix:
+  print(df[ix[:5]].head(3))
+PY
+```
+
+期待:
+
+* `IX cols: 12`
+* `IX_topic_drift_mean`, `IX_lex_overlap_mean`, `IX_yesno_rate` などが表示される
+
+### D.2 生成された HTML の DATA に IX_* が入っていること
+
+```bash
+python - <<'PY'
+import re, json
+html=open("docs/index.html",encoding="utf-8").read()
+rows=json.loads(re.search(r'<script id="DATA"[^>]*>(.*?)</script>', html, re.S).group(1))
+ix=[k for k in rows[0].keys() if k.startswith("IX_")]
+print("IX keys in HTML DATA:", len(ix))
+print("head:", ix[:20])
+PY
+```
+
+注:
+
+* 行によって `NaN/None` が落ちるため、先頭行で見えるキー数が 12 より少ない場合がある（仕様）。
+* 必要なら「nullでもキーを残す」方向へ将来調整可能。
+
+### D.3 HTML に “Interaction metrics” セクションが含まれること
+
+```bash
+grep -n 'Interaction metrics' docs/index.html | head
+```
+
+期待:
+
+* `sectionTitle">Interaction metrics` がヒットする
+
+---
+
+## E. ブラウザ表示（キャッシュ事故を避ける推奨手順）
+
+file:// 直開きだとキャッシュにハマることがあるため、ローカルサーバ経由で開くのが最も安定。
+
+```bash
+python -m http.server 8000
+```
+
+ブラウザで以下を開く:
+
+* `http://localhost:8000/docs/index.html`
+
+操作:
+
+* 一覧の行（または散布図の点）をクリックして詳細パネルを表示
+* 右側に **Interaction metrics** が出ることを確認
+* さらに下の **Population position（箱ひげ）** に以下が出ることを確認
+
+  * `IX topic_drift_mean`
+  * `IX lex_overlap_mean`
+  * `IX yesno_rate`
+
+---
+
+## F. 研究的な解釈（山下先生向け：何が見えるようになったか）
+
+* `IX_topic_drift_mean`：
+
+  * 話者の応答が直前文脈からどれだけ逸脱しているか（topic drift の粗い指標）
+* `IX_lex_overlap_mean`：
+
+  * 直前発話との語彙重なり（alignment/contingency の粗い近似）
+* `IX_yesno_rate`：
+
+  * 応答の形式（はい/いいえ型）に偏りがあるか（応答スタイル）
+
+→ これにより、従来の FILL / PauseGap に加えて、**「相互行為の質感（逸脱/整合/応答形式）」を同一UIで観察**できる。
+
+---
+
+## G. 運用メモ（研究実験の回転を最優先にする）
+
+* 実験ごとに `IN_IX`（FIXED parquet）を差し替えて C.2 を叩くだけで再生成できる
+* `patch_labels_html_safe_plus.py` を挟まないため、手順が短く、トラブルが減る
+* “表示の根拠” は D.1〜D.3 を提示すれば十分（第三者説明に使える）
