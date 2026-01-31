@@ -54,3 +54,9 @@ scripts/**/__pycache__/
 **/__pycache__/
 *.pyc
 artifacts/
+
+# tmp/_inspect: 特徴量棚卸しドキュメント（許可）
+!tmp/
+!tmp/_inspect/
+!tmp/_inspect/*.md
+!tmp/_inspect/*.py
