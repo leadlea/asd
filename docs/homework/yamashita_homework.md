@@ -6,40 +6,149 @@ gold は raw（原本）を直接触らず、curated（発話テーブル）か�
 研究で扱いやすい最小構成（segments/pairs/metrics_*）に変換し、analysis で dataset split / rank / examples / LLM説明へ接続する。
 
 ```mermaid
-flowchart LR
-  RAW["raw（格納庫の原本）"] --> CUR["curated/v1 utterances（発話テーブル）"]
-  CUR --> SEG["gold/v13 segments（発話+タグ）"]
-  SEG --> PR["gold/v13 pairs（話者交替ペア）"]
-  SEG --> MSFP["gold/v13 metrics_sfp（会話×話者 集計）"]
-  PR  --> MRESP["gold/v13 metrics_resp（会話×話者 集計）"]
-  GOLD["gold/v13（segments/pairs/metrics_*）"]:::box
-  SEG --> GOLD
-  PR  --> GOLD
-  MSFP --> GOLD
-  MRESP --> GOLD
-  GOLD --> ANA["analysis/v1（summary/rank/examples/report/labels）"]
-classDef box fill:#f6f6f6,stroke:#999,color:#111;
+flowchart TD
+  %% goldの位置づけ（rawを直接触らず、curatedから再現可能に生成）
+  subgraph RAW["raw（格納庫：原本/バックアップ）"]
+    raw1["CEJC/CSJ 原本（S3）"]
+  end
+
+  subgraph CUR["curated/v1（発話テーブル）"]
+    utt["utterances.parquet
+(conversation_id, speaker_id, text, start/end_time, …)"]
+  end
+
+  subgraph GOLD["gold/v13（再現可能な中間成果物：最小構成）"]
+    seg["segments
+発話+タグ（sfp_group / is_question）"]
+    pr["pairs
+話者交替 prev→resp（resp_is_aizuchi 等）"]
+    msfp["metrics_sfp
+会話×話者 集計（SFP比率/疑問率…）"]
+    mresp["metrics_resp
+会話×話者 集計（相槌率/entropy…）"]
+    mpg["metrics_pausegap
+会話×話者 集計（pause/gap/overlap…）"]
+  end
+
+  subgraph ANA["analysis/v1（研究アウトプット）"]
+    sum["summary（集計/分母/品質の俯瞰）"]
+    rank["rank（外れ/上位下位）"]
+    ex["examples（具体例の抽出）"]
+    lab["labels（LLM要約/解釈） + provenance（prompt_features_used_json）"]
+  end
+
+  raw1 -. "原本は直接加工しない" .-> utt
+
+  utt --> seg
+  seg --> pr
+  seg --> msfp
+  pr --> mresp
+
+  seg --> sum
+  pr  --> sum
+  msfp --> sum
+  mresp --> sum
+  mpg --> sum
+
+  sum --> rank --> ex --> lab
 ```
 
 ## 1) (1) 特徴量リスト（定義・出力粒度・分母）
 
-| テーブル | 出力粒度 | 主な列（例） | 定義（要約） | 分母/安定性（例） |
-| --- | --- | --- | --- | --- |
-| curated/v1 utterances | utterance（発話） | conversation_id, utterance_id, speaker_id, start_time, end_time, text, corpus, unit_type | 必須列: conversation_id/speaker_id/text。start_time/end_time/utterance_id等は任意（ソート・tie-breakerに利用） | 分母: n/a（入力テーブル） |
-| gold/v13 segments | utterance（発話+タグ） | conversation_id, utt_index, speaker_id, start_time, end_time, text, sfp_group, is_question | utterancesを会話内でソートし utt_index 付与。text→規則で is_question, sfp_group を付与。 | 分母: 発話数 n_segments（=会話×話者の n_utt など） |
-| gold/v13 pairs | pair（話者交替 prev→resp） | conversation_id, prev_speaker_id, prev_text, (prev_sfp_group ...), resp_speaker_id, resp_text, resp_first_token, resp_is_aizuchi, (prev_sfp_group/resp_sfp_group など) | 会話内の隣接発話から、話者が切り替わった瞬間のみ抽出。resp_first_token と resp_is_aizuchi を付与。 | 分母: n_pairs_total（=応答側話者のペア数）/ 条件付きは n_pairs_after_NE 等 |
-| gold/v13 metrics_sfp | conversation×speaker（集計） | SFP比率・疑問率・coverage等（列はparquet実体に依存） | segments（sfp_group, is_question）から、会話×話者で出現率・疑問率を集計。 | 分母: n_utt（会話×話者の発話数） |
-| gold/v13 metrics_resp | conversation×speaker（集計） | n_pairs_total, n_pairs_after_NE, n_pairs_after_YO, RESP_NE_AIZUCHI_RATE, RESP_NE_ENTROPY, RESP_YO_ENTROPY | pairs を条件（prev_sfp_groupがNE/NE_Q/YO）で絞り、応答側話者で集計。AIZUCHI_RATE=相槌フラグ平均。ENTROPY=resp_first_token分布のShannon entropy(log2)。 | 分母: n_pairs_after_NE / n_pairs_after_YO（analysisでは min_ne_events=20 等で信頼性フィルタ） |
-| gold/v13 metrics_pausegap（Phase4） | conversation×speaker（集計） | pause/gap/overlap/speech 等の統計（列はparquet実体に依存） | TextGrid由来の timing を会話×話者で統計化し、analysisのsummary/rankへ統合可能。 | 分母: n_segments / n_resp_events / total_time 等 |
+> **狙い：横スクロール無しで「何がどこで作られるか」を一目で説明**  
+> 詳細（列名など）は表の下の `<details>` に畳み込み、先生にはまず表だけ見せれば理解できる構成にしています。
 
+### 1.1 生成タイプ（3分類）
 
+- **RAW**：raw/curated の列をそのまま（ほぼコピー）
+- **SIMPLE**：単純な加工（ソート・フラグ付与・集計・比率など）
+- **NEW**：新規アイデア（entropy / スコア化 / クラスタ / LLM解釈＋provenance など）
 
-### dataset（cejc_dyad / csj_dialog 等）について
+### 1.2 一覧（先生向け・横スクロール無し）
 
-- goldの metrics_resp 等には `dataset` 列を持たせていない（実体確認: has_dataset=False）。
-- analysis側で `segments` から `n_speakers = nunique(speaker_id)` を計算して split する：
-  - cejc_dyad: n_speakers==2
-  - csj_dialog: n_speakers>=2
+| 層 | テーブル | 出力粒度 | 生成タイプ | 何が増えるか（要点） | 分母 / 安定性（要点） |
+| --- | --- | --- | --- | --- | --- |
+| curated | curated/v1 utterances | 発話 | **RAW** | 発話テーブル（最小必須: conversation_id / speaker_id / text） | 入力テーブル（分母 n/a） |
+| gold | gold/v13 segments | 発話+タグ | **SIMPLE** | utt_index を付与し、text から **is_question / sfp_group** を規則で付与 | 発話数（会話×話者の n_utt） |
+| gold | gold/v13 pairs | 話者交替ペア | **SIMPLE** | 話者交替のみ抽出（prev→resp）し、**resp_first_token / resp_is_aizuchi** を付与 | n_pairs_total / 条件付きは n_pairs_after_* |
+| gold | gold/v13 metrics_sfp | 会話×話者 | **SIMPLE** | SFP群比率・疑問率などを集計（segments由来） | 分母: n_utt（会話×話者の発話数） |
+| gold | gold/v13 metrics_resp | 会話×話者 | **SIMPLE + NEW** | NE/YO条件で絞って集計：**相槌率（SIMPLE）**＋**entropy（NEW）** | 分母: n_pairs_after_NE / n_pairs_after_YO（例: min_ne_events=20で足切り） |
+| gold | gold/v13 metrics_pausegap | 会話×話者 | **SIMPLE** | TextGrid由来の timing 統計（pause/gap/overlap/speech 等） | n_segments / n_resp_events / total_time 等 |
+| analysis | analysis/v1 summary/rank/examples | 集計/ランキング/例 | **SIMPLE** | dataset split（dyad/dialog）・rank・examples を生成 | reliable は n_pairs_after_NE で判定 |
+| analysis | analysis/v1 labels（LLM） | 例×説明 | **NEW** | LLMの要約/解釈 + **根拠provenance（prompt_features_used_json）** | 監査可能（根拠列を保持） |
+
+### 1.3 dataset split（cejc_dyad / csj_dialog）について
+
+- gold（metrics_*）自体には `dataset` 列を持たせていない（= 分割情報は後段で付与）。
+- analysis 側で `segments` から `n_speakers = nunique(speaker_id)` を計算して split：
+  - cejc_dyad: n_speakers == 2
+  - csj_dialog: n_speakers >= 2
+
+### 1.4 詳細（列名：必要なときだけ開く）
+
+<details>
+<summary><b>curated/v1 utterances（実体の列）</b></summary>
+
+```text
+conversation_id
+utterance_id
+speaker_id
+start_time
+end_time
+text
+corpus
+unit_type
+````
+
+</details>
+
+<details>
+<summary><b>gold/v13 segments（実体の列）</b></summary>
+
+```text
+conversation_id
+utt_index
+speaker_id
+start_time
+end_time
+text
+sfp_group
+is_question
+```
+
+</details>
+
+<details>
+<summary><b>gold/v13 pairs（代表列）</b></summary>
+
+```text
+conversation_id
+prev_speaker_id
+prev_text
+(prev_sfp_group ...)   # 実体にあれば
+resp_speaker_id
+resp_text
+resp_first_token
+resp_is_aizuchi
+```
+
+</details>
+
+<details>
+<summary><b>gold/v13 metrics_resp（実体の列）</b></summary>
+
+```text
+conversation_id
+speaker_id
+n_pairs_total
+n_pairs_after_NE
+n_pairs_after_YO
+RESP_NE_AIZUCHI_RATE
+RESP_NE_ENTROPY
+RESP_YO_ENTROPY
+```
+
+</details>
 
 ## 2) 参考：今回確認した raw/curated の列（実体）
 
