@@ -93,7 +93,7 @@ def main():
     def collect_examples(keys, prefer_aizuchi: bool | None):
         rows = []
         for conv_id, spk in keys:
-            df = p2[(p2["conversation_id"] == conv_id) & (p2["prev_speaker_id"] == spk)].copy()
+            df = p2[(p2["conversation_id"] == conv_id) & (p2["resp_speaker_id"] == spk)].copy()
             if len(df) == 0:
                 continue
             if prefer_aizuchi is True:
@@ -135,7 +135,7 @@ def main():
     # examples_all: one row per reliable key (pick earliest pair)
     all_rows = []
     for conv_id, spk in sorted(reliable_keys):
-        df = p2[(p2["conversation_id"] == conv_id) & (p2["prev_speaker_id"] == spk)].copy()
+        df = p2[(p2["conversation_id"] == conv_id) & (p2["resp_speaker_id"] == spk)].copy()
         if len(df) == 0:
             continue
         df = df.sort_values(by=["resp_utt_index","prev_utt_index"]).head(1)
