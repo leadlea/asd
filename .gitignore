@@ -49,7 +49,9 @@
 
 
 # ---- generated artifacts (local) ----
-docs/
+docs/*
+!docs/homework/
+!docs/homework/**
 scripts/**/__pycache__/
 **/__pycache__/
 *.pyc
