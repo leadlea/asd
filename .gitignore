@@ -58,5 +58,7 @@ artifacts/
 # tmp/_inspect: 特徴量棚卸しドキュメント（許可）
 !tmp/
 !tmp/_inspect/
-!tmp/_inspect/*.md
-!tmp/_inspect/*.py
+!tmp/_inspect/**
+
+# ---- local inspection outputs ----
+tmp/_inspect/
