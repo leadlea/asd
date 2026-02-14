@@ -1,66 +1,116 @@
 # CEJC（自宅・少人数）抽出 → Big5 を Bedrock 複数モデルで採点 → LLM平均を作成（再現ログ）
-Date: 2026-02-14  
+Date: 2026-02-15  
 Owner: 福原玄
-
-## 目的
-- 元論文「Assessing personality using zero-shot generative AI scoring ...」の **daily diary / idiographic narrative** に寄せて、  
-  日本語会話コーパスから **日常（自宅・少人数）** 条件を作り、Big5 を LLM zero-shot で採点する。
-- 論文では「**複数LLMの平均が最も強い**」「LLMを複数 rater とみなすのが妥当」とされるため、  
-  **複数モデルの trait score を揃え、モデル平均（mean/sd）を作る**。  
-  Evidence: Abstract と本文の該当箇所。  
-  - “average LLM score across models provided the strongest agreement …”
-  - “use multiple LLM ‘raters’ … recommendation …”
-
-## なぜ CSJ ではなく CEJC を選んだか
-- 本タスクは「日記的 / 自然な独り語り（diary-like）」に近い条件が必要。  
-- **CEJC は会話一覧のメタデータに “場所（例：自宅）/ 活動（例：食事）/ 話者数” などがあり**、  
-  “自宅・少人数” の抽出が **メタデータ駆動で再現可能**。  
-- 一方 CSJ は（少なくとも本タスクの狙いに対して）スピーチ寄りの条件になりやすく、  
-  diary-like 条件の構成が難しい（メタの粒度・条件設計の観点）。
-
-## 論文に近いモデル選定（ただし Tokyo リージョン制約あり）
-- 論文は複数の商用LLMを比較し、モデル平均を推奨。モデル例に **Qwen3-235B** 等が含まれる。
-- 本実験は **Bedrock ap-northeast-1（Tokyo）縛り**の中で利用可能な高性能モデルを優先し、
-  - `qwen.qwen3-235b-a22b-2507-v1:0`
-  - `global.anthropic.claude-sonnet-4-20250514-v1:0`（on-demand 制約で global prefix 使用）
-  - `deepseek.v3-v1:0`
-  - `openai.gpt-oss-120b-1:0`
-  を採用した。
 
 ---
 
-## 成果物（最終出力）
-### 4モデルの trait_scores（各 n_subjects=50）
-最終ログ（要点）：
-- picked models = 4
-- 各モデル n_subjects = 50
-- LLM平均 parquet も n_subjects=50 / n_models=4 が揃う
+## 0) 今回の更新点（論文比較可能性を上げる改修）
+次の一手として想定していた改善（a–d）のうち、**特に「論文比較可能性」を直撃する a/b を優先**して反映し、結果も更新した。
 
-出力例：
+- (a) **プロンプトを論文の “exact prompt” にさらに寄せる**
+  - 「**participant として答える**（Respond as though you are the individual…）」を明示し、  
+    さらに **許容される選択肢の固定**と **出力制約（余計な文字禁止）**を強めた。  
+    論文側もこの方針を明確に採用している。  
+    【論文根拠：prompt が participant として回答するよう指示／固定選択肢／余計な文字禁止】:contentReference[oaicite:0]{index=0}
+- (b) **尺度を 0–4（IPIP-NEO-120 のスコアリング）に揃える**
+  - 論文の Sample2（IPIP-NEO-120）は **0(very inaccurate)〜4(very accurate)** の 5件法。  
+    【論文根拠：0〜4 の明記】:contentReference[oaicite:1]{index=1}
+- (c) 日本語版 IPIP 項目（または標準尺度）へ寄せる（※要継続）
+- (d) 可能なら自己報告/人手評定を付与し妥当性相関を見る（※要継続）
+
+> 注：論文は **「各 item を別会話として投げる」「許容されない出力なら破棄して再プロンプト」**を明示している。  
+> 【論文根拠：invalid response は破棄して re-issue／各 item は new conversation】:contentReference[oaicite:2]{index=2}
+
+---
+
+## 1) 目的
+- 元論文「Assessing personality using zero-shot generative AI scoring ...」の **daily diary / idiographic narrative** に寄せて、  
+  日本語会話コーパスから **日常（自宅・少人数）** 条件を作り、Big5 を LLM zero-shot で採点する。
+- 論文では「**複数LLMの平均が最も強い**」「LLMを複数 rater とみなす」方向性が取られており、  
+  本実験でも **複数モデルの trait score を揃え、モデル平均（mean/sd）** を作る。
+
+（論文は Sample2 で “daily diaries” を用い、参加者が「その日の最も重要な出来事」を短く語る形式を採っている。）  
+【論文根拠：most significant event の daily diary prompt】:contentReference[oaicite:3]{index=3}
+
+---
+
+## 2) なぜ CSJ ではなく CEJC を選んだか
+- 本タスクは「日記的 / 自然な独り語り（diary-like）」に近い条件が必要。  
+- **CEJC は会話一覧メタデータに “場所（例：自宅）/ 活動（例：食事）/ 話者数” 等があり**、  
+  “自宅・少人数” の抽出が **メタデータ駆動で再現可能**。
+- 一方 CSJ は（少なくとも本タスクの狙いに対して）スピーチ寄りの条件になりやすく、  
+  diary-like 条件の構成が難しい（メタの粒度・条件設計の観点）。
+
+---
+
+## 3) 【重要】プロンプト比較（論文 Sample2 vs 本実装）
+論文は **“participant prompt engineering” が重要な設計選択**であることも議論しているため、ここを明示的に比較・固定する。  
+【論文根拠：participant prompt engineering の重要性】:contentReference[oaicite:4]{index=4}
+
+### 3.1 論文（Sample2: IPIP-NEO-120 daily diaries）の prompt 構造（要点）
+論文の Methods には Sample2 の **exact prompt** が掲載されている（全文は論文参照）。  
+ここでは **比較に必要な構造要素**だけを抜き出す：
+
+- **タスク宣言**：IPIP-NEO-120 の “質問（item）” に答える
+- **コンテキスト**：participant の daily diaries（全文 transcript）
+- **ロール指示**：**participant として答える**（本人になりきる）
+- **選択肢固定**：Very Inaccurate / Moderately Inaccurate / Neither ... / Moderately Accurate / Very Accurate
+- **出力制約**：**上の選択肢のいずれか “完全一致” の文字列のみ**。説明や句読点など一切禁止
+- **invalid 時の扱い**：許容されない出力は破棄して **re-issue し直す**
+- **運用**：item ごとに new conversation（独立に採点）
+
+【論文根拠：participant 指示＋選択肢固定＋出力制約】:contentReference[oaicite:5]{index=5}  
+【論文根拠：invalid は破棄して再プロンプト／item ごとに new conversation】:contentReference[oaicite:6]{index=6}
+
+また Sample2 の IPIP-NEO-120 は **0〜4 の 5件法**（0=very inaccurate, 4=very accurate）。  
+【論文根拠：0〜4 の明記】:contentReference[oaicite:7]{index=7}
+
+### 3.2 本実装（CEJC diary-like）の prompt 方針（今回の改修点）
+本実装は、上記構造に合わせて以下を **必須要件**として固定する：
+
+- **Respond as participant** を明示（“採点者”ではなく “本人”）
+- **固定選択肢**を論文 Sample2 と同等の5択に固定
+- **出力制約**：許容文字列のどれか **1行のみ**
+- **invalid は破棄して再試行**（最大リトライ回数を設定）
+- **スコアリング**：5択を **0–4** に写像して item score 化（→ trait 集計）
+
+> 実装確認のため、md 末尾に「プロンプト・尺度・items.csv の状態をダンプする検証コマンド」を用意（§7.3）。
+
+---
+
+## 4) 論文に近いモデル選定（ただし Tokyo リージョン制約あり）
+本実験は **Bedrock ap-northeast-1（Tokyo）縛り**の中で利用可能な高性能モデルを優先し、
+- `qwen.qwen3-235b-a22b-2507-v1:0`
+- `global.anthropic.claude-sonnet-4-20250514-v1:0`（on-demand 制約で global prefix 使用）
+- `deepseek.v3-v1:0`
+- `openai.gpt-oss-120b-1:0`
+を採用した。
+
+---
+
+## 5) 成果物（最終出力）
 - `artifacts/big5/llm_scores/model=<...>/trait_scores.parquet`
 - `artifacts/big5/llm_scores/model=<...>/item_scores.parquet`
 - `artifacts/big5/llm_scores/model=<...>/cronbach_alpha.csv`
 - `artifacts/big5/llm_scores/llm_avg_manifest_best.csv`
-- `artifacts/big5/llm_scores/trait_scores_llm_average_all.parquet`
-- `artifacts/big5/llm_scores/trait_scores_llm_average_full50_3models.parquet`（※ファイル名は歴史的経緯。実際は n_models=4）
 - `artifacts/big5/llm_scores/trait_scores_llm_average_strict_allmodels.parquet`
 
 ---
 
-## 再現手順（コマンド）
+## 6) 再現手順（コマンド）
 前提：
 - Python 3.12 / venv
 - AWS 認証情報（`AWS_PROFILE` 等）
 - Bedrock region: `ap-northeast-1`
 
-### 0) 入力・前提確認
+### 6.1 入力・前提確認
 ```bash
 python -V
 aws sts get-caller-identity
 ls -la artifacts/big5/items.csv
 ````
 
-### 1) CEJC メタデータ確認（convlist.parquet の存在・中身）
+### 6.2 CEJC メタデータ確認（convlist.parquet）
 
 ```bash
 ls -la artifacts/tmp_meta/cejc_convlist.parquet
@@ -75,10 +125,9 @@ print(df.head(3).to_string(index=False))
 PY
 ```
 
-（convlist.parquet が無い場合は、手元で成功した scrape スクリプトを 1 本に固定して実行し、ログを保存する）
+（convlist.parquet が無い場合：scrape を 1 本に固定して実行）
 
 ```bash
-# 例：リポジトリ内の実在スクリプト名に合わせて1本に固定すること
 python scripts/cejc/scrape_cejc_convlist_no_lxml.py \
   --out_parquet artifacts/tmp_meta/cejc_convlist.parquet \
   --out_top_tsv artifacts/tmp_meta/cejc_diary_candidates_top200.tsv \
@@ -86,7 +135,7 @@ python scripts/cejc/scrape_cejc_convlist_no_lxml.py \
 | tee artifacts/tmp_meta/cejc_meta_profile.txt
 ```
 
-### 2) diary-like（自宅・少人数）IDリスト作成（メタデータ駆動）
+### 6.3 diary-like（自宅・少人数）IDリスト作成（メタデータ駆動）
 
 ```bash
 python - <<'PY'
@@ -127,7 +176,7 @@ print("OK:", out_preview)
 PY
 ```
 
-### 3) utterances から「会話ごとのトップ話者」を抽出し、擬似モノローグ化（Top1）
+### 6.4 utterances から「会話ごとのトップ話者」を抽出し擬似モノローグ化（Top1）
 
 ```bash
 python - <<'PY'
@@ -170,9 +219,9 @@ print(out.head(5).to_string(index=False))
 PY
 ```
 
-### 4) Bedrock で Big5 採点（複数モデル）
+### 6.5 Bedrock で Big5 採点（複数モデル）
 
-models.txt
+`artifacts/big5/models.txt`
 
 ```bash
 cat > artifacts/big5/models.txt <<'TXT'
@@ -212,343 +261,171 @@ done < artifacts/big5/models.txt
 
 * `ValidationException: on-demand throughput isn’t supported`
   → `global.` prefix 付きの model id に置換して通す（例：Claude Sonnet 4）。
-* `trait_scores.parquet` の列が long format（`trait` / `trait_score`）なので、平均集計では pivot が必要。
 
 ---
 
-## 5) trait_scores の subject mean & LLM平均（mean/sd/n_models）を作成（最終形）
+## 7) 結果サマリ（今回の最新結果）
 
-（※すでに生成済みの成果物と同等のものを、再現可能な形で生成する “確定版” スクリプト）
-
-```bash
-python - <<'PY'
-import glob, os, pandas as pd
-
-ROOT="artifacts/big5/llm_scores"
-paths=glob.glob(f"{ROOT}/model=*/trait_scores.parquet")
-
-rows=[]
-for p in paths:
-    df=pd.read_parquet(p)
-    # 必須列
-    need={"conversation_id","speaker_id","trait"}
-    if not need.issubset(df.columns):
-        continue
-    subj=df[["conversation_id","speaker_id"]].drop_duplicates()
-    rows.append({
-        "path": p,
-        "model_id": df["model_id"].iloc[0] if "model_id" in df.columns and len(df) else os.path.basename(os.path.dirname(p)),
-        "n_subjects": len(subj),
-    })
-
-manifest=pd.DataFrame(rows).sort_values(["model_id","n_subjects","path"], ascending=[True,False,True])
-# model_id ごとに最大 n_subjects のパスを採用（重複runの整理）
-picked=(manifest.groupby("model_id", as_index=False).head(1)).reset_index(drop=True)
-
-print("[INFO] picked models =", len(picked))
-print(picked[["model_id","n_subjects","path"]].to_string(index=False))
-
-picked.to_csv(f"{ROOT}/llm_avg_manifest_best.csv", index=False)
-
-def make_subject_mean(path: str) -> pd.DataFrame:
-    df=pd.read_parquet(path)
-    score_col="trait_score" if "trait_score" in df.columns else "score"
-    wide=(df.pivot_table(index=["conversation_id","speaker_id"],
-                         columns="trait", values=score_col, aggfunc="mean")
-            .reset_index())
-    # trait order
-    for t in ["A","C","E","N","O"]:
-        if t not in wide.columns:
-            wide[t]=pd.NA
-    wide=wide[["conversation_id","speaker_id","A","C","E","N","O"]]
-    wide["subject_key"]=wide["conversation_id"].astype(str)+"|"+wide["speaker_id"].astype(str)
-    return wide
-
-# 各モデルの subject mean を保存
-subj_means=[]
-for _,r in picked.iterrows():
-    path=r["path"]
-    model=r["model_id"]
-    outdir=os.path.dirname(path)
-    outpath=os.path.join(outdir, "trait_scores_subject_mean.parquet")
-    sm=make_subject_mean(path)
-    sm["model_id"]=model
-    sm.to_parquet(outpath, index=False)
-    print("[OK] wrote:", outpath, "n_subjects=", sm["subject_key"].nunique())
-    subj_means.append(sm)
-
-all_sm=pd.concat(subj_means, ignore_index=True)
-
-# LLM平均（mean / sd / n_models）
-g=all_sm.groupby(["conversation_id","speaker_id","subject_key"], as_index=False).agg(
-    A=("A","mean"), C=("C","mean"), E=("E","mean"), N=("N","mean"), O=("O","mean"),
-    sd_A=("A","std"), sd_C=("C","std"), sd_E=("E","std"), sd_N=("N","std"), sd_O=("O","std"),
-    n_models=("model_id","nunique"),
-)
-g["sd_A"]=g["sd_A"].fillna(0.0)
-g["sd_C"]=g["sd_C"].fillna(0.0)
-g["sd_E"]=g["sd_E"].fillna(0.0)
-g["sd_N"]=g["sd_N"].fillna(0.0)
-g["sd_O"]=g["sd_O"].fillna(0.0)
-
-out=f"{ROOT}/trait_scores_llm_average_strict_allmodels.parquet"
-g.to_parquet(out, index=False)
-
-print("[OK] wrote:", out, "n_subjects=", g["subject_key"].nunique(),
-      "min_n_models=", int(g["n_models"].min()), "max_n_models=", int(g["n_models"].max()))
-print("[HEAD]")
-print(g.head(5).to_string(index=False))
-PY
-```
-
-### 6) 出力確認（エビデンス）
-
-trait_scores の探索（重複runの存在も含めて確認）
-
-```bash
-find artifacts/big5/llm_scores -maxdepth 2 -type f -name trait_scores.parquet -print
-```
-
----
-
-## 注意（データ取り扱い）
-
-* corpora の本文（発話テキスト）や parquet 本体は、ライセンス・容量の観点で **git 管理対象にしない**。
-* git に残すのは **再現コマンド / スクリプト / ログ**（本 md）を中心にする。
-
-
----
-
-## 8) 論文の表と比較するための「横並び」サマリ（最終系の出力を結合）
-
-この節は **最終出力（4モデル×50subject）** から自動生成した比較表。
-GitHubでも崩れにくいよう、セルの色分けは **絵文字**（🟦🟩🟨🟧🟥）で表現する。
-
-**色の凡例（値の大きさ）**：🟦 <2.5 / 🟩 2.5–3.0 / 🟨 3.0–3.5 / 🟧 3.5–4.0 / 🟥 ≥4.0
-
-### 8.1 採用モデル（Tokyoリージョン制約下）
-
-| Model (short) | model_id | n_subjects | trait_scores.parquet |
-| --- | --- | --- | --- |
-| Claude Sonnet 4 | global.anthropic.claude-sonnet-4-20250514-v1:0 | 50 | artifacts/big5/llm_scores/model=global_anthropic_claude-sonnet-4-20250514-v1_0/trait_scores.parquet |
-| DeepSeek V3 | deepseek.v3-v1:0 | 50 | artifacts/big5/llm_scores/model=deepseek_v3-v1_0/trait_scores.parquet |
-| GPT-OSS 120B | openai.gpt-oss-120b-1:0 | 50 | artifacts/big5/llm_scores/model=openai_gpt-oss-120b-1_0/trait_scores.parquet |
-| Qwen3-235B | qwen.qwen3-235b-a22b-2507-v1:0 | 50 | artifacts/big5/llm_scores/model=qwen_qwen3-235b-a22b-2507-v1_0/trait_scores.parquet |
-
-### 8.2 Cronbach’s alpha（モデル別 / trait別）
+### 7.1 Cronbach’s alpha（モデル別 / trait別）
 
 凡例：🟩>=0.70 / 🟨0.50–0.70 / 🟥<0.50
 
-| Model | A | C | E | N | O |
-| --- | --- | --- | --- | --- | --- |
-| Claude Sonnet 4 | 🟨0.579 | 🟥0.137 | 🟨0.632 | 🟥0.318 | 🟥0.410 |
-| DeepSeek V3 | 🟥0.376 | 🟥0.144 | 🟥0.231 | 🟥0.408 | 🟥0.412 |
-| GPT-OSS 120B | 🟨0.661 | 🟥0.335 | 🟥0.478 | 🟨0.517 | 🟥0.474 |
-| Qwen3-235B | 🟨0.653 | 🟥0.434 | 🟨0.549 | 🟥0.327 | 🟥0.475 |
+| Model           | A       | C       | E       | N       | O       |
+| --------------- | ------- | ------- | ------- | ------- | ------- |
+| DeepSeek V3     | 🟨0.549 | 🟥0.451 | 🟨0.642 | 🟨0.649 | 🟨0.544 |
+| Claude Sonnet 4 | 🟥0.378 | 🟨0.646 | 🟩0.760 | 🟨0.542 | 🟨0.571 |
+| GPT-OSS 120B    | 🟨0.658 | 🟨0.624 | 🟩0.841 | 🟨0.693 | 🟨0.544 |
+| Qwen3-235B      | 🟨0.618 | 🟨0.660 | 🟥0.395 | 🟨0.563 | 🟥0.422 |
 
-### 8.3 モデル別：平均Big5（50subjectの平均）
+参考：論文 Sample2 は **平均αが高く、最小でも 0.70** と報告されている（本実験はそこまで届いていない）。
+【論文根拠：Sample2 の α（平均0.88、最低0.70）】
 
-| Model | A | C | E | N | O |
-| --- | --- | --- | --- | --- | --- |
-| Claude Sonnet 4 | 🟨3.14 | 🟨3.13 | 🟨3.28 | 🟨3.18 | 🟨3.20 |
-| DeepSeek V3 | 🟨3.37 | 🟩2.84 | 🟩2.91 | 🟩2.93 | 🟧3.59 |
-| GPT-OSS 120B | 🟧3.52 | 🟩2.61 | 🟨3.31 | 🟨3.25 | 🟨3.24 |
-| Qwen3-235B | 🟨3.37 | 🟩2.95 | 🟩2.96 | 🟨3.24 | 🟨3.37 |
-| LLM Mean (4 models) | 🟨3.35 | 🟩2.88 | 🟨3.11 | 🟨3.15 | 🟨3.35 |
+### 7.2 モデル別：平均Big5（50subjectの平均、0–4尺度）
 
-補足：モデル間のばらつき（subjectごとの4モデルSDの平均）
+色分け（見やすさのための区分）：🟦<1.5 / 🟩1.5–2.0 / 🟨2.0–2.5 / 🟧2.5–3.0 / 🟥>=3.0
 
-| Metric | A | C | E | N | O |
-| --- | --- | --- | --- | --- | --- |
-| mean(sd across models) | 0.299 | 0.332 | 0.345 | 0.346 | 0.307 |
+| Model                   |          A |          C |          E |          N |          O |
+| ----------------------- | ---------: | ---------: | ---------: | ---------: | ---------: |
+| DeepSeek V3             |     🟧2.88 |     🟦1.23 |     🟦1.48 |     🟨2.02 |     🟨2.30 |
+| Claude Sonnet 4         |     🟧2.80 |     🟩1.62 |     🟨2.38 |     🟨2.39 |     🟨2.35 |
+| GPT-OSS 120B            |     🟧2.58 |     🟩1.55 |     🟨2.19 |     🟧2.70 |     🟨2.40 |
+| Qwen3-235B              |     🟧2.44 |     🟩1.82 |     🟦1.34 |     🟨2.25 |     🟨2.32 |
+| **LLM Mean (4 models)** | **🟧2.68** | **🟩1.56** | **🟨1.85** | **🟨2.34** | **🟨2.34** |
 
-### 8.4 subjectごとの横並び（trait別：Top10 / Bottom10）
+所見（数値の読み）：
 
+* **C（誠実性）と E（外向性）が全体に低め**。データが “自宅・少人数会話→Top1話者の擬似モノローグ” であり、
+  論文の「daily diary（最重要イベント）」と情報分布が異なる可能性がある（§8で考察）。
+* α はモデル×trait でまだ不安定（🟥が残る）。特に Qwen の E/O が低い。
 
-#### A (Agreeableness)
+### 7.3 検証用：プロンプト／尺度／items の状態を md に残す（推奨）
 
-**Top10（LLM平均が高い順）**
+「この結果が **どのプロンプト** と **どの尺度** と **どの item セット** から出たか」を確実に追跡するため、
+以下を実行してログ化しておく（次回以降の比較が一気に楽になる）。
 
-| subject_key | LLM_mean | LLM_sd | Claude Sonnet 4 | DeepSeek V3 | GPT-OSS 120B | Qwen3-235B |
-| --- | --- | --- | --- | --- | --- | --- |
-| T021_016|IC01 | 🟥4.58 | 0.300 | 🟥4.17 | 🟥4.67 | 🟥5.00 | 🟥4.50 |
-| K009_008|IC03 | 🟥4.25 | 0.449 | 🟧3.83 | 🟥5.00 | 🟥4.17 | 🟥4.00 |
-| K008_003|IC01 | 🟥4.08 | 0.300 | 🟧3.67 | 🟥4.17 | 🟥4.50 | 🟥4.00 |
-| T021_015|N10A | 🟧3.96 | 0.477 | 🟨3.33 | 🟥4.50 | 🟥4.33 | 🟧3.67 |
-| T021_014|IC01 | 🟧3.88 | 0.320 | 🟧3.50 | 🟧3.67 | 🟥4.33 | 🟥4.00 |
-| K005_002|IC01 | 🟧3.83 | 0.425 | 🟨3.33 | 🟧3.67 | 🟥4.50 | 🟧3.83 |
-| T018_021|IC02 | 🟧3.79 | 0.298 | 🟨3.33 | 🟥4.17 | 🟧3.83 | 🟧3.83 |
-| K001_019|IC01 | 🟧3.75 | 0.363 | 🟨3.33 | 🟧3.67 | 🟥4.33 | 🟧3.67 |
-| T016_006a|IC02 | 🟧3.67 | 0.707 | 🟨3.00 | 🟥4.67 | 🟥4.00 | 🟨3.00 |
-| T009_001|IC02 | 🟧3.67 | 0.354 | 🟨3.33 | 🟨3.33 | 🟥4.17 | 🟧3.83 |
+```bash
+python - <<'PY'
+import pandas as pd, textwrap, json, re
 
-**Bottom10（LLM平均が低い順）**
+items="artifacts/big5/items.csv"
+df=pd.read_csv(items)
 
-| subject_key | LLM_mean | LLM_sd | Claude Sonnet 4 | DeepSeek V3 | GPT-OSS 120B | Qwen3-235B |
-| --- | --- | --- | --- | --- | --- | --- |
-| T013_007|IC01 | 🟩2.67 | 0.204 | 🟩2.50 | 🟩2.67 | 🟩2.50 | 🟨3.00 |
-| T022_009|IC02 | 🟩2.83 | 0.204 | 🟩2.50 | 🟩2.83 | 🟨3.00 | 🟨3.00 |
-| T016_006b|IC02 | 🟩2.92 | 0.276 | 🟨3.00 | 🟩2.67 | 🟩2.67 | 🟨3.33 |
-| K006_002a|IC02 | 🟩2.92 | 0.276 | 🟨3.00 | 🟩2.67 | 🟩2.67 | 🟨3.33 |
-| K007_017|IC01 | 🟩2.96 | 0.072 | 🟨3.00 | 🟨3.00 | 🟨3.00 | 🟩2.83 |
-| K012_007b|N10A | 🟩2.96 | 0.247 | 🟨3.33 | 🟨3.00 | 🟩2.67 | 🟩2.83 |
-| C002_004|IC01 | 🟨3.04 | 0.072 | 🟨3.00 | 🟨3.00 | 🟨3.00 | 🟨3.17 |
-| K007_003|IC01 | 🟨3.04 | 0.138 | 🟨3.00 | 🟨3.17 | 🟩2.83 | 🟨3.17 |
-| S001_019|IC02 | 🟨3.04 | 0.182 | 🟩2.83 | 🟨3.00 | 🟨3.33 | 🟨3.00 |
-| T009_005b|IC02 | 🟨3.08 | 0.144 | 🟨3.17 | 🟨3.17 | 🟨3.17 | 🟩2.83 |
+print("== items.csv profile ==")
+print("shape:", df.shape)
+print("cols:", list(df.columns))
+for col in ["trait","key","reverse","is_reverse","score_0","score_4"]:
+    if col in df.columns:
+        print("has:", col)
 
-#### C (Conscientiousness)
+if "trait" in df.columns:
+    print("\n-- n_items by trait --")
+    print(df["trait"].value_counts().to_string())
 
-**Top10（LLM平均が高い順）**
+rev_col = "reverse" if "reverse" in df.columns else ("is_reverse" if "is_reverse" in df.columns else None)
+if rev_col:
+    print("\n-- reverse flags by trait --")
+    print(df.groupby("trait")[rev_col].sum().to_string())
 
-| subject_key | LLM_mean | LLM_sd | Claude Sonnet 4 | DeepSeek V3 | GPT-OSS 120B | Qwen3-235B |
-| --- | --- | --- | --- | --- | --- | --- |
-| T016_003|IC02 | 🟧3.71 | 0.415 | 🟨3.33 | 🟥4.33 | 🟨3.33 | 🟧3.83 |
-| T018_021|IC02 | 🟧3.54 | 0.462 | 🟨3.33 | 🟥4.33 | 🟨3.17 | 🟨3.33 |
-| T021_016|IC01 | 🟨3.42 | 0.344 | 🟧3.50 | 🟧3.67 | 🟩2.83 | 🟧3.67 |
-| T016_006b|IC02 | 🟨3.38 | 0.182 | 🟨3.33 | 🟨3.33 | 🟧3.67 | 🟨3.17 |
-| T013_005|IC01 | 🟨3.21 | 0.138 | 🟨3.33 | 🟨3.00 | 🟨3.17 | 🟨3.33 |
-| T022_007b|IC01 | 🟨3.17 | 0.204 | 🟨3.33 | 🟨3.33 | 🟩2.83 | 🟨3.17 |
-| T009_001|IC02 | 🟨3.17 | 0.204 | 🟨3.33 | 🟨3.33 | 🟩2.83 | 🟨3.17 |
-| T023_001|IC02 | 🟨3.12 | 0.182 | 🟨3.33 | 🟩2.83 | 🟨3.17 | 🟨3.17 |
-| T021_007|IC01 | 🟨3.12 | 0.273 | 🟨3.33 | 🟨3.33 | 🟩2.67 | 🟨3.17 |
-| T008_004|IC01 | 🟨3.08 | 0.144 | 🟨3.00 | 🟨3.33 | 🟨3.00 | 🟨3.00 |
+# プロンプトは実装側の定数名に合わせて取り出す（例：PROMPT_TMPL / PROMPT_TEMPLATE 等）
+# ここではファイルを直接読む（手元の実装に合わせてパス調整）
+path="scripts/big5/score_big5_bedrock.py"
+print("\n== prompt template snapshot (first 200 lines grep) ==")
+with open(path, "r", encoding="utf-8") as f:
+    txt=f.read()
 
-**Bottom10（LLM平均が低い順）**
+# ありがちな定数名を探索
+cands=["PROMPT_TMPL","PROMPT_TEMPLATE","SYSTEM_PROMPT","TEMPLATE"]
+for k in cands:
+    if k in txt:
+        print(f"\n-- found token: {k} --")
 
-| subject_key | LLM_mean | LLM_sd | Claude Sonnet 4 | DeepSeek V3 | GPT-OSS 120B | Qwen3-235B |
-| --- | --- | --- | --- | --- | --- | --- |
-| K007_006|IC01 | 🟦2.29 | 0.217 | 🟩2.67 | 🟦2.17 | 🟦2.17 | 🟦2.17 |
-| T016_005|IC05 | 🟦2.29 | 0.247 | 🟩2.67 | 🟦2.33 | 🟦2.00 | 🟦2.17 |
-| T022_007a|IC01 | 🟦2.42 | 0.546 | 🟨3.33 | 🟦2.00 | 🟦2.00 | 🟦2.33 |
-| T013_001|IC01 | 🟦2.46 | 0.380 | 🟩2.83 | 🟦1.83 | 🟩2.67 | 🟩2.50 |
-| T009_002|IC02 | 🟩2.50 | 0.408 | 🟨3.17 | 🟩2.50 | 🟦2.17 | 🟦2.17 |
-| K005_002|IC01 | 🟩2.54 | 0.431 | 🟨3.17 | 🟩2.67 | 🟦2.00 | 🟦2.33 |
-| T008_009|IC01 | 🟩2.54 | 0.320 | 🟩2.67 | 🟩2.83 | 🟦2.00 | 🟩2.67 |
-| K006_003a|IC02 | 🟩2.54 | 0.594 | 🟩2.50 | 🟦1.67 | 🟩2.67 | 🟨3.33 |
-| T008_003|IC01 | 🟩2.58 | 0.433 | 🟨3.00 | 🟦2.33 | 🟦2.00 | 🟨3.00 |
-| K007_003|IC01 | 🟩2.62 | 0.415 | 🟨3.00 | 🟨3.00 | 🟩2.50 | 🟦2.00 |
-
-#### E (Extraversion)
-
-**Top10（LLM平均が高い順）**
-
-| subject_key | LLM_mean | LLM_sd | Claude Sonnet 4 | DeepSeek V3 | GPT-OSS 120B | Qwen3-235B |
-| --- | --- | --- | --- | --- | --- | --- |
-| T021_016|IC01 | 🟥4.00 | 0.425 | 🟥4.50 | 🟥4.00 | 🟥4.17 | 🟨3.33 |
-| K007_017|IC01 | 🟧3.79 | 0.138 | 🟧3.83 | 🟥4.00 | 🟧3.67 | 🟧3.67 |
-| T009_005a|IC02 | 🟧3.75 | 0.433 | 🟨3.33 | 🟥4.00 | 🟥4.33 | 🟨3.33 |
-| T018_021|IC02 | 🟧3.71 | 0.247 | 🟥4.00 | 🟧3.67 | 🟨3.33 | 🟧3.83 |
-| T007_010|IC04 | 🟧3.62 | 0.447 | 🟧3.67 | 🟨3.33 | 🟥4.33 | 🟨3.17 |
-| T021_007|IC01 | 🟧3.50 | 0.425 | 🟥4.00 | 🟨3.00 | 🟧3.83 | 🟨3.17 |
-| T022_007a|IC01 | 🟨3.46 | 0.415 | 🟨3.33 | 🟧3.83 | 🟧3.83 | 🟩2.83 |
-| S001_011|IC02 | 🟨3.42 | 0.493 | 🟧3.67 | 🟨3.33 | 🟥4.00 | 🟩2.67 |
-| T009_002|IC02 | 🟨3.42 | 0.186 | 🟨3.17 | 🟧3.67 | 🟧3.50 | 🟨3.33 |
-| K005_002|IC01 | 🟨3.42 | 0.750 | 🟨3.17 | 🟩2.67 | 🟥4.67 | 🟨3.17 |
-
-**Bottom10（LLM平均が低い順）**
-
-| subject_key | LLM_mean | LLM_sd | Claude Sonnet 4 | DeepSeek V3 | GPT-OSS 120B | Qwen3-235B |
-| --- | --- | --- | --- | --- | --- | --- |
-| T023_007|IC04 | 🟩2.54 | 0.361 | 🟨3.00 | 🟦2.00 | 🟩2.67 | 🟩2.50 |
-| T010_002b|IC02 | 🟩2.62 | 0.380 | 🟨3.00 | 🟦2.00 | 🟩2.67 | 🟩2.83 |
-| T017_016|IC02 | 🟩2.67 | 0.312 | 🟨3.00 | 🟦2.17 | 🟩2.67 | 🟩2.83 |
-| K006_002b|IC02 | 🟩2.67 | 0.408 | 🟨3.33 | 🟦2.33 | 🟦2.33 | 🟩2.67 |
-| T013_007|IC01 | 🟩2.71 | 0.519 | 🟦2.17 | 🟦2.33 | 🟧3.50 | 🟩2.83 |
-| K006_002a|IC02 | 🟩2.71 | 0.247 | 🟨3.00 | 🟦2.33 | 🟩2.67 | 🟩2.83 |
-| T013_001|IC01 | 🟩2.75 | 0.300 | 🟩2.83 | 🟦2.33 | 🟨3.17 | 🟩2.67 |
-| K012_003a|IC01 | 🟩2.79 | 0.217 | 🟨3.00 | 🟨3.00 | 🟩2.67 | 🟩2.50 |
-| T009_001|IC02 | 🟩2.79 | 0.462 | 🟨3.17 | 🟨3.33 | 🟦2.33 | 🟦2.33 |
-| T021_015|N10A | 🟩2.83 | 0.391 | 🟧3.50 | 🟩2.50 | 🟩2.67 | 🟩2.67 |
-
-#### N (Neuroticism)
-
-**Top10（LLM平均が高い順）**
-
-| subject_key | LLM_mean | LLM_sd | Claude Sonnet 4 | DeepSeek V3 | GPT-OSS 120B | Qwen3-235B |
-| --- | --- | --- | --- | --- | --- | --- |
-| K007_003|IC01 | 🟧3.83 | 0.312 | 🟨3.33 | 🟥4.17 | 🟥4.00 | 🟧3.83 |
-| T021_014|IC01 | 🟧3.79 | 0.361 | 🟧3.83 | 🟧3.67 | 🟥4.33 | 🟨3.33 |
-| T022_007b|IC01 | 🟧3.71 | 0.431 | 🟧3.50 | 🟥4.33 | 🟧3.83 | 🟨3.17 |
-| T010_002b|IC02 | 🟧3.58 | 0.382 | 🟨3.17 | 🟧3.67 | 🟥4.17 | 🟨3.33 |
-| T017_016|IC02 | 🟧3.50 | 0.312 | 🟨3.17 | 🟨3.33 | 🟥4.00 | 🟧3.50 |
-| K005_002|IC01 | 🟨3.46 | 0.361 | 🟨3.33 | 🟧3.50 | 🟥4.00 | 🟨3.00 |
-| T023_001|IC02 | 🟨3.46 | 0.273 | 🟧3.50 | 🟨3.00 | 🟧3.67 | 🟧3.67 |
-| T013_005|IC01 | 🟨3.46 | 0.298 | 🟨3.17 | 🟧3.67 | 🟨3.17 | 🟧3.83 |
-| T023_007|IC04 | 🟨3.42 | 0.144 | 🟨3.33 | 🟧3.67 | 🟨3.33 | 🟨3.33 |
-| T008_009|IC01 | 🟨3.38 | 0.217 | 🟨3.17 | 🟧3.67 | 🟧3.50 | 🟨3.17 |
-
-**Bottom10（LLM平均が低い順）**
-
-| subject_key | LLM_mean | LLM_sd | Claude Sonnet 4 | DeepSeek V3 | GPT-OSS 120B | Qwen3-235B |
-| --- | --- | --- | --- | --- | --- | --- |
-| T021_016|IC01 | 🟦2.42 | 0.629 | 🟩2.83 | 🟦1.33 | 🟩2.83 | 🟩2.67 |
-| T006_005|IC01 | 🟩2.54 | 0.361 | 🟨3.00 | 🟦2.00 | 🟩2.50 | 🟩2.67 |
-| T018_021|IC02 | 🟩2.58 | 0.559 | 🟨3.17 | 🟦1.67 | 🟩2.67 | 🟩2.83 |
-| S001_019|IC02 | 🟩2.58 | 0.382 | 🟨3.00 | 🟦2.00 | 🟩2.50 | 🟩2.83 |
-| K006_002a|IC02 | 🟩2.71 | 0.557 | 🟨3.00 | 🟩2.67 | 🟦1.83 | 🟨3.33 |
-| K008_003|IC01 | 🟩2.75 | 0.449 | 🟨3.00 | 🟦2.00 | 🟩2.83 | 🟨3.17 |
-| K006_002b|IC02 | 🟩2.79 | 0.380 | 🟨3.00 | 🟩2.83 | 🟦2.17 | 🟨3.17 |
-| T021_007|IC01 | 🟩2.79 | 0.273 | 🟨3.00 | 🟦2.33 | 🟩2.83 | 🟨3.00 |
-| K009_008|IC03 | 🟩2.83 | 0.312 | 🟨3.00 | 🟦2.33 | 🟨3.17 | 🟩2.83 |
-| T016_005|IC05 | 🟩2.92 | 0.344 | 🟨3.00 | 🟦2.33 | 🟨3.17 | 🟨3.17 |
-
-#### O (Openness)
-
-**Top10（LLM平均が高い順）**
-
-| subject_key | LLM_mean | LLM_sd | Claude Sonnet 4 | DeepSeek V3 | GPT-OSS 120B | Qwen3-235B |
-| --- | --- | --- | --- | --- | --- | --- |
-| T021_016|IC01 | 🟥4.12 | 0.247 | 🟥4.00 | 🟥4.50 | 🟧3.83 | 🟥4.17 |
-| K005_002|IC01 | 🟥4.08 | 0.250 | 🟧3.67 | 🟥4.17 | 🟥4.33 | 🟥4.17 |
-| T018_021|IC02 | 🟥4.04 | 0.072 | 🟥4.00 | 🟥4.17 | 🟥4.00 | 🟥4.00 |
-| T018_017|IC02 | 🟧3.96 | 0.380 | 🟧3.67 | 🟥4.33 | 🟥4.33 | 🟧3.50 |
-| T009_005a|IC02 | 🟧3.88 | 0.397 | 🟨3.33 | 🟥4.33 | 🟧3.67 | 🟥4.17 |
-| T022_007a|IC01 | 🟧3.83 | 0.425 | 🟨3.33 | 🟥4.17 | 🟥4.33 | 🟧3.50 |
-| T023_007|IC04 | 🟧3.83 | 0.264 | 🟧3.50 | 🟥4.17 | 🟥4.00 | 🟧3.67 |
-| T013_001|IC01 | 🟧3.83 | 0.589 | 🟧3.50 | 🟨3.33 | 🟥4.83 | 🟧3.67 |
-| T006_005|IC01 | 🟧3.75 | 0.144 | 🟧3.67 | 🟧3.67 | 🟥4.00 | 🟧3.67 |
-| S001_011|IC02 | 🟧3.71 | 0.217 | 🟨3.33 | 🟧3.83 | 🟧3.83 | 🟧3.83 |
-
-**Bottom10（LLM平均が低い順）**
-
-| subject_key | LLM_mean | LLM_sd | Claude Sonnet 4 | DeepSeek V3 | GPT-OSS 120B | Qwen3-235B |
-| --- | --- | --- | --- | --- | --- | --- |
-| T014_001b|IC01 | 🟩2.54 | 0.431 | 🟨3.00 | 🟦1.83 | 🟩2.67 | 🟩2.67 |
-| K006_003a|IC02 | 🟩2.67 | 0.540 | 🟩2.83 | 🟩2.67 | 🟦1.83 | 🟨3.33 |
-| T017_016|IC02 | 🟩2.79 | 0.217 | 🟨3.00 | 🟩2.67 | 🟩2.50 | 🟨3.00 |
-| K012_007b|N10A | 🟩2.88 | 0.431 | 🟨3.00 | 🟨3.00 | 🟦2.17 | 🟨3.33 |
-| K008_003|IC01 | 🟩2.88 | 0.361 | 🟨3.00 | 🟨3.33 | 🟦2.33 | 🟩2.83 |
-| T009_001|IC02 | 🟩2.92 | 0.186 | 🟩2.83 | 🟨3.00 | 🟨3.17 | 🟩2.67 |
-| T022_009|IC02 | 🟩2.92 | 0.186 | 🟨3.00 | 🟩2.67 | 🟩2.83 | 🟨3.17 |
-| K012_003a|IC01 | 🟩2.92 | 0.363 | 🟨3.00 | 🟨3.33 | 🟦2.33 | 🟨3.00 |
-| C002_004|IC01 | 🟩2.96 | 0.247 | 🟨3.00 | 🟨3.33 | 🟩2.67 | 🟩2.83 |
-| C002_003|IC01 | 🟩2.96 | 0.380 | 🟨3.00 | 🟨3.33 | 🟦2.33 | 🟨3.17 |
+# 先頭200行だけ表示（安全）
+head="\n".join(txt.splitlines()[:200])
+print(head)
+PY | tee artifacts/big5/prompt_items_snapshot_20260215.txt
+```
 
 ---
 
-## A/C/E/N/O（Big Five）の意味：日本語訳＋説明（論文の用語に合わせて）
+## 8) 考察（論文との比較と、本実験の結果の位置づけ）
 
-論文内でも Big Five の5特性として **Extraversion / Agreeableness / Conscientiousness / Neuroticism / Openness** を扱っています。あなたの表の **A/C/E/N/O** は一般に以下の対応です（表記は慣例）：
+### 8.1 いま「どこまで論文比較可能」か
 
-* **A = Agreeableness（協調性）**
-  思いやり、他者配慮、協力的・温和さ。高いほど対人摩擦が少なく、共感的になりやすい。
-* **C = Conscientiousness（誠実性／勤勉性）**
-  計画性、自己統制、責任感、やり抜く力。高いほど几帳面でルール遵守的になりやすい。
-* **E = Extraversion（外向性）**
-  活動性、社交性、ポジティブ感情の出やすさ。高いほど対人刺激を求めやすい。
-* **N = Neuroticism（神経症傾向／情緒不安定性）**
-  不安、落ち込み、ストレス反応の強さ。高いほどネガティブ感情が出やすい。
-* **O = Openness（開放性／経験への開放性）**
-  好奇心、新奇性、想像力、価値観の柔軟性。高いほど新しい経験や抽象的思考に開かれやすい。
+* **プロンプト構造**と **0–4尺度**を論文 Sample2 に寄せたことで、
+  少なくとも「LLM を複数 rater として同一プロトコルで item レベル採点 → trait 化できる」点は比較可能性が上がった。
+  【論文根拠：participant として item に回答／選択肢固定／スコア変換】
+* 一方で論文 Sample2 は **(i) daily diary（最重要イベント）**、**(ii) 同一人物×複数日（idiographic）**、
+  **(iii) self-report（同一尺度）と相関評価** が揃っている。
+  本実験は **会話×話者（擬似モノローグ）**であり、外部基準（自己評定/人手評定）が未整備のため、
+  現段階の主張は「論文設計に寄せた再現可能パイプラインの構築＋内部一貫性の予備評価」まで。
+
+### 8.2 α（内部一貫性）が論文より低い理由の候補
+
+論文は Sample2 で α が高く（最低0.70）と報告されているが、本実験では trait/モデルにより 🟥が残る。
+【論文根拠：Sample2 の α（平均0.88、最低0.70）】
+
+原因候補（優先度順）：
+
+1. **項目セットの差**（本実験 items.csv が IPIP-NEO-120 と同等の120項目でない／翻訳・短縮・改変がある）
+2. **逆転項目（reverse-key）の扱い**（reverse の付け忘れ・適用漏れがあると平均も α も崩れる）
+3. **テキスト条件の差**（daily diary “最重要イベント” ではなく、会話からの Top1 抽出で “人格を示す情報密度” が落ちる）
+4. **出力分布の偏り**（モデルが安全に “低め/中立寄り” を選びやすい等）
+5. **言語差・文体差**（日本語会話→擬似モノローグ化の影響）
+
+> まずは §7.3 のスナップショットで「items と reverse の実態」を md に固定し、
+> その上で **(a) item 数を増やす／(b) reverse を監査する**のが最短。
 
 ---
 
-## 論文との比較と、本実験の結果の位置づけ（考察）
+## 9) 次の一手（論文比較可能性を“もう一段”上げる）
 
-本論文は、短い自由記述（思考の独り言／日次ダイアリー）を対象に、Big Five を複数の商用LLMでゼロショット採点し、**(a) モデル間で結果にばらつきはあるが、(b) 複数LLMの平均（LLMs average）が自己評定との一致で最も強い**こと、さらに **LLMを複数の「rater」とみなして平均するのが妥当**という推奨を示している。また、項目反応があるため内部一貫性（Cronbach’s α）も検討でき、サンプルによっては高い一貫性が得られつつ、特に Openness ではモデル間でαが低めになるケースがあると報告している。さらに、15分程度の自発的語りや複数日記（5–7本）で効果量が安定するという実務的示唆も述べている。
+（あなたの方針 a–d を、実装優先度つきで再掲）
 
-これに対し本実験は、日本語コーパス（CEJC）から **「自宅・少人数」というメタデータ条件で diary-like に寄せた会話を抽出し、Top1話者を擬似モノローグとして整形**した上で、Bedrock（Tokyoリージョン制約下）で **4モデルの Big5 採点 → subject mean → LLM平均（mean/sd/n_models）**までを再現可能な形で構築した。結果として、少なくとも「複数LLMを同一プロトコルで回し、モデル平均を作る」パイプラインは論文の主張どおり成立し、かつモデル間の分散（sd）がゼロではないことから、**平均化が“wisdom of the crowds”的に有利になり得る**という方向性は整合的である（本実験でも n_models=4 を全subjectで担保）。
+1. **(a) プロンプトを論文 exact prompt にさらに寄せる（participant 明示＋固定選択肢＋出力制約）**
 
-一方で本実験は、(1) 対応する自己評定（self-report）が存在しないため「一致（convergence）」そのものは未検証であること、(2) subject を「会話×話者」と定義しており論文の「個人×複数日記（idiographic narratives）」設計と完全一致ではないこと、(3) 日本語会話・擬似モノローグ化・発話長などが心理測定特性（特に内部一貫性）に影響し得ること、が重要な差分である。したがって現段階の結論は「論文の枠組みを日本語コーパスに移植するための再現可能な計算基盤ができた（工学的再現）」であり、次段では **(a) 同一話者の複数会話を束ねて“個人×複数日記”に近づける、(b) 発話長（分）や日記本数を増やして安定性を確認する、(c) 人手評定または自己評定に相当する外部基準を用意して収束相関を評価する**、という順に論文比較（妥当性検証）へ進めるのが合理的である。
+   * → 今回反映。今後は §7.3 で prompt をログ固定して比較可能にする。
+2. **(b) 0–4尺度に揃える**
 
+   * → 今回反映（IPIP-NEO-120 は 0–4）。【論文根拠】【：0–4】
+3. **(c) 日本語版IPIP項目（または対応する標準尺度）へ寄せる**
+
+   * 可能なら「翻訳の根拠（出典）」が明示できる項目群に差し替え、items.csv の出典列を持つ。
+4. **(d) 自己報告/人手評定を一部に付与し妥当性相関を見る**
+
+   * 例：50subject のうち 10–15件だけでも、人手で Big5（短縮版でも可）を付けて収束傾向を見る。
+   * 論文は self-report と相関比較を主評価としているため、ここが揃うと一気に論文比較が可能になる。
+
+---
+
+## 10) 注意（データ取り扱い）
+
+* corpora の本文（発話テキスト）や parquet 本体は、ライセンス・容量の観点で **git 管理対象にしない**。
+* git に残すのは **再現コマンド / スクリプト / ログ（本md＋§7.3のスナップショット）** を中心にする。
+
+---
+
+## A/C/E/N/O（Big Five）の意味（論文のNEOドメイン）
+
+* A = Agreeableness（協調性）
+* C = Conscientiousness（誠実性）
+* E = Extraversion（外向性）
+* N = Neuroticism（神経症傾向）
+* O = Openness（開放性）
+
+（論文は Sample2 で IPIP-NEO-120 により 5ドメインを測定）
+
+```
+
+---
+
+補足（率直な所感）  
+今回の結果は、前回より **α が「それっぽいレンジ」に入ってきた trait が増えていて**、(a)(b) の効果は出てる印象です。一方で、
+
+- **C と E の平均が全体に低い**
+- **Qwen の E/O が低α（0.395/0.422）**
+- **Sonnet4 の A が 0.378 と低い**
+
+あたりは、**items.csv の内容（項目数・reverse・翻訳品質）か、テキスト条件（Top1擬似モノローグ）**がボトルネックになってる可能性が高いです。
+
+次の最短ルートは、md内にも入れたとおり **§7.3 の「prompt/items スナップショット」を残しつつ、reverse の監査**（Traitごとの reverse 数・適用有無）を先に潰すのが良さそうです。
+```
