@@ -11,15 +11,15 @@ Owner: 福原玄
   - 「**participant として答える**（Respond as though you are the individual…）」を明示し、  
     さらに **許容される選択肢の固定**と **出力制約（余計な文字禁止）**を強めた。  
     論文側もこの方針を明確に採用している。  
-    【論文根拠：prompt が participant として回答するよう指示／固定選択肢／余計な文字禁止】:contentReference[oaicite:0]{index=0}
+    【論文根拠：prompt が participant として回答するよう指示／固定選択肢／余計な文字禁止】
 - (b) **尺度を 0–4（IPIP-NEO-120 のスコアリング）に揃える**
   - 論文の Sample2（IPIP-NEO-120）は **0(very inaccurate)〜4(very accurate)** の 5件法。  
-    【論文根拠：0〜4 の明記】:contentReference[oaicite:1]{index=1}
+    【論文根拠：0〜4 の明記】
 - (c) 日本語版 IPIP 項目（または標準尺度）へ寄せる（※要継続）
 - (d) 可能なら自己報告/人手評定を付与し妥当性相関を見る（※要継続）
 
 > 注：論文は **「各 item を別会話として投げる」「許容されない出力なら破棄して再プロンプト」**を明示している。  
-> 【論文根拠：invalid response は破棄して re-issue／各 item は new conversation】:contentReference[oaicite:2]{index=2}
+> 【論文根拠：invalid response は破棄して re-issue／各 item は new conversation】
 
 ---
 
@@ -30,7 +30,7 @@ Owner: 福原玄
   本実験でも **複数モデルの trait score を揃え、モデル平均（mean/sd）** を作る。
 
 （論文は Sample2 で “daily diaries” を用い、参加者が「その日の最も重要な出来事」を短く語る形式を採っている。）  
-【論文根拠：most significant event の daily diary prompt】:contentReference[oaicite:3]{index=3}
+【論文根拠：most significant event の daily diary prompt】
 
 ---
 
@@ -45,7 +45,7 @@ Owner: 福原玄
 
 ## 3) 【重要】プロンプト比較（論文 Sample2 vs 本実装）
 論文は **“participant prompt engineering” が重要な設計選択**であることも議論しているため、ここを明示的に比較・固定する。  
-【論文根拠：participant prompt engineering の重要性】:contentReference[oaicite:4]{index=4}
+【論文根拠：participant prompt engineering の重要性】
 
 ### 3.1 論文（Sample2: IPIP-NEO-120 daily diaries）の prompt 構造（要点）
 論文の Methods には Sample2 の **exact prompt** が掲載されている（全文は論文参照）。  
@@ -59,11 +59,11 @@ Owner: 福原玄
 - **invalid 時の扱い**：許容されない出力は破棄して **re-issue し直す**
 - **運用**：item ごとに new conversation（独立に採点）
 
-【論文根拠：participant 指示＋選択肢固定＋出力制約】:contentReference[oaicite:5]{index=5}  
-【論文根拠：invalid は破棄して再プロンプト／item ごとに new conversation】:contentReference[oaicite:6]{index=6}
+【論文根拠：participant 指示＋選択肢固定＋出力制約】
+【論文根拠：invalid は破棄して再プロンプト／item ごとに new conversation】
 
 また Sample2 の IPIP-NEO-120 は **0〜4 の 5件法**（0=very inaccurate, 4=very accurate）。  
-【論文根拠：0〜4 の明記】:contentReference[oaicite:7]{index=7}
+【論文根拠：0〜4 の明記】
 
 ### 3.2 本実装（CEJC diary-like）の prompt 方針（今回の改修点）
 本実装は、上記構造に合わせて以下を **必須要件**として固定する：
@@ -379,7 +379,7 @@ PY | tee artifacts/big5/prompt_items_snapshot_20260215.txt
 
 ## 9) 次の一手（論文比較可能性を“もう一段”上げる）
 
-（あなたの方針 a–d を、実装優先度つきで再掲）
+（私たちの方針 a–d を、実装優先度つきで再掲）
 
 1. **(a) プロンプトを論文 exact prompt にさらに寄せる（participant 明示＋固定選択肢＋出力制約）**
 
@@ -413,19 +413,3 @@ PY | tee artifacts/big5/prompt_items_snapshot_20260215.txt
 * O = Openness（開放性）
 
 （論文は Sample2 で IPIP-NEO-120 により 5ドメインを測定）
-
-```
-
----
-
-補足（率直な所感）  
-今回の結果は、前回より **α が「それっぽいレンジ」に入ってきた trait が増えていて**、(a)(b) の効果は出てる印象です。一方で、
-
-- **C と E の平均が全体に低い**
-- **Qwen の E/O が低α（0.395/0.422）**
-- **Sonnet4 の A が 0.378 と低い**
-
-あたりは、**items.csv の内容（項目数・reverse・翻訳品質）か、テキスト条件（Top1擬似モノローグ）**がボトルネックになってる可能性が高いです。
-
-次の最短ルートは、md内にも入れたとおり **§7.3 の「prompt/items スナップショット」を残しつつ、reverse の監査**（Traitごとの reverse 数・適用有無）を先に潰すのが良さそうです。
-```
