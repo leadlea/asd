@@ -413,3 +413,198 @@ PY | tee artifacts/big5/prompt_items_snapshot_20260215.txt
 * O = Openness（開放性）
 
 （論文は Sample2 で IPIP-NEO-120 により 5ドメインを測定）
+
+
+---
+
+## 11) Appendix（2026-02-15）Smoke strict_v2：choice 文字列切り捨て → NEUTRAL_FALLBACK 多発の修正ログ
+
+### 11.1 事象（症状）
+`global.anthropic.claude-sonnet-4-20250514-v1:0` の smoke 実行（120 items）で、
+`attempts.jsonl` に `valid:false` が多発し、修正前の `item_scores.jsonl` では `NEUTRAL_FALLBACK` が大量発生していた。
+
+**before/after（証拠）**
+- before（バックアップ）：`item_scores.jsonl.bak` の `NEUTRAL_FALLBACK` は **83/120**
+- after（修正版）：現行 `item_scores.jsonl` の `NEUTRAL_FALLBACK` は **0/120**
+
+```bash
+# OUTDIR は絶対パス推奨（作業ディレクトリ差で迷子にならない）
+export OUTDIR="$HOME/cpsy/artifacts/big5/llm_scores/model=global.anthropic.claude-sonnet-4-20250514-v1__0__smoke_ipipneo120ja120_strict_v2"
+cd "$OUTDIR"
+
+echo "before fallback (.bak):"; grep -c "NEUTRAL_FALLBACK" item_scores.jsonl.bak
+echo "after  fallback (now):";  grep -c "NEUTRAL_FALLBACK" item_scores.jsonl
+````
+
+実測：
+
+* before fallback (.bak): **83**
+* after  fallback (now): **0**
+
+### 11.2 原因（root cause）
+
+`attempts.jsonl` に保存される `choice_raw / choice_norm` が **途中で切り捨て（truncate）**され、
+許容選択肢と完全一致せず `valid:false` になっていた。
+
+例（決定的証拠）：
+
+```bash
+cd "$OUTDIR"
+grep -n '"item_id": 2'   attempts.jsonl | head -n 1
+grep -n '"item_id": 120' attempts.jsonl | head -n 1
+```
+
+出力例：
+
+* item_id=2：`choice_raw="Neither Accurate nor In"`（本来 `Neither Accurate nor Inaccurate`）
+* item_id=120：`choice_raw="Moderately Inacc"`（本来 `Moderately Inaccurate`）
+
+> 解釈：LLM が中立を返したのではなく、**記録/変換過程で choice 文字列が切れた**結果、パーサで不一致となり downstream が fallback 扱いになった。
+
+### 11.3 対処（復旧手順）
+
+`attempts.jsonl` 側の `choice_*` を、許容選択肢（5択）に対して **prefix 一致で正規化**し、
+`item_scores_fixed.* / trait_scores_fixed.* / cronbach_alpha_fixed.csv` を再生成した。
+
+```bash
+cd "$OUTDIR"
+
+OUTDIR="$OUTDIR" python - <<'PY'
+import json, os, pathlib
+import pandas as pd
+
+outdir = pathlib.Path(os.environ["OUTDIR"])
+
+labels = [
+    "Very Inaccurate",
+    "Moderately Inaccurate",
+    "Neither Accurate nor Inaccurate",
+    "Moderately Accurate",
+    "Very Accurate",
+]
+label2base = {l:i for i,l in enumerate(labels)}  # 0..4
+
+def canonicalize(s: str):
+    if not s:
+        return None
+    s = s.strip()
+    if s in label2base:
+        return s
+    cand = [l for l in labels if l.startswith(s) or s.startswith(l)]
+    if len(cand) == 1:
+        return cand[0]
+    s2 = " ".join(s.split())
+    cand = [l for l in labels if l.startswith(s2) or s2.startswith(l)]
+    if len(cand) == 1:
+        return cand[0]
+    return None
+
+# attempts から item_id -> canonical label を回収
+att_map = {}
+with (outdir/"attempts.jsonl").open(encoding="utf-8") as f:
+    for line in f:
+        j = json.loads(line)
+        iid = j.get("item_id")
+        if iid is None:
+            continue
+        c = canonicalize(j.get("choice_norm")) or canonicalize(j.get("choice_raw"))
+        if c:
+            att_map[iid] = c
+
+# item_scores を修正して fixed を出力
+src = outdir/"item_scores.jsonl"
+dst = outdir/"item_scores_fixed.jsonl"
+
+fixed = 0
+left_fb = 0
+rows = []
+
+with src.open(encoding="utf-8") as f_in, dst.open("w", encoding="utf-8") as f_out:
+    for line in f_in:
+        j = json.loads(line)
+        iid = j.get("item_id")
+        if j.get("choice_raw") == "NEUTRAL_FALLBACK":
+            c = att_map.get(iid)
+            if c:
+                j["choice_raw"] = c
+                j["choice_norm"] = c
+                base = label2base[c]
+                rev = int(j.get("reverse", 0))
+                j["score"] = float(4 - base if rev == 1 else base)
+                fixed += 1
+            else:
+                left_fb += 1
+        rows.append(j)
+        f_out.write(json.dumps(j, ensure_ascii=False) + "\n")
+
+df = pd.DataFrame(rows)
+df.to_parquet(outdir/"item_scores_fixed.parquet", index=False)
+
+# trait_scores（long形式：traitごと1行）
+g = df.groupby(["conversation_id","speaker_id","trait"], as_index=False)["score"].mean()
+g = g.rename(columns={"score":"trait_score"})
+g.to_parquet(outdir/"trait_scores_fixed.parquet", index=False)
+
+# cronbach alpha（n_subjects=1 の場合 NaN になるのは仕様）
+def cronbach_alpha(pivot_df):
+    n = pivot_df.shape[0]
+    k = pivot_df.shape[1]
+    if n < 2 or k < 2:
+        return float("nan"), n, k
+    item_vars = pivot_df.var(axis=0, ddof=1).sum()
+    total_var = pivot_df.sum(axis=1).var(ddof=1)
+    if not (total_var > 0):
+        return float("nan"), n, k
+    alpha = (k / (k - 1)) * (1 - item_vars / total_var)
+    return float(alpha), n, k
+
+rows_alpha = []
+for trait, dft in df.groupby("trait"):
+    piv = dft.pivot_table(index=["conversation_id","speaker_id"], columns="item_id", values="score", aggfunc="mean")
+    a, n, k = cronbach_alpha(piv)
+    rows_alpha.append({"trait": trait, "alpha": a, "n_subjects": n, "k_items": k})
+
+pd.DataFrame(rows_alpha).to_csv(outdir/"cronbach_alpha_fixed.csv", index=False)
+
+print("fixed_replaced:", fixed)
+print("fallback_left:", left_fb)
+print("wrote:", dst)
+PY
+```
+
+実測：
+
+* `fixed_replaced: 83`
+* `fallback_left: 0`
+* `NEUTRAL_FALLBACK` は `item_scores_fixed.jsonl` で 0 件
+
+### 11.4 結果（最終 Big5：0–4 スケール）
+
+Smoke（1 subject）のため Cronbach’s α は **n_subjects=1 → NaN（空欄）**が仕様。
+一方で trait スコアは集計できる。
+
+`trait_scores_fixed.parquet`（long）：
+
+| conversation_id | speaker_id |    N |     O |    E |        A |        C |
+| --------------- | ---------- | ---: | ----: | ---: | -------: | -------: |
+| C002_003        | IC01       | 2.25 | 1.875 | 2.25 | 2.541667 | 2.041667 |
+
+確認コマンド：
+
+```bash
+cd "$OUTDIR"
+python - <<'PY'
+import pandas as pd
+df = pd.read_parquet("trait_scores_fixed.parquet")  # long
+wide = df.pivot_table(index=["conversation_id","speaker_id"], columns="trait", values="trait_score").reset_index()
+order=["conversation_id","speaker_id","N","O","E","A","C"]
+cols=[c for c in order if c in wide.columns] + [c for c in wide.columns if c not in order]
+print(wide[cols])
+PY
+```
+
+### 11.5 恒久対策（再発防止）
+
+* choice は **文字列ではなく 0–4 の整数コードで保存**（最強）
+* 文字列を扱う場合は numpy の固定長 dtype（`U16` 等）にしない（pandas object を維持）
+* パーサは完全一致に加えて prefix 一致（または正規化）を許容し、ログに `valid:false` を残す
