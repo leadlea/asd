@@ -311,9 +311,9 @@ done < artifacts/big5/models.txt
 原著は item-level 応答を使って、各trait×各LLMの Cronbach’s α を算出している。要点は以下：
 
 - **Sample2（daily diaries）**：LLM生成traitの内部一貫性は **平均α=0.88**、かつ **全モデル×全尺度で最小α=0.70**。self-report の平均αも **0.88**。  
-  【論文根拠：Sample2 平均α=0.88、self-report平均α=0.88、最小α=0.70】:contentReference[oaicite:0]{index=0}
+  【論文根拠：Sample2 平均α=0.88、self-report平均α=0.88、最小α=0.70】
 - **Sample1（spontaneous thoughts）**：平均α=0.76（self-report平均α=0.78）。ただし **Openness のαがLLM間で低下（0.26–0.79）**。  
-  【論文根拠：Sample1 平均α=0.76 / self-report0.78 / Oのレンジ0.26–0.79】:contentReference[oaicite:1]{index=1}
+  【論文根拠：Sample1 平均α=0.76 / self-report0.78 / Oのレンジ0.26–0.79】
 
 > 注：原著の「平均α=0.88」は **“全trait×全LLMをまとめた平均”**。本mdの ensemble は **“4モデル平均で1つのスコア系列を作ってから trait別α”**なので、厳密に同一集計ではないが、目安として比較可能。
 
@@ -355,7 +355,7 @@ done < artifacts/big5/models.txt
 
 - 本実験（ensemble）の **trait平均α = 0.860**（= (A,C,E,N,O)/5）、**最小α = 0.782**（A）
 - 原著 Sample2 は **平均α=0.88**、**最小α=0.70**（全モデル×全尺度の最小）  
-  【論文根拠：Sample2 平均α=0.88 / 最小α=0.70】:contentReference[oaicite:2]{index=2}
+  【論文根拠：Sample2 平均α=0.88 / 最小α=0.70】
 
 | Setting | 対象 | αの集計 | 平均α | 最小α |
 | --- | --- | --- | ---: | ---: |
@@ -374,7 +374,7 @@ done < artifacts/big5/models.txt
 - 個別LLMの “相関平均” は **0.37〜0.45** 程度
 - **LLM average の平均相関は 0.44**
 - さらに “全LLM×全trait の相関平均” は **r=0.415**（Sample1/2で同一）  
-  【論文根拠：Sample2 の相関平均レンジ / LLM average=0.44 / r=0.415】:contentReference[oaicite:3]{index=3}
+  【論文根拠：Sample2 の相関平均レンジ / LLM average=0.44 / r=0.415】
 
 > 本mdは相関（外部基準）未検証だが、今回 **αがensembleで改善**しているのは、原著が述べる “wisdom of the crowds（複数rater平均）” と整合的。
 
