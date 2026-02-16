@@ -34,7 +34,7 @@ flowchart TD
   E --> F[IPIP-NEO-120 日本語 120問]
   F --> G[Bedrockで4モデル採点（0-4, reverse対応）]
   G --> H[QC: fallback=0, rows一致, n_models=4]
-  H --> I[4モデル平均(ensemble)を作成]
+  H --> I[4モデル平均ensembleを作成]
   I --> J[α（単体 vs ensemble）で“平均が強い”を検証]
 ````
 
