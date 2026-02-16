@@ -360,7 +360,7 @@ done < artifacts/big5/models.txt
 | Setting | 対象 | αの集計 | 平均α | 最小α |
 | --- | --- | --- | ---: | ---: |
 | 原著 Sample2 | nightly daily diaries（N=108, IPIP-NEO-120） | 全trait×全LLM平均 | 0.88 | 0.70 |
-| 本実験 | CEJC「自宅・少人数」Top1擬似モノローグ（N=50, 4models ensemble） | trait別α（ensemble系列） | 0.860 | 0.782 |
+| 本実験 | CEJC「自宅・少人数」Top1擬似モノローグ（N=50, IPIP-NEO-120 日本語版120項目, 4models ensemble） | trait別α（IPIP-NEO-120 120項目の ensemble 系列） | 0.860 | 0.782 |
 
 解釈（控えめな主張）：
 - **“daily diaryそのもの” ではない（会話Top1抽出）**にもかかわらず、ensemble後の α は **原著 Sample2 の水準にかなり近い**。
