@@ -43,6 +43,8 @@ Owner: 福原玄
 
 ## 2) Bootstrap stability（Top drivers）
 
+> **topk_rate** は「ブートストラップ500回のうち、その特徴が“重要度Top10”に入った割合」、**sign_agree** は「その特徴の係数の符号（＋/−）が元モデルと一致した割合」です。
+
 <table>
 <tr>
 <td valign="top" width="62%">
@@ -95,6 +97,12 @@ Owner: 福原玄
 | PG_pause_mean | − | 0.666 | 0.908 |
 | RESP_NE_ENTROPY | − | 0.580 | 0.782 |
 | RESP_NE_AIZUCHI_RATE | + | 0.532 | 0.838 |
+
+#### A（Agreeableness：協調性）
+- **相手に合わせる/受ける**：RESP_NE_AIZUCHI_RATE（＋）、IX_yesno_after_question_rate（＋）
+- **間の取り方**：PG_pause_p50（−）／（場合により）PG_pause系が効く可能性
+- **整合**：IX_lex_overlap_mean（＋）
+> 期待：同調・受容・確認応答が前面に出る
 
 </td>
 <td valign="top" width="38%" align="center">
@@ -232,7 +240,7 @@ Owner: 福原玄
 
 ---
 
-## 4) 先回り：C以外（A/E/N/O）で「18特徴のうち何が顕著に出そうか？」（事前仮説 → 観測との照合）
+## 4) C以外（A/E/N/O）で「18特徴のうち何が顕著に出そうか？」（事前仮説 → 観測との照合）
 
 本分析の説明変数は「会話量」ではなく、相互行為の**型**（テンポ/応答/修復/整序/整合/多様性）に限定している。  
 そのため、C以外のtraitは「内容（語彙・話題）」よりも、**相互行為としての振る舞い**がどの程度teacherスコアに反映されるかに依存する。
@@ -251,11 +259,7 @@ Owner: 福原玄
 ### 4.2 事前仮説：trait別に“顕著になりそう”な候補
 ※以下は相互行為特徴のみ（18 vars）で捉えられる範囲の仮説。
 
-#### A（Agreeableness：協調性）
-- **相手に合わせる/受ける**：RESP_NE_AIZUCHI_RATE（＋）、IX_yesno_after_question_rate（＋）
-- **間の取り方**：PG_pause_p50（−）／（場合により）PG_pause系が効く可能性
-- **整合**：IX_lex_overlap_mean（＋）
-> 期待：同調・受容・確認応答が前面に出る
+
 
 #### E（Extraversion：外向性）
 - **テンポ**：PG_resp_gap_p50（−）、PG_pause_p50（−）
