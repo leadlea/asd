@@ -482,3 +482,271 @@ python scripts/analysis/bootstrap_coef_stability.py \
 * `docs/homework/cejc_conscientiousness_results.md`
 * `docs/homework/cejc_conscientiousness_slide.md`
 * `docs/homework/cejc_conscientiousness_table1.md`
+
+---
+
+# Extension: A/E/N/O も同一条件で回す（C-only からの追加手順）
+
+## 3b) Items を A/E/N/O 24項目に絞る（IPIP-NEO-120 → {A,E,N,O} 各24項目）
+
+**Output**
+- `artifacts/big5/items_ipipneo120_ja_A24.csv`
+- `artifacts/big5/items_ipipneo120_ja_E24.csv`
+- `artifacts/big5/items_ipipneo120_ja_N24.csv`
+- `artifacts/big5/items_ipipneo120_ja_O24.csv`
+
+```bash
+cd ~/cpsy
+source .venv/bin/activate
+
+python - <<'PY'
+import pandas as pd
+items = pd.read_csv("artifacts/big5/items_ipipneo120_ja.csv")
+trait_col = "trait" if "trait" in items.columns else ("Trait" if "Trait" in items.columns else None)
+assert trait_col
+for t in ["A","E","N","O"]:
+    out = f"artifacts/big5/items_ipipneo120_ja_{t}24.csv"
+    items[items[trait_col].astype(str).str.strip()==t].to_csv(out, index=False)
+    print("OK:", out)
+PY
+````
+
+---
+
+## 5b) Bedrock で A/E/N/O を採点（shardごと・再開可能）
+
+**Script**
+
+* `scripts/big5/score_big5_bedrock.py`
+
+**Output（traitごと）**
+
+* `artifacts/big5/llm_scores/dataset=cejc_home2_hq1_v1__items={T}24__teacher=sonnet4/shard=.../model=.../trait_scores.parquet`
+
+```bash
+cd ~/cpsy
+source .venv/bin/activate
+
+export AWS_RETRY_MODE=adaptive
+export AWS_MAX_ATTEMPTS=10
+
+MODEL="global.anthropic.claude-sonnet-4-20250514-v1:0"
+SAFE="$(echo "$MODEL" | tr ':/' '__')"
+SHARDDIR="artifacts/cejc/shards_home2_hq1"
+
+for T in A E N O; do
+  ITEMS="artifacts/big5/items_ipipneo120_ja_${T}24.csv"
+  OUTROOT="artifacts/big5/llm_scores/dataset=cejc_home2_hq1_v1__items=${T}24__teacher=sonnet4"
+  mkdir -p "$OUTROOT"
+
+  for SHARD in ${SHARDDIR}/monologues_cejc_home2_hq1_v1_shard*.parquet; do
+    SID="$(basename "$SHARD" .parquet | sed 's/.*shard//')"
+    OUTDIR="$OUTROOT/shard=$SID/model=$SAFE"
+    [ -f "$OUTDIR/trait_scores.parquet" ] && echo "[SKIP] ${T} shard=$SID" && continue
+
+    echo "== RUN ${T} shard=$SID =="
+    python scripts/big5/score_big5_bedrock.py \
+      --monologues_parquet "$SHARD" \
+      --items_csv "$ITEMS" \
+      --model_id "$MODEL" \
+      --region "ap-northeast-1" \
+      --out_dir "$OUTDIR" || exit 1
+  done
+done
+```
+
+---
+
+## 6b) 教師（trait_scores）結合（A/E/N/O）
+
+**Output**
+
+* `.../teacher_merged/trait_scores_{T}_merged.parquet`
+
+```bash
+cd ~/cpsy
+source .venv/bin/activate
+
+for T in A E N O; do
+  python - <<PY
+import pandas as pd
+from pathlib import Path
+
+T="${T}"
+root=Path(f"artifacts/big5/llm_scores/dataset=cejc_home2_hq1_v1__items={T}24__teacher=sonnet4")
+ps=sorted(root.glob("shard=*/model=*/trait_scores.parquet"))
+assert ps, f"no trait_scores found: {root}"
+df=pd.concat([pd.read_parquet(p) for p in ps], ignore_index=True)
+outdir=root/"teacher_merged"; outdir.mkdir(parents=True, exist_ok=True)
+out=outdir/f"trait_scores_{T}_merged.parquet"
+df.to_parquet(out, index=False)
+print("OK:", out, "rows=", len(df))
+PY
+done
+```
+
+---
+
+## 8b) XY 作成（X + Y_{A/E/N/O}）
+
+**Output**
+
+* `artifacts/analysis/datasets/cejc_home2_hq1_XY_{T}only_sonnet.parquet`
+
+```bash
+cd ~/cpsy
+source .venv/bin/activate
+mkdir -p artifacts/analysis/datasets
+
+for T in A E N O; do
+  python - <<PY
+import pandas as pd
+T="${T}"
+X="artifacts/analysis/features_min/features_cejc_home2_hq1.parquet"
+Y=f"artifacts/big5/llm_scores/dataset=cejc_home2_hq1_v1__items={T}24__teacher=sonnet4/teacher_merged/trait_scores_{T}_merged.parquet"
+
+x=pd.read_parquet(X)
+y=pd.read_parquet(Y)[["conversation_id","speaker_id","trait_score"]].rename(columns={"trait_score":f"Y_{T}"})
+df=x.merge(y,on=["conversation_id","speaker_id"],how="inner")
+
+out=f"artifacts/analysis/datasets/cejc_home2_hq1_XY_{T}only_sonnet.parquet"
+df.to_parquet(out, index=False)
+print("OK:", out, "shape=", df.shape)
+PY
+done
+```
+
+---
+
+## 9b) 学習（Ridge / 5-fold CV）A/E/N/O
+
+**Output**
+
+* `artifacts/analysis/results/cejc_home2_hq1_{T}only_sonnet_controls_excluded/summary.tsv`
+* `.../top15_features_all_traits.tsv`
+* `.../run.log`（任意）
+
+```bash
+cd ~/cpsy
+source .venv/bin/activate
+
+EXCL3="IX_n_pairs,n_pairs_total,FILL_text_len,FILL_cnt_total,FILL_cnt_ano,FILL_cnt_e,FILL_cnt_eto,PG_total_time,PG_overlap_rate,PG_resp_overlap_rate,n_pairs_after_NE,n_pairs_after_YO,IX_n_pairs_after_question"
+
+for T in A E N O; do
+  OUT="artifacts/analysis/results/cejc_home2_hq1_${T}only_sonnet_controls_excluded"
+  mkdir -p "$OUT"
+  python scripts/analysis/train_cejc_big5_from_features_v2.py \
+    --xy_parquet "artifacts/analysis/datasets/cejc_home2_hq1_XY_${T}only_sonnet.parquet" \
+    --out_dir "$OUT" \
+    --min_pairs_total 0 --min_text_len 0 --cv_folds 5 \
+    --exclude_cols "$EXCL3" 2>&1 | tee "$OUT/run.log"
+done
+```
+
+---
+
+## 10b) 置換検定（Permutation test, fixed α / 5000）A/E/N/O（＋Cも同手順に統一）
+
+> Note: RidgeCVの内側CVが失敗するケースがあったため、**summary.tsvのαで固定**して permutation を実施する（成功版）。
+
+**Script（追加）**
+
+* `scripts/analysis/permutation_test_ridge_fixedalpha.py`（※別途作成済みの前提。未作成なら runbook に「作成コマンド」を追記してもOK）
+
+**Output**
+
+* `.../permutation.log`
+
+```bash
+cd ~/cpsy
+source .venv/bin/activate
+
+EXCL3="IX_n_pairs,n_pairs_total,FILL_text_len,FILL_cnt_total,FILL_cnt_ano,FILL_cnt_e,FILL_cnt_eto,PG_total_time,PG_overlap_rate,PG_resp_overlap_rate,n_pairs_after_NE,n_pairs_after_YO,IX_n_pairs_after_question"
+
+# A/E/N/O（alphaは各traitの summary.tsv の alpha を使う）
+python scripts/analysis/permutation_test_ridge_fixedalpha.py \
+  --xy_parquet artifacts/analysis/datasets/cejc_home2_hq1_XY_Aonly_sonnet.parquet \
+  --y_col Y_A --exclude_cols "$EXCL3" --cv_folds 5 --n_perm 5000 --seed 0 \
+  --alpha 316.227766 | tee artifacts/analysis/results/cejc_home2_hq1_Aonly_sonnet_controls_excluded/permutation.log
+
+python scripts/analysis/permutation_test_ridge_fixedalpha.py \
+  --xy_parquet artifacts/analysis/datasets/cejc_home2_hq1_XY_Eonly_sonnet.parquet \
+  --y_col Y_E --exclude_cols "$EXCL3" --cv_folds 5 --n_perm 5000 --seed 0 \
+  --alpha 562.341325 | tee artifacts/analysis/results/cejc_home2_hq1_Eonly_sonnet_controls_excluded/permutation.log
+
+python scripts/analysis/permutation_test_ridge_fixedalpha.py \
+  --xy_parquet artifacts/analysis/datasets/cejc_home2_hq1_XY_Nonly_sonnet.parquet \
+  --y_col Y_N --exclude_cols "$EXCL3" --cv_folds 5 --n_perm 5000 --seed 0 \
+  --alpha 562.341325 | tee artifacts/analysis/results/cejc_home2_hq1_Nonly_sonnet_controls_excluded/permutation.log
+
+python scripts/analysis/permutation_test_ridge_fixedalpha.py \
+  --xy_parquet artifacts/analysis/datasets/cejc_home2_hq1_XY_Oonly_sonnet.parquet \
+  --y_col Y_O --exclude_cols "$EXCL3" --cv_folds 5 --n_perm 5000 --seed 0 \
+  --alpha 100.0 | tee artifacts/analysis/results/cejc_home2_hq1_Oonly_sonnet_controls_excluded/permutation.log
+
+# C（比較のため同手順に統一）
+python scripts/analysis/permutation_test_ridge_fixedalpha.py \
+  --xy_parquet artifacts/analysis/datasets/cejc_home2_hq1_XY_Conly_sonnet.parquet \
+  --y_col Y_C --exclude_cols "$EXCL3" --cv_folds 5 --n_perm 5000 --seed 0 \
+  --alpha 100.0 | tee artifacts/analysis/results/cejc_home2_hq1_Conly_sonnet_controls_excluded/permutation.log
+```
+
+---
+
+## 11b) 係数安定性（Bootstrap 500）A/E/N/O（＋Cも同条件で）
+
+**Output**
+
+* `artifacts/analysis/results/bootstrap/cejc_home2_hq1_{T}only_sonnet_controls_excluded/bootstrap_summary.tsv`
+
+```bash
+cd ~/cpsy
+source .venv/bin/activate
+
+for T in C A E N O; do
+  python scripts/analysis/bootstrap_coef_stability.py \
+    --xy_parquet "artifacts/analysis/datasets/cejc_home2_hq1_XY_${T}only_sonnet.parquet" \
+    --y_col "Y_${T}" \
+    --out_dir "artifacts/analysis/results/bootstrap/cejc_home2_hq1_${T}only_sonnet_controls_excluded" \
+    --n_boot 500 --topk 10 --seed 0 \
+    --exclude_cols "$EXCL3"
+done
+```
+
+---
+
+## 12) CとのTop特徴重なり（乖離チェック）
+
+```bash
+cd ~/cpsy
+source .venv/bin/activate
+
+python - <<'PY'
+from pathlib import Path
+import pandas as pd
+
+paths = {t: Path(f"artifacts/analysis/results/bootstrap/cejc_home2_hq1_{t}only_sonnet_controls_excluded/bootstrap_summary.tsv")
+         for t in ["C","A","E","N","O"]}
+
+def load_top(p: Path, k=10):
+    df = pd.read_csv(p, sep="\t")
+    feat_col = [c for c in df.columns if c.lower() in ("feature","feat") or "feat" in c.lower()][0]
+    rate_col = [c for c in df.columns if ("top" in c.lower() and "rate" in c.lower()) or "inclusion" in c.lower()][0]
+    df = df.sort_values(rate_col, ascending=False)
+    return df[[feat_col, rate_col]].head(k)
+
+tops={}
+for t,p in paths.items():
+    tops[t]=load_top(p,10)
+    print("\n==", t, "top10 ==")
+    print(tops[t].to_string(index=False))
+
+Cset=set(tops["C"].iloc[:,0].tolist())
+print("\n== Overlap with C (count/10) ==")
+for t in ["A","E","N","O"]:
+    s=set(tops[t].iloc[:,0].tolist())
+    print(t, len(Cset & s), "/10")
+PY
+```
+
+---
