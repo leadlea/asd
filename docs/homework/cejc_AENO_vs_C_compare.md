@@ -98,7 +98,6 @@ Owner: 福原玄
 | RESP_NE_ENTROPY | − | 0.580 | 0.782 |
 | RESP_NE_AIZUCHI_RATE | + | 0.532 | 0.838 |
 
-#### A（Agreeableness：協調性）
 - **相手に合わせる/受ける**：RESP_NE_AIZUCHI_RATE（＋）、IX_yesno_after_question_rate（＋）
 - **間の取り方**：PG_pause_p50（−）／（場合により）PG_pause系が効く可能性
 - **整合**：IX_lex_overlap_mean（＋）
@@ -139,6 +138,11 @@ Owner: 福原玄
 | RESP_NE_ENTROPY | + | 0.568 | 0.850 |
 | PG_pause_mean | − | 0.564 | 0.904 |
 
+- **テンポ**：PG_resp_gap_p50（−）、PG_pause_p50（−）
+- **反応の多様性**：RESP_YO_ENTROPY（＋）、RESP_NE_ENTROPY（＋）
+- **会話主導（比率）**：PG_speech_ratio（＋寄り）
+> 期待：勢い（テンポ）＋反応性（多様性）が前面に出る（量は除外しているため）
+
 </td>
 <td valign="top" width="38%" align="center">
 
@@ -174,6 +178,10 @@ Owner: 福原玄
 | IX_oirmarker_rate | + | 0.534 | 0.716 |
 | PG_pause_mean | − | 0.468 | 0.838 |
 
+- **確認/修復**：IX_oirmarker_after_question_rate（＋）が出る可能性
+- **ためらい**：FILL_rate_per_100chars（＋）、PG_pause系（＋）が出る可能性
+> 期待：不安/自己モニタリングが「確認」「間」「フィラー」に反映される可能性。ただし内容依存・ノイズの影響も大きい。
+
 </td>
 <td valign="top" width="38%" align="center">
 
@@ -208,6 +216,10 @@ Owner: 福原玄
 | IX_oirmarker_after_question_rate | + | 0.534 | 0.768 |
 | PG_resp_gap_p50 | + | 0.528 | 0.852 |
 | FILL_has_any | + | 0.500 | 0.886 |
+
+- **反応の多様性**：RESP_YO_ENTROPY / RESP_NE_ENTROPY（＋）
+- **話題展開（※監査前提）**：IX_topic_drift_mean（＋）が出る可能性
+> 期待：探索性が「多様性」「展開」に現れる可能性。ただし相互行為18のみだと弱くなりやすい。
 
 </td>
 <td valign="top" width="38%" align="center">
@@ -256,33 +268,12 @@ Owner: 福原玄
 - **相槌/反応（NE）**：RESP_NE_AIZUCHI_RATE / RESP_NE_ENTROPY
 - **反応の多様性（YO）**：RESP_YO_ENTROPY
 
-### 4.2 事前仮説：trait別に“顕著になりそう”な候補
-※以下は相互行為特徴のみ（18 vars）で捉えられる範囲の仮説。
-
-
-
-#### E（Extraversion：外向性）
-- **テンポ**：PG_resp_gap_p50（−）、PG_pause_p50（−）
-- **反応の多様性**：RESP_YO_ENTROPY（＋）、RESP_NE_ENTROPY（＋）
-- **会話主導（比率）**：PG_speech_ratio（＋寄り）
-> 期待：勢い（テンポ）＋反応性（多様性）が前面に出る（量は除外しているため）
-
-#### N（Neuroticism：神経症傾向）
-- **確認/修復**：IX_oirmarker_after_question_rate（＋）が出る可能性
-- **ためらい**：FILL_rate_per_100chars（＋）、PG_pause系（＋）が出る可能性
-> 期待：不安/自己モニタリングが「確認」「間」「フィラー」に反映される可能性。ただし内容依存・ノイズの影響も大きい。
-
-#### O（Openness：開放性）
-- **反応の多様性**：RESP_YO_ENTROPY / RESP_NE_ENTROPY（＋）
-- **話題展開（※監査前提）**：IX_topic_drift_mean（＋）が出る可能性
-> 期待：探索性が「多様性」「展開」に現れる可能性。ただし相互行為18のみだと弱くなりやすい。
-
-### 4.3 観測との照合（今回の結果の読み）
+### 4.2 観測との照合（今回の結果の読み）
 - **A**：PG_pause_p50 / IX_yesno_after_question_rate が最上位 → 「間＋質問後Yes/No」が顕著（仮説と整合）
 - **E**：PG_resp_gap_p50 / PG_pause_p50 / RESP_YO_ENTROPY が上位 → 「テンポ＋多様性」（仮説と整合）
 - **N/O**：Permutationでは非有意（N p=0.397, O p=0.359）で、相互行為18のみではteacherスコアを十分説明できない可能性（内容依存 or teacherノイズの影響を示唆）。ただしbootstrap上の“上位特徴の顔ぶれ”は抽出できており、探索的解釈は可能。
 
-### 4.4 Audit note（再掲）
+### 4.3 Audit note（再掲）
 - `IX_topic_drift_mean` と `IX_lex_overlap_mean` は共線性が強く、符号が対になりやすい。主要主張の中心には置かず補助指標扱いとする。
 
 ---
@@ -295,6 +286,3 @@ Owner: 福原玄
 - **O**: filler頻度 + 反応多様性 + gap が中心。Cと共通部分も多いので慎重に
 
 ---
-
-## 6) Audit note（重要）
-- `IX_topic_drift_mean` と `IX_lex_overlap_mean` は共線性が強く、符号が対になりやすい（補助指標扱い、主要主張は慎重に）。
