@@ -1,5 +1,5 @@
 # CEJC home2 HQ1: Interaction features → LLM teacher (C vs A/E/N/O) 比較メモ
-Date: 2026-02-23  
+Date: 2026-02-24
 Owner: 福原玄
 
 ## Setup（全trait共通）
@@ -13,6 +13,8 @@ Owner: 福原玄
 ---
 
 <h2>1) Permutation test（fixed α / 5000）</h2>
+
+> **alpha** はRidgeの正則化強度（大きいほど係数が縮む）、**r_obs** は5-fold CVで得た予測値と教師スコアの相関、**p(|r|)** は目的変数を5000回シャッフルした置換検定で「|r_obs|以上が偶然出る確率」です。
 
 <table>
   <thead>
@@ -240,7 +242,7 @@ Owner: 福原玄
 
 ---
 
-## 3) CとのTop10重なり（乖離チェック）
+## 3) Sanity check：CとTop10がどれだけ被るか（トリビアル因子の疑いをチェック）
 - A: 5/10
 - E: 6/10
 - N: 5/10
@@ -285,4 +287,3 @@ Owner: 福原玄
 - **N**: YESNO/OIR/aizuchi が **負方向**で安定（符号がCと異なる可能性）  
 - **O**: filler頻度 + 反応多様性 + gap が中心。Cと共通部分も多いので慎重に
 
----
