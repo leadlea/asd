@@ -28,6 +28,11 @@ Owner: 福原玄
 ---
 
 ## 2) Bootstrap stability（Top drivers）
+
+<table>
+<tr>
+<td valign="top" width="62%">
+
 ### C（Conscientiousness）Top10（安定）
 | Feature | Dir | topk_rate | sign_agree |
 |---|:---:|---:|---:|
@@ -41,6 +46,27 @@ Owner: 福原玄
 | RESP_NE_AIZUCHI_RATE | + | 0.626 | 0.914 |
 | IX_yesno_rate | + | 0.568 | 0.896 |
 | PG_pause_p50 | − | 0.564 | 0.886 |
+
+</td>
+<td valign="top" width="38%" align="center">
+
+<a href="assets/figs/radar_C_topk_rate.png">
+  <img src="assets/figs/radar_C_topk_rate.png" width="280">
+</a><br>
+<sub><b>topk_rate</b>（クリックで拡大）</sub>
+<br><br>
+<a href="assets/figs/radar_C_sign_agree.png">
+  <img src="assets/figs/radar_C_sign_agree.png" width="280">
+</a><br>
+<sub><b>sign_agree_rate</b>（クリックで拡大）</sub>
+
+</td>
+</tr>
+</table>
+
+<table>
+<tr>
+<td valign="top" width="62%">
 
 ### A（Agreeableness）Top10
 | Feature | Dir | topk_rate | sign_agree |
@@ -56,6 +82,27 @@ Owner: 福原玄
 | RESP_NE_ENTROPY | − | 0.580 | 0.782 |
 | RESP_NE_AIZUCHI_RATE | + | 0.532 | 0.838 |
 
+</td>
+<td valign="top" width="38%" align="center">
+
+<a href="assets/figs/radar_A_topk_rate.png">
+  <img src="assets/figs/radar_A_topk_rate.png" width="280">
+</a><br>
+<sub><b>topk_rate</b>（クリックで拡大）</sub>
+<br><br>
+<a href="assets/figs/radar_A_sign_agree.png">
+  <img src="assets/figs/radar_A_sign_agree.png" width="280">
+</a><br>
+<sub><b>sign_agree_rate</b>（クリックで拡大）</sub>
+
+</td>
+</tr>
+</table>
+
+<table>
+<tr>
+<td valign="top" width="62%">
+
 ### E（Extraversion）Top10
 | Feature | Dir | topk_rate | sign_agree |
 |---|:---:|---:|---:|
@@ -69,6 +116,27 @@ Owner: 福原玄
 | PG_speech_ratio | − | 0.574 | 0.658 |
 | RESP_NE_ENTROPY | + | 0.568 | 0.850 |
 | PG_pause_mean | − | 0.564 | 0.904 |
+
+</td>
+<td valign="top" width="38%" align="center">
+
+<a href="assets/figs/radar_E_topk_rate.png">
+  <img src="assets/figs/radar_E_topk_rate.png" width="280">
+</a><br>
+<sub><b>topk_rate</b>（クリックで拡大）</sub>
+<br><br>
+<a href="assets/figs/radar_E_sign_agree.png">
+  <img src="assets/figs/radar_E_sign_agree.png" width="280">
+</a><br>
+<sub><b>sign_agree_rate</b>（クリックで拡大）</sub>
+
+</td>
+</tr>
+</table>
+
+<table>
+<tr>
+<td valign="top" width="62%">
 
 ### N（Neuroticism）Top10
 | Feature | Dir | topk_rate | sign_agree |
@@ -84,6 +152,27 @@ Owner: 福原玄
 | IX_oirmarker_rate | + | 0.534 | 0.716 |
 | PG_pause_mean | − | 0.468 | 0.838 |
 
+</td>
+<td valign="top" width="38%" align="center">
+
+<a href="assets/figs/radar_N_topk_rate.png">
+  <img src="assets/figs/radar_N_topk_rate.png" width="280">
+</a><br>
+<sub><b>topk_rate</b>（クリックで拡大）</sub>
+<br><br>
+<a href="assets/figs/radar_N_sign_agree.png">
+  <img src="assets/figs/radar_N_sign_agree.png" width="280">
+</a><br>
+<sub><b>sign_agree_rate</b>（クリックで拡大）</sub>
+
+</td>
+</tr>
+</table>
+
+<table>
+<tr>
+<td valign="top" width="62%">
+
 ### O（Openness）Top10
 | Feature | Dir | topk_rate | sign_agree |
 |---|:---:|---:|---:|
@@ -97,6 +186,23 @@ Owner: 福原玄
 | IX_oirmarker_after_question_rate | + | 0.534 | 0.768 |
 | PG_resp_gap_p50 | + | 0.528 | 0.852 |
 | FILL_has_any | + | 0.500 | 0.886 |
+
+</td>
+<td valign="top" width="38%" align="center">
+
+<a href="assets/figs/radar_O_topk_rate.png">
+  <img src="assets/figs/radar_O_topk_rate.png" width="280">
+</a><br>
+<sub><b>topk_rate</b>（クリックで拡大）</sub>
+<br><br>
+<a href="assets/figs/radar_O_sign_agree.png">
+  <img src="assets/figs/radar_O_sign_agree.png" width="280">
+</a><br>
+<sub><b>sign_agree_rate</b>（クリックで拡大）</sub>
+
+</td>
+</tr>
+</table>
 
 ---
 
@@ -175,19 +281,3 @@ Owner: 福原玄
 
 ## 6) Audit note（重要）
 - `IX_topic_drift_mean` と `IX_lex_overlap_mean` は共線性が強く、符号が対になりやすい（補助指標扱い、主要主張は慎重に）。
-
-## Visual: Big5 × 18 interaction features (Bootstrap stability)
-
-### Top10 inclusion rate (topk_rate)
-![C topk_rate](assets/figs/radar_C_topk_rate.png)
-![A topk_rate](assets/figs/radar_A_topk_rate.png)
-![E topk_rate](assets/figs/radar_E_topk_rate.png)
-![N topk_rate](assets/figs/radar_N_topk_rate.png)
-![O topk_rate](assets/figs/radar_O_topk_rate.png)
-
-### Sign agreement (sign_agree_rate)
-![C sign_agree](assets/figs/radar_C_sign_agree.png)
-![A sign_agree](assets/figs/radar_A_sign_agree.png)
-![E sign_agree](assets/figs/radar_E_sign_agree.png)
-![N sign_agree](assets/figs/radar_N_sign_agree.png)
-![O sign_agree](assets/figs/radar_O_sign_agree.png)
