@@ -12,19 +12,32 @@ Owner: 福原玄
 
 ---
 
-## 1) Permutation test（fixed α / 5000）
+<h2>1) Permutation test（fixed α / 5000）</h2>
 
-| Trait | alpha | r_obs | p(|r|) | Note |
-|:-----:|------:|------:|-------:|:-----|
-| C | 100 | 0.434 | 0.0008 | **有意（強）** |
-| A | 316.23 | 0.234 | 0.0714 | 傾向 |
-| E | 562.34 | 0.226 | 0.0804 | 傾向 |
-| N | 562.34 | 0.112 | 0.3975 | 非有意 |
-| O | 100 | 0.119 | 0.3587 | 非有意 |
+<table>
+  <thead>
+    <tr>
+      <th align="center">Trait</th>
+      <th align="right">alpha</th>
+      <th align="right">r_obs</th>
+      <th align="right">p(|r|)</th>
+      <th>Note</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td align="center"><b>C</b></td><td align="right">100.0</td><td align="right">0.434</td><td align="right">0.0008</td><td><b>有意（強）</b></td></tr>
+    <tr><td align="center"><b>A</b></td><td align="right">316.23</td><td align="right">0.234</td><td align="right">0.0714</td><td>傾向</td></tr>
+    <tr><td align="center"><b>E</b></td><td align="right">562.34</td><td align="right">0.226</td><td align="right">0.0804</td><td>傾向</td></tr>
+    <tr><td align="center"><b>N</b></td><td align="right">562.34</td><td align="right">0.112</td><td align="right">0.3975</td><td>非有意</td></tr>
+    <tr><td align="center"><b>O</b></td><td align="right">100.0</td><td align="right">0.119</td><td align="right">0.3587</td><td>非有意</td></tr>
+  </tbody>
+</table>
 
-**読み**  
-- Cのみ強く有意 → 「相互行為特徴が全traitをトリビアルに説明」よりも **C特異的に強い関係**の可能性が高い。  
-- A/Eは弱い傾向、N/Oは非有意。
+<p><b>読み</b></p>
+<ul>
+  <li>Cのみ強く有意 → 「相互行為特徴が全traitをトリビアルに説明」よりも <b>C特異的に強い関係</b>の可能性が高い。</li>
+  <li>A/Eは弱い傾向、N/Oは非有意。</li>
+</ul>
 
 ---
 
@@ -217,7 +230,6 @@ Owner: 福原玄
 - 完全一致ではない → “全部同じ特徴で当たる”トリビアル懸念は弱い  
 - 一方、Oは重なりが多め → 「共通の会話流暢さ因子」っぽい部分が入り込む可能性あり（要監査）
 
----
 ---
 
 ## 4) 先回り：C以外（A/E/N/O）で「18特徴のうち何が顕著に出そうか？」（事前仮説 → 観測との照合）
