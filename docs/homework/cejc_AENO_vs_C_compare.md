@@ -175,3 +175,19 @@ Owner: 福原玄
 
 ## 6) Audit note（重要）
 - `IX_topic_drift_mean` と `IX_lex_overlap_mean` は共線性が強く、符号が対になりやすい（補助指標扱い、主要主張は慎重に）。
+
+## Visual: Big5 × 18 interaction features (Bootstrap stability)
+
+### Top10 inclusion rate (topk_rate)
+![C topk_rate](assets/figs/radar_C_topk_rate.png)
+![A topk_rate](assets/figs/radar_A_topk_rate.png)
+![E topk_rate](assets/figs/radar_E_topk_rate.png)
+![N topk_rate](assets/figs/radar_N_topk_rate.png)
+![O topk_rate](assets/figs/radar_O_topk_rate.png)
+
+### Sign agreement (sign_agree_rate)
+![C sign_agree](assets/figs/radar_C_sign_agree.png)
+![A sign_agree](assets/figs/radar_A_sign_agree.png)
+![E sign_agree](assets/figs/radar_E_sign_agree.png)
+![N sign_agree](assets/figs/radar_N_sign_agree.png)
+![O sign_agree](assets/figs/radar_O_sign_agree.png)
