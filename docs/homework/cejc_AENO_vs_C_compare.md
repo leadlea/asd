@@ -99,7 +99,6 @@ Owner: 福原玄
       <th>note</th>
     </tr>
   </thead>
-  <tbody>
     <tr><td>qwen3-235b</td><td align="center">A</td><td align="right">100.0</td><td align="right">0.365</td><td align="right">0.0032</td><td><b>sig</b></td></tr>
     <tr><td>qwen3-235b</td><td align="center">E</td><td align="right">316.227766</td><td align="right">0.300</td><td align="right">0.0224</td><td><b>sig</b></td></tr>
     <tr><td>qwen3-235b</td><td align="center">N</td><td align="right">177.827941</td><td align="right">0.239</td><td align="right">0.0634</td><td></td></tr>
@@ -114,7 +113,6 @@ Owner: 福原玄
     <tr><td>gpt-oss-120b</td><td align="center">E</td><td align="right">562.341325</td><td align="right">0.257</td><td align="right">0.0460</td><td><b>sig</b></td></tr>
     <tr><td>gpt-oss-120b</td><td align="center">N</td><td align="right">100.0</td><td align="right">0.401</td><td align="right">0.0010</td><td><b>sig</b></td></tr>
     <tr><td>gpt-oss-120b</td><td align="center">O</td><td align="right">100.0</td><td align="right">0.345</td><td align="right">0.0088</td><td><b>sig</b></td></tr>
-  </tbody>
 </table>
 
 **読み（A/E/N/O）**
