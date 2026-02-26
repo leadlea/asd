@@ -1088,9 +1088,3 @@ python scripts/analysis/make_bootstrap_cards.py
 # OK: docs/homework/cejc_bootstrap_cards_nonsonnet.md
 ```
 
----
-
-````
-
----
-
