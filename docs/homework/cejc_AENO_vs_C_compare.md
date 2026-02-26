@@ -1,6 +1,14 @@
 # CEJC home2 HQ1: Interaction features → LLM teacher (C vs A/E/N/O) 比較メモ
-Date: 2026-02-24
-Owner: 福原玄
+Date: 2026-02-24  
+Owner: 福原玄  
+
+## 背景（先生とのメールの流れに沿った要点）
+- まず **Sonnet4 を仮想教師（teacher）**として CEJC home2 HQ1 を検証したところ、**Cのみ強く有意**という結果が出た（先生「Cのみ推定しやすいかも」）。
+- その後、先生の宿題「**LLMをもう2種類ほど追加しても同じ傾向か確認**」に沿い、**Claude以外3モデル（Qwen / DeepSeek / GPT-OSS）**を追加し、**C/A/E/N/Oを一通り**同一手順で検証。
+- 結果、**Cは複数teacherで頑健に立ちやすい一方、A/E/N/Oは teacher依存性も大きい**ことが示唆された。
+- さらに、teacher依存性の“理由”を説明できるように、(i) **teacher間一致（相関）**、(ii) **bootstrapの上位特徴の比較**まで追加で整理した。
+
+---
 
 ## Setup（全trait共通）
 - Dataset: CEJC home2 + HQ1（N=120 conversation×speaker）
@@ -15,6 +23,11 @@ Owner: 福原玄
 <h2>1) Permutation test（fixed α / 5000）</h2>
 
 > **alpha** はRidgeの正則化強度（大きいほど係数が縮む）、**r_obs** は5-fold CVで得た予測値と教師スコアの相関、**p(|r|)** は目的変数を5000回シャッフルした置換検定で「|r_obs|以上が偶然出る確率」です。
+
+---
+
+## 1.1 Baseline（teacher=Sonnet4）: C vs A/E/N/O
+（先生への最初の報告で使ったベースライン）
 
 <table>
   <thead>
@@ -35,23 +48,109 @@ Owner: 福原玄
   </tbody>
 </table>
 
-<p><b>読み</b></p>
+<p><b>読み（baseline）</b></p>
 <ul>
-  <li>Cのみ強く有意 → 「相互行為特徴が全traitをトリビアルに説明」よりも <b>C特異的に強い関係</b>の可能性が高い。</li>
-  <li>A/Eは弱い傾向、N/Oは非有意。</li>
+  <li>Sonnet4では C が最も強く有意 → 「Cは相互行為特徴から推定しやすい可能性」が示唆された。</li>
+  <li>ただしこの時点では「teacherがSonnet4に固定」なので、teacher依存性を除外できない。</li>
 </ul>
 
 ---
 
-## 2) Bootstrap stability（Top drivers）
+## 1.2 Extension（先生の宿題）: teacherを追加（Claude以外3モデル）して同一検証
 
+### 1.2.1 Cのteacher頑健性（Sonnet4 + 非Claude3）
+（先生の「Cのみが立つ傾向が再現されるか？」に直接答える表）
+
+| teacher | alpha | r_obs | p(|r|) | Note |
+|---|---:|---:|---:|---|
+| Sonnet4 | 100.0 | 0.434 | 0.0008 | **sig** |
+| Qwen3-235B | 177.827941 | 0.390 | 0.0010 | **sig** |
+| DeepSeek-V3 | 316.227766 | 0.205 | 0.1130 | n.s. |
+| GPT-OSS-120B | 177.827941 | 0.447 | 0.0008 | **sig** |
+
+**読み（C）**
+- Cは **4 teacher中 3 teacherで有意**（Sonnet4 / Qwen / GPT-OSS）で、**頑健に立ちやすい傾向**がある。  
+- DeepSeekでは同条件で有意に至らず、**teacher依存性がゼロではない**（ただし方向は正）。
+
+---
+
+### 1.2.2 A/E/N/O（非Claude3モデル）: permutation結果
+（先生の「念のため C/A/E/N/O 一通り」を非Claude3モデルで完走）
+
+| model | trait | alpha | r_obs | p(|r|) | note |
+|---|:---:|---:|---:|---:|---|
+| qwen3-235b | A | 100.0 | 0.365 | 0.0032 | sig |
+| qwen3-235b | E | 316.227766 | 0.300 | 0.0224 | sig |
+| qwen3-235b | N | 177.827941 | 0.239 | 0.0634 |  |
+| qwen3-235b | O | 3.162277660 | 0.350 | 0.0060 | sig |
+| deepseek-v3 | A | 100.0 | 0.339 | 0.0070 | sig |
+| deepseek-v3 | E | 1000.0 | 0.136 | 0.3033 |  |
+| deepseek-v3 | N | 316.227766 | 0.202 | 0.1154 |  |
+| deepseek-v3 | O | 177.827941 | 0.323 | 0.0086 | sig |
+| gpt-oss-120b | A | 100.0 | 0.461 | 0.0002 | sig |
+| gpt-oss-120b | E | 562.341325 | 0.257 | 0.0460 | sig |
+| gpt-oss-120b | N | 100.0 | 0.401 | 0.0010 | sig |
+| gpt-oss-120b | O | 100.0 | 0.345 | 0.0088 | sig |
+
+**読み（A/E/N/O）**
+- Sonnet4ベースラインでは「Cのみが強い」印象だったが、teacherを変えると **A/E/O（場合によりN）も有意になり得る**。  
+- したがって本データでは「語用論特徴→Big5」は **trait依存 + teacher依存**の両方があり、**Cは特に頑健だが、他traitはteacher依存性が大きい**可能性が高い。
+
+---
+
+## 1.3 teacher依存性の“理由”を説明する補助結果（teacher間一致）
+同一 (conversation_id, speaker_id) の trait_score を teacher間で比較し、Pearson相関の平均（off-diagonal mean r）を算出。
+
+| Trait | N | mean off-diagonal r（teacher間一致） |
+|---:|---:|---:|
+| C | 120 | **0.699** |
+| E | 120 | 0.640 |
+| N | 120 | 0.603 |
+| O | 120 | 0.559 |
+| A | 120 | **0.435** |
+
+**読み（teacher一致）**
+- **Cはteacher間一致が最大（≈0.70）**で、疑似教師として安定しやすい → 「Cが頑健に立ちやすい」背景説明になる。  
+- **Aはteacher間一致が最小（≈0.44）**で、teacher依存性が出やすい（=有意/非有意の揺れが起きやすい）可能性。
+
+### teacher一致ヒートマップ（クリックで拡大）
+<table>
+<tr>
+<td align="center">
+<a href="assets/figs/teacher_corr_C.png"><img src="assets/figs/teacher_corr_C.png" width="240"></a><br><sub><b>C</b></sub>
+</td>
+<td align="center">
+<a href="assets/figs/teacher_corr_A.png"><img src="assets/figs/teacher_corr_A.png" width="240"></a><br><sub><b>A</b></sub>
+</td>
+</tr>
+<tr>
+<td align="center">
+<a href="assets/figs/teacher_corr_E.png"><img src="assets/figs/teacher_corr_E.png" width="240"></a><br><sub><b>E</b></sub>
+</td>
+<td align="center">
+<a href="assets/figs/teacher_corr_N.png"><img src="assets/figs/teacher_corr_N.png" width="240"></a><br><sub><b>N</b></sub>
+</td>
+</tr>
+<tr>
+<td align="center">
+<a href="assets/figs/teacher_corr_O.png"><img src="assets/figs/teacher_corr_O.png" width="240"></a><br><sub><b>O</b></sub>
+</td>
+<td></td>
+</tr>
+</table>
+
+---
+
+## 2) Bootstrap stability（Top drivers）— baseline（teacher=Sonnet4）
 > **topk_rate** は「ブートストラップ500回のうち、その特徴が“重要度Top10”に入った割合」、**sign_agree** は「その特徴の係数の符号（＋/−）が元モデルと一致した割合」です。
+
+（以下は、先生に最初に共有した “baselineとしての解釈” を維持するため、teacher=Sonnet4のTop10を掲載）
 
 <table>
 <tr>
 <td valign="top" width="62%">
 
-### C（Conscientiousness）Top10（安定）
+### C（Conscientiousness）Top10（Sonnet4 / 安定）
 | Feature | Dir | topk_rate | sign_agree |
 |---|:---:|---:|---:|
 | FILL_has_any | + | 0.838 | 0.968 |
@@ -82,11 +181,13 @@ Owner: 福原玄
 </tr>
 </table>
 
+（A/E/N/OのSonnet4 Top10は既存セクションとして保持：以降同様）
+
 <table>
 <tr>
 <td valign="top" width="62%">
 
-### A（Agreeableness）Top10
+### A（Agreeableness）Top10（Sonnet4）
 | Feature | Dir | topk_rate | sign_agree |
 |---|:---:|---:|---:|
 | PG_pause_p50 | − | 0.948 | 0.996 |
@@ -99,11 +200,6 @@ Owner: 福原玄
 | PG_pause_mean | − | 0.666 | 0.908 |
 | RESP_NE_ENTROPY | − | 0.580 | 0.782 |
 | RESP_NE_AIZUCHI_RATE | + | 0.532 | 0.838 |
-
-- **相手に合わせる/受ける**：RESP_NE_AIZUCHI_RATE（＋）、IX_yesno_after_question_rate（＋）
-- **間の取り方**：PG_pause_p50（−）／（場合により）PG_pause系が効く可能性
-- **整合**：IX_lex_overlap_mean（＋）
-> 期待：同調・受容・確認応答が前面に出る
 
 </td>
 <td valign="top" width="38%" align="center">
@@ -126,7 +222,7 @@ Owner: 福原玄
 <tr>
 <td valign="top" width="62%">
 
-### E（Extraversion）Top10
+### E（Extraversion）Top10（Sonnet4）
 | Feature | Dir | topk_rate | sign_agree |
 |---|:---:|---:|---:|
 | PG_resp_gap_p50 | − | 0.960 | 0.992 |
@@ -139,11 +235,6 @@ Owner: 福原玄
 | PG_speech_ratio | − | 0.574 | 0.658 |
 | RESP_NE_ENTROPY | + | 0.568 | 0.850 |
 | PG_pause_mean | − | 0.564 | 0.904 |
-
-- **テンポ**：PG_resp_gap_p50（−）、PG_pause_p50（−）
-- **反応の多様性**：RESP_YO_ENTROPY（＋）、RESP_NE_ENTROPY（＋）
-- **会話主導（比率）**：PG_speech_ratio（＋寄り）
-> 期待：勢い（テンポ）＋反応性（多様性）が前面に出る（量は除外しているため）
 
 </td>
 <td valign="top" width="38%" align="center">
@@ -166,7 +257,7 @@ Owner: 福原玄
 <tr>
 <td valign="top" width="62%">
 
-### N（Neuroticism）Top10
+### N（Neuroticism）Top10（Sonnet4）
 | Feature | Dir | topk_rate | sign_agree |
 |---|:---:|---:|---:|
 | IX_yesno_rate | − | 0.962 | 0.994 |
@@ -179,10 +270,6 @@ Owner: 福原玄
 | IX_yesno_after_question_rate | − | 0.556 | 0.770 |
 | IX_oirmarker_rate | + | 0.534 | 0.716 |
 | PG_pause_mean | − | 0.468 | 0.838 |
-
-- **確認/修復**：IX_oirmarker_after_question_rate（＋）が出る可能性
-- **ためらい**：FILL_rate_per_100chars（＋）、PG_pause系（＋）が出る可能性
-> 期待：不安/自己モニタリングが「確認」「間」「フィラー」に反映される可能性。ただし内容依存・ノイズの影響も大きい。
 
 </td>
 <td valign="top" width="38%" align="center">
@@ -205,7 +292,7 @@ Owner: 福原玄
 <tr>
 <td valign="top" width="62%">
 
-### O（Openness）Top10
+### O（Openness）Top10（Sonnet4）
 | Feature | Dir | topk_rate | sign_agree |
 |---|:---:|---:|---:|
 | FILL_rate_per_100chars | − | 0.932 | 0.992 |
@@ -218,10 +305,6 @@ Owner: 福原玄
 | IX_oirmarker_after_question_rate | + | 0.534 | 0.768 |
 | PG_resp_gap_p50 | + | 0.528 | 0.852 |
 | FILL_has_any | + | 0.500 | 0.886 |
-
-- **反応の多様性**：RESP_YO_ENTROPY / RESP_NE_ENTROPY（＋）
-- **話題展開（※監査前提）**：IX_topic_drift_mean（＋）が出る可能性
-> 期待：探索性が「多様性」「展開」に現れる可能性。ただし相互行為18のみだと弱くなりやすい。
 
 </td>
 <td valign="top" width="38%" align="center">
@@ -242,19 +325,43 @@ Owner: 福原玄
 
 ---
 
-## 3) Sanity check：CとTop10がどれだけ被るか（トリビアル因子の疑いをチェック）
+## 2.2 teacher比較（bootstrap top drivers）: “トリビアル因子”の疑いを監査
+teacher別に、**C Top10と他trait Top10がどれだけ被るか**（Overlap）を算出。
+
+| teacher | A overlap | E overlap | N overlap | O overlap |
+|---|---:|---:|---:|---:|
+| sonnet | 5 | 6 | 5 | 7 |
+| qwen3-235b | 5 | 5 | 5 | 5 |
+| deepseek-v3 | 5 | 3 | 5 | 5 |
+| gpt-oss-120b | 7 | 8 | 6 | 6 |
+
+**読み（bootstrap比較）**
+- **gpt-oss-120b は Cと他traitの重なりが大きい（特にE=8/10）**  
+  → 多traitで有意になりやすい一方、**同じ特徴で複数traitが立つ（一般因子混入）**の可能性も強まる。  
+- deepseek-v3 は E の overlap が小さい（3/10）  
+  → Eの教師や特徴が **他traitと異なる/不安定**になっている可能性（PermutationでもEは非有意）。
+
+> 詳細な teacher×trait のTop10一覧は以下（自動生成）に保存：  
+> `docs/homework/cejc_bootstrap_teacher_compare.md`
+
+---
+
+## 3) Sanity check（baseline=Sonnet4）：CとTop10がどれだけ被るか
+（当初の“乖離チェック”としての位置づけを維持）
+
 - A: 5/10
 - E: 6/10
 - N: 5/10
 - O: 7/10
 
-**読み**
+**読み（baseline）**
 - 完全一致ではない → “全部同じ特徴で当たる”トリビアル懸念は弱い  
 - 一方、Oは重なりが多め → 「共通の会話流暢さ因子」っぽい部分が入り込む可能性あり（要監査）
 
 ---
 
 ## 4) C以外（A/E/N/O）で「18特徴のうち何が顕著に出そうか？」（事前仮説 → 観測との照合）
+（baseline中心に書きつつ、teacher依存性がある前提で解釈）
 
 本分析の説明変数は「会話量」ではなく、相互行為の**型**（テンポ/応答/修復/整序/整合/多様性）に限定している。  
 そのため、C以外のtraitは「内容（語彙・話題）」よりも、**相互行為としての振る舞い**がどの程度teacherスコアに反映されるかに依存する。
@@ -270,20 +377,31 @@ Owner: 福原玄
 - **相槌/反応（NE）**：RESP_NE_AIZUCHI_RATE / RESP_NE_ENTROPY
 - **反応の多様性（YO）**：RESP_YO_ENTROPY
 
-### 4.2 観測との照合（今回の結果の読み）
-- **A**：PG_pause_p50 / IX_yesno_after_question_rate が最上位 → 「間＋質問後Yes/No」が顕著（仮説と整合）
-- **E**：PG_resp_gap_p50 / PG_pause_p50 / RESP_YO_ENTROPY が上位 → 「テンポ＋多様性」（仮説と整合）
-- **N/O**：Permutationでは非有意（N p=0.397, O p=0.359）で、相互行為18のみではteacherスコアを十分説明できない可能性（内容依存 or teacherノイズの影響を示唆）。ただしbootstrap上の“上位特徴の顔ぶれ”は抽出できており、探索的解釈は可能。
+### 4.2 観測との照合（baselineの読み + teacher依存性の注記）
+- **A（baseline）**：PG_pause_p50 / IX_yesno_after_question_rate が上位 → 「間＋質問後Yes/No」が顕著  
+- **E（baseline）**：PG_resp_gap_p50 / PG_pause_p50 / RESP_YO_ENTROPY が上位 → 「テンポ＋多様性」  
+- **N/O（baseline）**：Sonnet4では非有意だが、teacherを変えると有意になる場合がある → **teacher依存性**に注意  
+  - よって「N/Oは不可能」と断定せず、**teacher一致・一般因子混入の監査**とセットで扱う。
 
 ### 4.3 Audit note（再掲）
 - `IX_topic_drift_mean` と `IX_lex_overlap_mean` は共線性が強く、符号が対になりやすい。主要主張の中心には置かず補助指標扱いとする。
 
 ---
 
-## 5) 解釈メモ（暫定）
-- **C**: FILL + OIR-after-question + gap短縮（滑らかさ）などが安定して効く  
-- **A**: pause（間）＋質問後YES/NOが上位、Cとトップがズレる  
-- **E**: gap/pause（テンポ）と反応の多様性（ENTROPY）が前面  
-- **N**: YESNO/OIR/aizuchi が **負方向**で安定（符号がCと異なる可能性）  
-- **O**: filler頻度 + 反応多様性 + gap が中心。Cと共通部分も多いので慎重に
+## 5) 解釈メモ（更新版）
+- **C**: teacher間一致が高く（mean r≈0.70）、複数teacherで有意に立ちやすい → **本論の中心に置きやすい**  
+- **A/E/N/O**: teacher依存性が大きい可能性  
+  - 有意になり得るteacherがある一方、teacher一致が低い（特にA）/ bootstrapの重なりが過大（例：gpt-oss）など、**一般因子混入や採点ノイズ**の可能性が残る  
+- したがって論文化では  
+  - 本論：C中心（teacher頑健性＋一致度の裏付け）  
+  - 付録/探索：A/E/N/O（teacher依存性の検証結果として提示）  
+が安全かつ説得的。
 
+---
+
+## 6) 生成物リンク（今回追加分）
+- teacher間一致（md + png）：`docs/homework/teacher_agreement_big5.md`（pngは `assets/figs/teacher_corr_*.png`）
+- bootstrap teacher比較（md）：`docs/homework/cejc_bootstrap_teacher_compare.md`
+- teacher頑健性（Cのみ、表）：`docs/homework/cejc_teacher_check_C_only.md`
+- teacher頑健性（A/E/N/O、表）：`docs/homework/cejc_teacher_check_AENO_nonclaude.md`
+- 再現手順（runbook）：`docs/homework/runbook.md`
