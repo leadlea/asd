@@ -89,30 +89,19 @@ Owner: 福原玄
 （先生の「念のため C/A/E/N/O 一通り」を非Claude3モデルで完走）
 
 <table>
-  <thead>
-    <tr>
-      <th>model</th>
-      <th align="center">trait</th>
-      <th align="right">alpha</th>
-      <th align="right">r_obs</th>
-      <th align="right">p(|r|)</th>
-      <th>note</th>
-    </tr>
-  </thead>
+    <tr><th>model</th><th align="center">trait</th><th align="right">alpha</th><th align="right">r_obs</th><th align="right">p(|r|)</th><th>note</th></tr>
     <tr><td>qwen3-235b</td><td align="center">A</td><td align="right">100.0</td><td align="right">0.365</td><td align="right">0.0032</td><td><b>sig</b></td></tr>
-    <tr><td>qwen3-235b</td><td align="center">E</td><td align="right">316.227766</td><td align="right">0.300</td><td align="right">0.0224</td><td><b>sig</b></td></tr>
+    <tr><td>qwen3-235b</td><td align="center">E</td><td align="right">316.22</td><td align="right">0.300</td><td align="right">0.0224</td><td><b>sig</b></td></tr>
     <tr><td>qwen3-235b</td><td align="center">N</td><td align="right">177.827941</td><td align="right">0.239</td><td align="right">0.0634</td><td></td></tr>
-    <tr><td>qwen3-235b</td><td align="center">O</td><td align="right">3.162277660</td><td align="right">0.350</td><td align="right">0.0060</td><td><b>sig</b></td></tr>
-
+    <tr><td>qwen3-235b</td><td align="center">O</td><td align="right">3.1622</td><td align="right">0.350</td><td align="right">0.0060</td><td><b>sig</b></td></tr>
     <tr><td>deepseek-v3</td><td align="center">A</td><td align="right">100.0</td><td align="right">0.339</td><td align="right">0.0070</td><td><b>sig</b></td></tr>
     <tr><td>deepseek-v3</td><td align="center">E</td><td align="right">1000.0</td><td align="right">0.136</td><td align="right">0.3033</td><td></td></tr>
     <tr><td>deepseek-v3</td><td align="center">N</td><td align="right">316.227766</td><td align="right">0.202</td><td align="right">0.1154</td><td></td></tr>
-    <tr><td>deepseek-v3</td><td align="center">O</td><td align="right">177.827941</td><td align="right">0.323</td><td align="right">0.0086</td><td><b>sig</b></td></tr>
-
-    <tr><td>gpt-oss-120b</td><td align="center">A</td><td align="right">100.0</td><td align="right">0.461</td><td align="right">0.0002</td><td><b>sig</b></td></tr>
-    <tr><td>gpt-oss-120b</td><td align="center">E</td><td align="right">562.341325</td><td align="right">0.257</td><td align="right">0.0460</td><td><b>sig</b></td></tr>
-    <tr><td>gpt-oss-120b</td><td align="center">N</td><td align="right">100.0</td><td align="right">0.401</td><td align="right">0.0010</td><td><b>sig</b></td></tr>
-    <tr><td>gpt-oss-120b</td><td align="center">O</td><td align="right">100.0</td><td align="right">0.345</td><td align="right">0.0088</td><td><b>sig</b></td></tr>
+    <tr><td>deepseek-v3</td><td align="center">O</td><td align="right">177.82</td><td align="right">0.323</td><td align="right">0.00</td><td><b>sig</b></td></tr>
+    <tr><td>gpt-oss-120b</td><td align="center">A</td><td align="right">100.0</td><td align="right">0.46</td><td align="right">0.0002</td><td><b>sig</b></td></tr>
+    <tr><td>gpt-oss-120b</td><td align="center">E</td><td align="right">562.34</td><td align="right">0.25</td><td align="right">0.046</td><td><b>sig</b></td></tr>
+    <tr><td>gpt-oss-120b</td><td align="center">N</td><td align="right">100.0</td><td align="right">0.4</td><td align="right">0.0010</td><td><b>sig</b></td></tr>
+    <tr><td>gpt-oss-120b</td><td align="center">O</td><td align="right">100.0</td><td align="right">0.345</td><td align="right">0.008</td><td><b>sig</b></td></tr>
 </table>
 
 **読み（A/E/N/O）**
