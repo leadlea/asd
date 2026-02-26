@@ -1,5 +1,5 @@
 # CEJC home2 HQ1: Interaction features → LLM teacher (C vs A/E/N/O) 比較メモ
-Date: 2026-02-24  
+Date: 2026-02-27  
 Owner: 福原玄  
 
 ## 背景（先生とのメールの流れに沿った要点）
@@ -61,12 +61,23 @@ Owner: 福原玄
 ### 1.2.1 Cのteacher頑健性（Sonnet4 + 非Claude3）
 （先生の「Cのみが立つ傾向が再現されるか？」に直接答える表）
 
-| teacher | alpha | r_obs | p(|r|) | Note |
-|---|---:|---:|---:|---|
-| Sonnet4 | 100.0 | 0.434 | 0.0008 | **sig** |
-| Qwen3-235B | 177.827941 | 0.390 | 0.0010 | **sig** |
-| DeepSeek-V3 | 316.227766 | 0.205 | 0.1130 | n.s. |
-| GPT-OSS-120B | 177.827941 | 0.447 | 0.0008 | **sig** |
+<table>
+  <thead>
+    <tr>
+      <th>teacher</th>
+      <th align="right">alpha</th>
+      <th align="right">r_obs</th>
+      <th align="right">p(|r|)</th>
+      <th>Note</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td>Sonnet4</td><td align="right">100.0</td><td align="right">0.434</td><td align="right">0.0008</td><td><b>sig</b></td></tr>
+    <tr><td>Qwen3-235B</td><td align="right">177.827941</td><td align="right">0.390</td><td align="right">0.0010</td><td><b>sig</b></td></tr>
+    <tr><td>DeepSeek-V3</td><td align="right">316.227766</td><td align="right">0.205</td><td align="right">0.1130</td><td>n.s.</td></tr>
+    <tr><td>GPT-OSS-120B</td><td align="right">177.827941</td><td align="right">0.447</td><td align="right">0.0008</td><td><b>sig</b></td></tr>
+  </tbody>
+</table>
 
 **読み（C）**
 - Cは **4 teacher中 3 teacherで有意**（Sonnet4 / Qwen / GPT-OSS）で、**頑健に立ちやすい傾向**がある。  
@@ -74,23 +85,37 @@ Owner: 福原玄
 
 ---
 
-### 1.2.2 A/E/N/O（非Claude3モデル）: permutation結果
+### 1.2.2 A/E/N/O（非Claude3モデル）：permutation結果
 （先生の「念のため C/A/E/N/O 一通り」を非Claude3モデルで完走）
 
-| model | trait | alpha | r_obs | p(|r|) | note |
-|---|:---:|---:|---:|---:|---|
-| qwen3-235b | A | 100.0 | 0.365 | 0.0032 | sig |
-| qwen3-235b | E | 316.227766 | 0.300 | 0.0224 | sig |
-| qwen3-235b | N | 177.827941 | 0.239 | 0.0634 |  |
-| qwen3-235b | O | 3.162277660 | 0.350 | 0.0060 | sig |
-| deepseek-v3 | A | 100.0 | 0.339 | 0.0070 | sig |
-| deepseek-v3 | E | 1000.0 | 0.136 | 0.3033 |  |
-| deepseek-v3 | N | 316.227766 | 0.202 | 0.1154 |  |
-| deepseek-v3 | O | 177.827941 | 0.323 | 0.0086 | sig |
-| gpt-oss-120b | A | 100.0 | 0.461 | 0.0002 | sig |
-| gpt-oss-120b | E | 562.341325 | 0.257 | 0.0460 | sig |
-| gpt-oss-120b | N | 100.0 | 0.401 | 0.0010 | sig |
-| gpt-oss-120b | O | 100.0 | 0.345 | 0.0088 | sig |
+<table>
+  <thead>
+    <tr>
+      <th>model</th>
+      <th align="center">trait</th>
+      <th align="right">alpha</th>
+      <th align="right">r_obs</th>
+      <th align="right">p(|r|)</th>
+      <th>note</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr><td>qwen3-235b</td><td align="center">A</td><td align="right">100.0</td><td align="right">0.365</td><td align="right">0.0032</td><td><b>sig</b></td></tr>
+    <tr><td>qwen3-235b</td><td align="center">E</td><td align="right">316.227766016838</td><td align="right">0.300</td><td align="right">0.0224</td><td><b>sig</b></td></tr>
+    <tr><td>qwen3-235b</td><td align="center">N</td><td align="right">177.82794100389228</td><td align="right">0.239</td><td align="right">0.0634</td><td></td></tr>
+    <tr><td>qwen3-235b</td><td align="center">O</td><td align="right">3.1622776601683795</td><td align="right">0.350</td><td align="right">0.0060</td><td><b>sig</b></td></tr>
+
+    <tr><td>deepseek-v3</td><td align="center">A</td><td align="right">100.0</td><td align="right">0.339</td><td align="right">0.0070</td><td><b>sig</b></td></tr>
+    <tr><td>deepseek-v3</td><td align="center">E</td><td align="right">1000.0</td><td align="right">0.136</td><td align="right">0.3033</td><td></td></tr>
+    <tr><td>deepseek-v3</td><td align="center">N</td><td align="right">316.227766016838</td><td align="right">0.202</td><td align="right">0.1154</td><td></td></tr>
+    <tr><td>deepseek-v3</td><td align="center">O</td><td align="right">177.82794100389228</td><td align="right">0.323</td><td align="right">0.0086</td><td><b>sig</b></td></tr>
+
+    <tr><td>gpt-oss-120b</td><td align="center">A</td><td align="right">100.0</td><td align="right">0.461</td><td align="right">0.0002</td><td><b>sig</b></td></tr>
+    <tr><td>gpt-oss-120b</td><td align="center">E</td><td align="right">562.341325190349</td><td align="right">0.257</td><td align="right">0.0460</td><td><b>sig</b></td></tr>
+    <tr><td>gpt-oss-120b</td><td align="center">N</td><td align="right">100.0</td><td align="right">0.401</td><td align="right">0.0010</td><td><b>sig</b></td></tr>
+    <tr><td>gpt-oss-120b</td><td align="center">O</td><td align="right">100.0</td><td align="right">0.345</td><td align="right">0.0088</td><td><b>sig</b></td></tr>
+  </tbody>
+</table>
 
 **読み（A/E/N/O）**
 - Sonnet4ベースラインでは「Cのみが強い」印象だったが、teacherを変えると **A/E/O（場合によりN）も有意になり得る**。  
