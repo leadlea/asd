@@ -750,3 +750,347 @@ PY
 ```
 
 ---
+
+# Extension: teacher robustness check（Claude以外3モデル）＋ teacher agreement ＋ レーダーカード生成
+
+> 先生の宿題「LLMをもう2種類ほど追加して同じ傾向か」を、Claude以外3モデル（Qwen / DeepSeek / GPT-OSS）で **C/A/E/N/O** 一通り同一手順で検証する。  
+> *既存の shards / items(A,E,N,O,C) / X(features_min) をそのまま再利用する。*
+
+## 0c) Teacher model list（models.txt）
+**Input**
+- `artifacts/big5/models.txt`（モデルID一覧、1行1モデル）
+
+例:
+- qwen.qwen3-235b-a22b-2507-v1:0
+- deepseek.v3-v1:0
+- openai.gpt-oss-120b-1:0
+- （baseline）global.anthropic.claude-sonnet-4-20250514-v1:0
+
+---
+
+## 5c) Bedrock 採点（非Claude3モデル × C/A/E/N/O）— shardごと・再開可能
+
+**Output（teacher/traitごと）**
+- `artifacts/big5/llm_scores/dataset=cejc_home2_hq1_v1__items={T}24__teacher={teacher}/shard=.../model=.../trait_scores.parquet`
+
+```bash
+cd ~/cpsy
+source .venv/bin/activate
+
+export AWS_RETRY_MODE=adaptive
+export AWS_MAX_ATTEMPTS=10
+
+SHARDDIR="artifacts/cejc/shards_home2_hq1"
+
+# model_id -> teacherタグ（ディレクトリ名に使う）
+# ※必要ならここだけ好みで変更
+python - <<'PY'
+from pathlib import Path
+models = Path("artifacts/big5/models.txt").read_text().strip().splitlines()
+print("models.txt:")
+for m in models:
+    print(" -", m)
+PY
+
+# 非Claude3モデルを回す（qwen / deepseek / gpt-oss）
+for MODEL in \
+  "qwen.qwen3-235b-a22b-2507-v1:0" \
+  "deepseek.v3-v1:0" \
+  "openai.gpt-oss-120b-1:0"
+do
+  case "$MODEL" in
+    qwen.qwen3-235b-a22b-2507-v1:0) TEACHER="qwen3-235b" ;;
+    deepseek.v3-v1:0)              TEACHER="deepseek-v3" ;;
+    openai.gpt-oss-120b-1:0)       TEACHER="gpt-oss-120b" ;;
+    *) echo "Unknown MODEL=$MODEL" && exit 1 ;;
+  esac
+
+  SAFE="$(echo "$MODEL" | tr ':/' '__')"
+
+  for T in C A E N O; do
+    ITEMS="artifacts/big5/items_ipipneo120_ja_${T}24.csv"
+    OUTROOT="artifacts/big5/llm_scores/dataset=cejc_home2_hq1_v1__items=${T}24__teacher=${TEACHER}"
+    mkdir -p "$OUTROOT"
+
+    for SHARD in ${SHARDDIR}/monologues_cejc_home2_hq1_v1_shard*.parquet; do
+      SID="$(basename "$SHARD" .parquet | sed 's/.*shard//')"
+      OUTDIR="$OUTROOT/shard=$SID/model=$SAFE"
+
+      if [ -f "$OUTDIR/trait_scores.parquet" ]; then
+        echo "[SKIP] ${TEACHER} ${T} shard=$SID"
+        continue
+      fi
+
+      echo "== RUN ${TEACHER} ${T} shard=$SID =="
+      python scripts/big5/score_big5_bedrock.py \
+        --monologues_parquet "$SHARD" \
+        --items_csv "$ITEMS" \
+        --model_id "$MODEL" \
+        --region "ap-northeast-1" \
+        --out_dir "$OUTDIR" || exit 1
+    done
+  done
+done
+````
+
+> 途中でネットワーク（DNS）落ちした場合：上のコマンドを **そのまま再実行**すれば、`trait_scores.parquet` がある shard は自動でSKIPする。
+
+---
+
+## 6c) 教師（trait_scores）結合（非Claude3モデル × C/A/E/N/O）
+
+**Output**
+
+* `.../teacher_merged/trait_scores_{T}_merged.parquet`（rows=120 になるはず）
+
+```bash
+cd ~/cpsy
+source .venv/bin/activate
+
+for TEACHER in qwen3-235b deepseek-v3 gpt-oss-120b; do
+  echo "==== MERGE teacher: ${TEACHER} ===="
+  for T in C A E N O; do
+    python - <<PY
+import pandas as pd
+from pathlib import Path
+TEACHER="${TEACHER}"
+T="${T}"
+root=Path(f"artifacts/big5/llm_scores/dataset=cejc_home2_hq1_v1__items={T}24__teacher={TEACHER}")
+ps=sorted(root.glob("shard=*/model=*/trait_scores.parquet"))
+assert ps, f"no trait_scores found: {root}"
+df=pd.concat([pd.read_parquet(p) for p in ps], ignore_index=True)
+outdir=root/"teacher_merged"; outdir.mkdir(parents=True, exist_ok=True)
+out=outdir/f"trait_scores_{T}_merged.parquet"
+df.to_parquet(out, index=False)
+print("OK:", out, "rows=", len(df))
+PY
+  done
+done
+```
+
+---
+
+## 8c) XY 作成（X + Y_{T}）— 非Claude3モデル × C/A/E/N/O
+
+**Output**
+
+* `artifacts/analysis/datasets/cejc_home2_hq1_XY_{T}only_{teacher}.parquet`
+
+```bash
+cd ~/cpsy
+source .venv/bin/activate
+mkdir -p artifacts/analysis/datasets
+
+X="artifacts/analysis/features_min/features_cejc_home2_hq1.parquet"
+
+for TEACHER in qwen3-235b deepseek-v3 gpt-oss-120b; do
+  echo "==== XY: ${TEACHER} ===="
+  for T in C A E N O; do
+    python - <<PY
+import pandas as pd
+TEACHER="${TEACHER}"
+T="${T}"
+X="${X}"
+Y=f"artifacts/big5/llm_scores/dataset=cejc_home2_hq1_v1__items={T}24__teacher={TEACHER}/teacher_merged/trait_scores_{T}_merged.parquet"
+x=pd.read_parquet(X)
+y=pd.read_parquet(Y)[["conversation_id","speaker_id","trait_score"]].rename(columns={"trait_score":f"Y_{T}"})
+df=x.merge(y,on=["conversation_id","speaker_id"],how="inner")
+out=f"artifacts/analysis/datasets/cejc_home2_hq1_XY_{T}only_{TEACHER}.parquet"
+df.to_parquet(out, index=False)
+print("OK:", out, "shape=", df.shape)
+PY
+  done
+done
+```
+
+---
+
+## 9c) 学習（Ridge / 5-fold CV）— 非Claude3モデル × C/A/E/N/O
+
+**Output**
+
+* `artifacts/analysis/results/cejc_home2_hq1_{T}only_{teacher}_controls_excluded/summary.tsv`
+
+```bash
+cd ~/cpsy
+source .venv/bin/activate
+
+EXCL3="IX_n_pairs,n_pairs_total,FILL_text_len,FILL_cnt_total,FILL_cnt_ano,FILL_cnt_e,FILL_cnt_eto,PG_total_time,PG_overlap_rate,PG_resp_overlap_rate,n_pairs_after_NE,n_pairs_after_YO,IX_n_pairs_after_question"
+
+for TEACHER in qwen3-235b deepseek-v3 gpt-oss-120b; do
+  for T in C A E N O; do
+    XY="artifacts/analysis/datasets/cejc_home2_hq1_XY_${T}only_${TEACHER}.parquet"
+    OUT="artifacts/analysis/results/cejc_home2_hq1_${T}only_${TEACHER}_controls_excluded"
+    mkdir -p "$OUT"
+    python scripts/analysis/train_cejc_big5_from_features_v2.py \
+      --xy_parquet "$XY" \
+      --out_dir "$OUT" \
+      --min_pairs_total 0 --min_text_len 0 --cv_folds 5 \
+      --exclude_cols "$EXCL3" 2>&1 | tee "$OUT/run.log"
+  done
+done
+```
+
+---
+
+## 10c) 置換検定（Permutation test, fixed α / 5000）— 非Claude3モデル × C/A/E/N/O
+
+> α は `summary.tsv` の alpha を自動で読んで固定（手入力ミス防止）。
+
+```bash
+cd ~/cpsy
+source .venv/bin/activate
+
+EXCL3="IX_n_pairs,n_pairs_total,FILL_text_len,FILL_cnt_total,FILL_cnt_ano,FILL_cnt_e,FILL_cnt_eto,PG_total_time,PG_overlap_rate,PG_resp_overlap_rate,n_pairs_after_NE,n_pairs_after_YO,IX_n_pairs_after_question"
+
+for TEACHER in qwen3-235b deepseek-v3 gpt-oss-120b; do
+  for T in C A E N O; do
+    XY="artifacts/analysis/datasets/cejc_home2_hq1_XY_${T}only_${TEACHER}.parquet"
+    OUT="artifacts/analysis/results/cejc_home2_hq1_${T}only_${TEACHER}_controls_excluded"
+    ALPHA="$(python - <<PY
+import pandas as pd
+df=pd.read_csv("${OUT}/summary.tsv", sep=r"\s+")
+print(float(df.loc[0,"alpha"]))
+PY
+)"
+    echo "== PERM ${TEACHER} ${T} alpha=${ALPHA} =="
+    python scripts/analysis/permutation_test_ridge_fixedalpha.py \
+      --xy_parquet "$XY" \
+      --y_col "Y_${T}" \
+      --exclude_cols "$EXCL3" --cv_folds 5 --n_perm 5000 --seed 0 \
+      --alpha "$ALPHA" | tee "${OUT}/permutation.log"
+  done
+done
+```
+
+---
+
+## 11c) 係数安定性（Bootstrap 500）— 非Claude3モデル × C/A/E/N/O
+
+**Output**
+
+* `artifacts/analysis/results/bootstrap/cejc_home2_hq1_{T}only_{teacher}_controls_excluded/bootstrap_summary.tsv`
+
+```bash
+cd ~/cpsy
+source .venv/bin/activate
+
+for TEACHER in qwen3-235b deepseek-v3 gpt-oss-120b; do
+  for T in C A E N O; do
+    XY="artifacts/analysis/datasets/cejc_home2_hq1_XY_${T}only_${TEACHER}.parquet"
+    OUT="artifacts/analysis/results/bootstrap/cejc_home2_hq1_${T}only_${TEACHER}_controls_excluded"
+    mkdir -p "$OUT"
+    python scripts/analysis/bootstrap_coef_stability.py \
+      --xy_parquet "$XY" \
+      --y_col "Y_${T}" \
+      --out_dir "$OUT" \
+      --n_boot 500 --topk 10 --seed 0 \
+      --exclude_cols "$EXCL3"
+  done
+done
+```
+
+---
+
+## 12c) teacher agreement（teacher間一致：相関行列＋ヒートマップ）
+
+> 同一 (conversation_id, speaker_id) の trait_score を teacher間で揃えて、Pearson相関を算出。
+> 出力：`docs/homework/assets/figs/teacher_corr_{T}.png` ＋ `docs/homework/teacher_agreement_big5.md`
+
+```bash
+cd ~/cpsy
+source .venv/bin/activate
+mkdir -p docs/homework/assets/figs
+
+python - <<'PY'
+from pathlib import Path
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+
+TEACHERS = ["sonnet4","qwen3-235b","deepseek-v3","gpt-oss-120b"]
+TRAITS = ["C","A","E","N","O"]
+
+def teacher_path(t, trait):
+    # sonnet4だけ既存命名に合わせる
+    if t == "sonnet4":
+        return Path(f"artifacts/big5/llm_scores/dataset=cejc_home2_hq1_v1__items={trait}24__teacher=sonnet4/teacher_merged/trait_scores_{trait}_merged.parquet")
+    return Path(f"artifacts/big5/llm_scores/dataset=cejc_home2_hq1_v1__items={trait}24__teacher={t}/teacher_merged/trait_scores_{trait}_merged.parquet")
+
+out_md = Path("docs/homework/teacher_agreement_big5.md")
+figdir = Path("docs/homework/assets/figs"); figdir.mkdir(parents=True, exist_ok=True)
+
+md = []
+md.append("# Teacher agreement (Big5)\n\n")
+md.append("Same (conversation_id, speaker_id) trait scores across teachers; Pearson correlation.\n\n")
+md.append(f"Teachers: {' / '.join(['Sonnet4','Qwen3-235B','DeepSeek-V3','GPT-OSS-120B'])}\n\n")
+
+for trait in TRAITS:
+    dfs=[]
+    for t in TEACHERS:
+        p = teacher_path(t, trait)
+        if not p.exists():
+            raise FileNotFoundError(p)
+        df = pd.read_parquet(p)[["conversation_id","speaker_id","trait_score"]].copy()
+        df["conversation_id"]=df["conversation_id"].astype(str)
+        df["speaker_id"]=df["speaker_id"].astype(str)
+        df = df.rename(columns={"trait_score": t})
+        dfs.append(df)
+
+    m = dfs[0]
+    for d in dfs[1:]:
+        m = m.merge(d, on=["conversation_id","speaker_id"], how="inner")
+    m = m.sort_values(["conversation_id","speaker_id"]).reset_index(drop=True)
+
+    M = m[TEACHERS].corr(method="pearson")
+    vals = M.values
+    off = vals[~np.eye(vals.shape[0], dtype=bool)]
+    mean_r = float(np.nanmean(off))
+
+    # plot heatmap
+    fig = plt.figure(figsize=(5.5,4.8))
+    ax = plt.gca()
+    im = ax.imshow(M.values, vmin=-1, vmax=1)
+    ax.set_xticks(range(len(TEACHERS))); ax.set_yticks(range(len(TEACHERS)))
+    ax.set_xticklabels(TEACHERS, rotation=45, ha="right", fontsize=9)
+    ax.set_yticklabels(TEACHERS, fontsize=9)
+    ax.set_title(f"teacher corr — {trait} (N={len(m)})")
+    for i in range(len(TEACHERS)):
+        for j in range(len(TEACHERS)):
+            ax.text(j, i, f"{M.values[i,j]:.2f}", ha="center", va="center", fontsize=8)
+    plt.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
+    fig.tight_layout()
+    out_png = figdir / f"teacher_corr_{trait}.png"
+    fig.savefig(out_png, dpi=180)
+    plt.close(fig)
+
+    md.append(f"## {trait}\n\n")
+    md.append(f"- N pairs: {len(m)}\n")
+    md.append(f"- Mean off-diagonal r: {mean_r:.3f}\n\n")
+    md.append(f"![teacher_corr_{trait}](assets/figs/teacher_corr_{trait}.png)\n\n")
+
+out_md.write_text("".join(md), encoding="utf-8")
+print("OK:", out_md)
+PY
+```
+
+---
+
+## 13c) レーダーカード（topk_rate / sign_agree）を teacher別に自動生成
+
+> 出力：`docs/homework/cejc_bootstrap_cards_nonsonnet.md` と `docs/homework/assets/figs/radar_{teacher}_{trait}_*.png`
+
+```bash
+cd ~/cpsy
+source .venv/bin/activate
+
+python scripts/analysis/make_bootstrap_cards.py
+# OK: docs/homework/cejc_bootstrap_cards_nonsonnet.md
+```
+
+---
+
+````
+
+---
+
