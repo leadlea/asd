@@ -186,7 +186,7 @@ Ref:
 
 ---
 
-## 6. 研究設計への示唆（あなた方の強みを最大化するなら）
+## 6. 研究設計への示唆（私たちの強みを最大化するなら）
 ### 6.1 “診断”ではなく “特性（traits）推定”として立て付ける
 - 臨床的・倫理的な議論が通りやすい（支援・研究用途、スクリーニング補助の位置づけ）
 
@@ -210,9 +210,8 @@ timeline
 
 ---
 
-## 8. 参考リンク集（そのままコピペ用）
+## 8. 参考リンク集
 
-```text
 [JP]
 - Nakamura et al. 2025 (SICE 東北支部 353-9 PDF)
   https://www.topic.ad.jp/sice/htdocs/papers/353/353-9.pdf
@@ -249,4 +248,4 @@ timeline
 - Mukherjee et al. 2023 (IJACSA) PDF (example mirror)
   https://pdfs.semanticscholar.org/dbe4/4060dee07cfd598d39d2035593ee3fe2fdfc.pdf
   https://thesai.org/Publications/ViewPaper?Code=IJACSA&Issue=10&SerialNo=41&Volume=14
-```
+  
