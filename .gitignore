@@ -74,3 +74,11 @@ tmp/_inspect/
 !reports/paper_figs_v2/
 !reports/paper_figs_v2/*.png
 !reports/paper_figs_v2/*.tex
+
+# 論文本体（LaTeX + PDF）
+!paper1_ja.tex
+!paper1_ja.pdf
+
+# .kiro: specs / steering
+!.kiro/
+!.kiro/**

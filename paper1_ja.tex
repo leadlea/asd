@@ -1,0 +1,454 @@
+% paper1_ja.tex  —  v2 (N=120, Ridge regression, C robustness)
+% Compile:
+%   uplatex paper1_ja.tex && dvipdfmx paper1_ja.dvi
+%
+% Required files under reports/paper_figs_v2/:
+%   fig_permutation_C_bar.png, fig_teacher_heatmap.png, fig_bootstrap_C_radar.png
+%   tab_feature_definitions.tex, tab_descriptive_stats.tex, tab_permutation_all.tex
+
+\documentclass[dvipdfmx,11pt,a4paper]{bxjsarticle}
+
+\usepackage[dvipdfmx]{graphicx}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage[dvipdfmx]{hyperref}
+\usepackage{amsmath}
+
+\graphicspath{{reports/paper_figs_v2/}}
+
+\title{日本語日常会話における相互行為特徴量の再現可能な計測\\
+——複数LLM教師によるConscientiousnessの頑健性検証——}
+\author{福原 玄\thanks{筆頭著者．連絡先: leadlea@github}
+\and 山下 祐一\thanks{国立精神・神経医療研究センター（NCNP）}
+\and 宗田 卓史\thanks{国立精神・神経医療研究センター（NCNP）}}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+本研究は，日本語日常会話コーパス（CEJC）から抽出した18の相互行為特徴量を用いて，
+大規模言語モデル（LLM）が推定したBig Five性格スコアを予測する枠組みを提案する．
+CEJC home2サブセットの高品質会話120件（会話$\times$話者ペア）を対象に，
+4つのLLM教師（Sonnet4, Qwen3-235B, DeepSeek-V3, GPT-OSS-120B）が
+IPIP-NEO-120に基づき推定したスコアを目的変数とし，
+Ridge回帰（5-fold CV, subject-wise split）で予測モデルを構築した．
+置換検定（5000回）の結果，Conscientiousness（C: 誠実性）は
+4教師中3教師で有意な予測精度を示し（$r = 0.390$--$0.447$, $p < 0.002$），
+教師間一致度も$\bar{r} = 0.699$と最も高かった．
+Bootstrap安定性分析により，フィラー出現率・質問直後OIR率・発話率が
+Cの主要な予測因子であることが示された．
+本研究は，「性格推定」ではなく「会話の相互行為の再現可能な計測」として位置づけられ，
+日本語会話コーパスにおける初の体系的検証である．
+\end{abstract}
+
+%% ============================================================
+%%  1. Introduction
+%% ============================================================
+\section{はじめに}
+
+会話における相互行為——発話のタイミング，言い淀み，応答の型，修復——は，
+話者の社会的・認知的特性を反映する重要な手がかりである．
+近年，大規模言語モデル（LLM）の発展に伴い，
+会話テキストからASD関連指標や性格特性を推定する試みが増加している．
+
+Hu ら\cite{hu2025}は，ADOS-2の対話転記からゼロショットLLMを用いて
+特定の臨床項目（A4: 常同的言語使用）の有無を推定し，
+話者分離の品質が推定精度に強く影響することを示した．
+Altozano ら\cite{altozano2026}は，保護者の自由回答からLLMを用いた
+ASD/TD二値分類を試み，ネストCVによるリーク防止設計を採用した．
+Mun ら\cite{mun2024}は，韓国語の子ども発話からPLMを用いて
+社会的コミュニケーション重症度の連続値回帰を行い，
+ASR誤差やプロンプト設計による性能変動を報告した．
+国内では，Nakamura ら\cite{nakamura2025}がADOS-2会話テキストから
+BERT由来の特徴量とLightGBMを用いた4分類を試みている．
+
+しかし，これらの研究には共通する課題がある．
+第一に，多くの研究が限定的なターゲット（特定の臨床項目や二値分類）に焦点を当てており，
+多次元の特性プロファイルを再現可能に推定・評価する枠組みが不足している．
+第二に，小標本・非公開データに依存する研究が多く，
+評価設計の再現性（リーク防止，外部検証，ロバスト性評価）が十分に担保されていない．
+第三に，日本語会話コーパスを対象とした体系的な検証はほとんど行われていない．
+
+本研究は，これらのギャップに対して，以下の貢献を行う．
+日本語日常会話コーパス（CEJC）から18の相互行為特徴量を再現可能に抽出し，
+複数のLLM教師が推定したBig Fiveスコアを目的変数とするRidge回帰モデルを構築する．
+重要な点として，本研究は「性格推定」そのものを目的とするのではなく，
+\textbf{会話の相互行為を再現可能に計測し，その計測値がどの程度安定的に性格次元と関連するか}を
+検証する枠組みを提案するものである．
+具体的には，subject-wise splitによるリーク防止，
+置換検定（5000回）による統計的有意性の検証，
+Bootstrap（500回）による係数安定性の評価，
+および複数LLM教師間の一致度による頑健性検証を組み合わせた評価設計を採用する．
+
+%% ============================================================
+%%  2. Method
+%% ============================================================
+\section{方法}
+
+\subsection{データ}
+本研究では，日本語日常会話コーパス（Corpus of Everyday Japanese Conversation; CEJC）の
+home2サブセット（自宅・少人数会話）を使用した．
+品質フィルタ（HQ1: タイミング情報の完全性，発話ペア数の十分性）を適用し，
+最終的に$N = 120$の会話$\times$話者ペアを分析対象とした．
+各レコードは，1つの会話における1人の話者の相互行為特徴量と，
+LLM教師が推定したBig Fiveスコアの組で構成される．
+
+\subsection{特徴量}
+\label{sec:features}
+
+会話の相互行為を定量化するため，18の特徴量を4つのカテゴリに分類して抽出した．
+表\ref{tab:feature_def}に各特徴量の名称，カテゴリ，概要，計算アルゴリズムを示す．
+
+\begin{table}[htbp]
+\centering
+\caption{18特徴量の定義}
+\label{tab:feature_def}
+\input{reports/paper_figs_v2/tab_feature_definitions.tex}
+\end{table}
+
+特徴量は以下の4カテゴリに大別される．
+
+\paragraph{PG（Prosodic/Gap: タイミング系，7変数）}
+発話率（PG\_speech\_ratio）は話者の総発話時間を会話全体時間で除して算出する．
+沈黙系指標（PG\_pause\_mean/p50/p90）は，同一話者の連続発話間に生じるギャップのうち，
+閾値（gap\_tol）秒以上のものを対象に平均・中央値・90パーセンタイルを計算する．
+応答遅れ系指標（PG\_resp\_gap\_mean/p50/p90）は，話者交替時の前発話終了から応答開始までの
+ギャップについて同様の統計量を算出する．
+
+\paragraph{FILL（Filler: フィラー系，2変数）}
+FILL\_has\_anyは，フィラー（「えっと」「えー」「あの」）を1つ以上含む発話の割合である．
+FILL\_rate\_per\_100charsは，フィラー総数をテキスト文字数の100分の1で除した正規化指標である．
+
+\paragraph{IX（Interaction: 相互行為系，6変数）}
+修復開始（OIR）率（IX\_oirmarker\_rate）は，OIRマーカー（「え？」「えっ」「なに？」等）で
+始まる応答の割合である．
+IX\_oirmarker\_after\_question\_rateは，前発話が質問である場合に限定したOIR率である．
+YES/NO応答率（IX\_yesno\_rate, IX\_yesno\_after\_question\_rate）は，
+YES/NOプレフィックス（「はい」「うん」「いいえ」等）で始まる応答の割合を，
+全応答および質問直後応答について算出する．
+語彙重なり（IX\_lex\_overlap\_mean）は，前発話と応答の文字バイグラムJaccard係数の平均であり，
+話題逸脱度（IX\_topic\_drift\_mean）はその補数（$1 - \text{Jaccard}$）である．
+
+\paragraph{RESP（Response-typing: 応答型系，3変数）}
+RESP\_NE\_AIZUCHI\_RATEは，終助詞「ね」で終わる発話の直後に相槌プレフィックスで始まる
+応答が出現する割合である．
+RESP\_NE\_ENTROPYおよびRESP\_YO\_ENTROPYは，それぞれ「ね」「よ」で終わる発話の直後の
+応答先頭トークンのShannon entropyであり，応答の多様性を反映する．
+
+\paragraph{統制変数の除外}
+回帰分析においては，会話の長さや発話ペア数に依存する統制変数（EXCL3: n\_pairs\_total,
+n\_pairs\_after\_NE, n\_pairs\_after\_YO, IX\_n\_pairs, IX\_n\_pairs\_after\_question,
+PG\_total\_time, PG\_overlap\_rate, PG\_resp\_overlap\_rate,
+FILL\_text\_len, FILL\_cnt\_total, FILL\_cnt\_eto, FILL\_cnt\_e, FILL\_cnt\_ano）を
+説明変数から除外し，上記18変数のみを用いた．
+
+\paragraph{欠損値の処理}
+特徴量の計算において，分母がゼロとなる場合（例: 質問直後の発話ペアが0件の場合の
+IX\_oirmarker\_after\_question\_rate）はNaNとした．
+回帰パイプラインでは，SimpleImputer（strategy=``median''）により中央値で補完した．
+
+表\ref{tab:desc_stats}に18特徴量の記述統計を示す．
+
+\begin{table}[htbp]
+\centering
+\caption{18特徴量の記述統計（$N = 120$）}
+\label{tab:desc_stats}
+\input{reports/paper_figs_v2/tab_descriptive_stats.tex}
+\end{table}
+
+\subsection{仮想教師プロトコル}
+\label{sec:virtual_teacher}
+
+Big Five性格スコアの目的変数を得るため，4つのLLMを「仮想教師」として使用した．
+具体的には，IPIP-NEO-120（International Personality Item Pool, 日本語版120項目）の
+各項目について，会話テキストを参照しながらLLMに5件法で回答させ，
+5つの性格次元（Openness: O, Conscientiousness: C, Extraversion: E,
+Agreeableness: A, Neuroticism: N）のスコアを算出した．
+
+使用した4モデルは以下の通りである:
+\begin{itemize}
+  \item Sonnet4（Anthropic Claude Sonnet 4）
+  \item Qwen3-235B（Alibaba Qwen3, 235Bパラメータ）
+  \item DeepSeek-V3（DeepSeek V3）
+  \item GPT-OSS-120B（OpenAI系オープンソース, 120Bパラメータ）
+\end{itemize}
+
+各モデルはAWS Bedrock経由で推論を実行し，
+同一の会話$\times$話者ペアに対して独立にスコアを付与した．
+これにより，特定のLLMに依存しない頑健性の検証が可能となる．
+
+\subsection{回帰モデル}
+\label{sec:regression}
+
+18の相互行為特徴量を説明変数，LLM教師が推定したBig Fiveスコアを目的変数として，
+Ridge回帰モデルを構築した．
+正則化パラメータ$\alpha$は事前に固定し（$\alpha = 100$），
+5-fold交差検証（subject-wise split: 同一話者のデータが訓練・テストに分割されないよう制御）
+により予測精度を評価した．
+予測精度の指標として，5-foldの予測値と実測値のPearson相関係数$r$を用いた．
+
+\subsection{信頼性検証}
+\label{sec:reliability}
+
+\paragraph{置換検定（Permutation test）}
+目的変数を5000回ランダムにシャッフルし，各シャッフルにおけるRidge回帰の
+交差検証相関係数を算出した．
+観測された相関係数$r_{\text{obs}}$以上の値が偶然得られる確率を$p$値として報告する．
+
+\paragraph{Bootstrap安定性分析}
+500回のBootstrapリサンプリングを行い，各特徴量の回帰係数の安定性を評価した．
+具体的には，各特徴量について以下の指標を算出した:
+(i) Top-K inclusion rate（topk\_rate）: Bootstrap反復においてTop-K特徴量に選ばれる頻度，
+(ii) 符号一致率（sign\_agree\_rate）: 係数の符号がBootstrap反復間で一致する頻度．
+
+%% ============================================================
+%%  3. Results
+%% ============================================================
+\section{結果}
+
+\subsection{Conscientiousnessの頑健性（主結果）}
+\label{sec:result_C}
+
+表\ref{tab:perm_all}に，5つのBig Five次元$\times$4教師の置換検定結果を示す．
+Conscientiousness（C: 誠実性）は，4教師中3教師で有意な予測精度を示した:
+Sonnet4（$r = 0.434$, $p = 0.0008$），
+Qwen3-235B（$r = 0.390$, $p = 0.0010$），
+GPT-OSS-120B（$r = 0.447$, $p = 0.0008$）．
+DeepSeek-V3のみ有意水準に達しなかった（$r = 0.205$, $p = 0.1130$）．
+この結果は，Cの予測可能性が特定のLLM教師に依存しない頑健な知見であることを示唆する．
+
+\begin{table}[htbp]
+\centering
+\caption{置換検定結果: 観測相関係数$r_{\text{obs}}$（$p$値）．太字は$p < 0.05$を示す．}
+\label{tab:perm_all}
+\input{reports/paper_figs_v2/tab_permutation_all.tex}
+\end{table}
+
+図\ref{fig:perm_C}に，Cの4教師比較バーチャートを示す．
+3教師で有意水準を超える相関が観測され，
+相互行為特徴量がCの推定に一貫して寄与することが視覚的にも確認できる．
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.9\linewidth]{fig_permutation_C_bar.png}
+\caption{Conscientiousnessの置換検定結果（4教師比較）．
+バーは観測相関係数$r_{\text{obs}}$，括弧内は$p$値を示す．
+破線は有意水準$p = 0.05$に対応する参照線．}
+\label{fig:perm_C}
+\end{figure}
+
+\subsection{教師間一致度（補助結果）}
+\label{sec:result_agreement}
+
+図\ref{fig:teacher_heatmap}に，5次元$\times$4教師の教師間一致度ヒートマップを示す．
+Cの教師間平均相関は$\bar{r} = 0.699$であり，5次元中最も高かった．
+一方，Agreeableness（A: 協調性）は$\bar{r} = 0.435$と最も低く，
+教師依存性が大きいことが示された．
+
+Cの高い教師間一致度は，前節で示したCの頑健な予測可能性と整合する．
+すなわち，複数のLLM教師がCについて類似したスコアを付与しており，
+その一致したスコアが相互行為特徴量によって安定的に予測可能であるという構造が確認された．
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.9\linewidth]{fig_teacher_heatmap.png}
+\caption{教師間一致度ヒートマップ（5次元$\times$4教師）．
+各セルはPearson相関係数を示す．Cの平均$\bar{r} = 0.699$（最高），
+Aの平均$\bar{r} = 0.435$（最低）．}
+\label{fig:teacher_heatmap}
+\end{figure}
+
+\subsection{Bootstrap Top Drivers（補助結果）}
+\label{sec:result_bootstrap}
+
+図\ref{fig:bootstrap_radar}に，CのBootstrap安定性分析（Sonnet4基準）における
+上位特徴量のレーダーチャートを示す．
+Top-K inclusion rateと符号一致率の両方が高い特徴量として，
+以下の3変数が同定された:
+\begin{itemize}
+  \item FILL\_has\_any（フィラー出現発話率，正の寄与）
+  \item IX\_oirmarker\_after\_question\_rate（質問直後OIR率，正の寄与）
+  \item PG\_speech\_ratio（発話率，正の寄与）
+\end{itemize}
+
+これらの特徴量は，500回のBootstrapリサンプリングにおいて一貫してCの予測に寄与しており，
+係数の符号も安定していた．
+フィラーの使用頻度，質問に対する修復開始の頻度，および発話率の高さが
+Cの高さと関連するという解釈が，統計的に安定した知見として支持される．
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.9\linewidth]{fig_bootstrap_C_radar.png}
+\caption{CのBootstrap Top特徴量レーダーチャート（Sonnet4基準，500回リサンプリング）．
+外周はtopk\_rate，内周はsign\_agree\_rateを示す．}
+\label{fig:bootstrap_radar}
+\end{figure}
+
+%% ============================================================
+%%  4. Discussion
+%% ============================================================
+\section{考察}
+
+\subsection{相互行為特徴量の解釈}
+
+本研究の主要な知見は，会話の相互行為特徴量がConscientiousness（C: 誠実性）の
+LLMスコアを頑健に予測することである．
+Bootstrap安定性分析で同定されたTop 3特徴量——フィラー出現率（FILL\_has\_any），
+質問直後OIR率（IX\_oirmarker\_after\_question\_rate），
+発話率（PG\_speech\_ratio）——はいずれも正の寄与を示した．
+
+フィラー（「えっと」「えー」「あの」）の使用は，
+発話計画の慎重さや丁寧さの指標として解釈できる．
+誠実性の高い話者は，発話の正確性を重視するために
+フィラーを用いて発話計画の時間を確保する傾向がある可能性がある．
+質問直後のOIR（Other-Initiated Repair）マーカーの使用は，
+相手の発話を正確に理解しようとする姿勢を反映しており，
+これも誠実性の高さと整合する．
+発話率の高さは，会話への積極的な参加を示し，
+対話における責任感や関与の深さと関連する可能性がある．
+
+\subsection{日本語会話コーパスにおける初の体系的検証}
+
+先行研究では，談話からLLM/PLMを用いてASD関連指標や性格特性を推定する試みが
+増加しているものの（Hu ら\cite{hu2025}; Altozano ら\cite{altozano2026};
+Mun ら\cite{mun2024}），日本語会話コーパスを対象とした体系的な検証は
+ほとんど行われていなかった．
+Nakamura ら\cite{nakamura2025}はADOS-2会話テキストからの分類を試みているが，
+多次元の性格プロファイルを対象とした回帰分析や，
+複数LLM教師による頑健性検証は行われていない．
+
+本研究は，日本語日常会話コーパス（CEJC）を用いて，
+(i) 再現可能な特徴量抽出，
+(ii) subject-wise splitによるリーク防止，
+(iii) 置換検定による統計的有意性の検証，
+(iv) Bootstrap安定性分析，
+(v) 複数LLM教師間の一致度検証，
+を組み合わせた包括的な評価設計を初めて適用した点で，
+先行研究との差別化が図られている．
+
+\subsection{限界}
+
+本研究にはいくつかの重要な限界がある．
+第一に，標本サイズが$N = 120$と小さく，結果の一般化可能性には制約がある．
+特に，Ridge回帰の正則化パラメータの最適化や，
+より複雑なモデルの適用には不十分なサンプルサイズである．
+第二に，外部検証（別コーパス・別収録条件でのクロスバリデーション）が未実施であり，
+CEJC home2サブセットに特有の結果である可能性を排除できない．
+第三に，LLM教師の妥当性そのものが未検証である．
+本研究ではLLMスコアを「仮想教師」として使用しているが，
+これが人間の性格評定とどの程度一致するかは別途検証が必要である．
+第四に，Cの有意な結果が複数教師で観測された一方で，
+A/E/N/Oの一部でも有意な結果が得られており（表\ref{tab:perm_all}参照），
+これらの結果には一般因子（general factor）の混入——すなわち，
+Cに寄与する特徴量が他の次元にも影響している可能性——を考慮する必要がある．
+
+%% ============================================================
+%%  5. Conclusion
+%% ============================================================
+\section{結論}
+
+本研究は，日本語日常会話コーパス（CEJC home2 HQ1, $N = 120$）から抽出した
+18の相互行為特徴量を用いて，4つのLLM教師が推定したBig Fiveスコアを
+Ridge回帰で予測する枠組みを提案し，以下の知見を得た．
+
+第一に，Conscientiousness（C: 誠実性）は4教師中3教師で有意な予測精度を示し
+（$r = 0.390$--$0.447$, $p < 0.002$），特定のLLM教師に依存しない頑健な知見であった．
+第二に，Cの教師間一致度は$\bar{r} = 0.699$と5次元中最も高く，
+LLM教師がCについて安定したスコアを付与していることが確認された．
+第三に，Bootstrap安定性分析により，フィラー出現率・質問直後OIR率・発話率が
+Cの主要な予測因子として同定された．
+
+本研究は，「性格推定」ではなく「会話の相互行為の再現可能な計測」として位置づけられ，
+日本語会話コーパスにおける初の体系的検証として，
+今後の研究の基盤となることが期待される．
+
+%% ============================================================
+%%  Appendix
+%% ============================================================
+\appendix
+\section{探索的結果: A/E/N/Oの置換検定}
+\label{sec:appendix_AENO}
+
+表\ref{tab:perm_all}（本文3.1節）に示した置換検定結果には，
+C以外の4次元（A, E, N, O）の結果も含まれている．
+本付録では，これらの探索的結果について補足する．
+
+\textbf{注意: 以下はC以外の次元に関する探索的結果であり，
+確認的解釈は避けるべきである．}
+本研究の事前仮説はCの頑健性検証に限定されており，
+A/E/N/Oの結果は多重比較の補正を行っていない探索的知見として位置づけられる．
+
+Agreeableness（A）は，Qwen3-235B（$r = 0.365$, $p = 0.0032$），
+GPT-OSS-120B（$r = 0.461$, $p = 0.0002$），
+DeepSeek-V3（$r = 0.339$, $p = 0.0070$）の3教師で有意であったが，
+Sonnet4（$r = 0.234$, $p = 0.0714$）では有意水準に達しなかった．
+教師間一致度が$\bar{r} = 0.435$と低いことを考慮すると，
+Aの結果は教師依存性が大きく，解釈には慎重を要する．
+
+Extraversion（E）は，Qwen3-235B（$r = 0.300$, $p = 0.0224$）と
+GPT-OSS-120B（$r = 0.257$, $p = 0.0460$）で有意であったが，
+Sonnet4とDeepSeek-V3では有意でなかった．
+
+Neuroticism（N）は，GPT-OSS-120Bのみで有意（$r = 0.401$, $p = 0.0010$）であり，
+他の3教師では有意水準に達しなかった．
+
+Openness（O）は，Qwen3-235B（$r = 0.350$, $p = 0.0060$），
+GPT-OSS-120B（$r = 0.345$, $p = 0.0088$），
+DeepSeek-V3（$r = 0.323$, $p = 0.0086$）の3教師で有意であったが，
+Sonnet4では有意でなかった．
+
+\textbf{一般因子混入の可能性について:}
+上記のA/E/N/Oにおける有意な結果の一部は，
+Cに寄与する特徴量が他の次元にも影響している一般因子（general factor）の
+混入によるものである可能性がある．
+特に，GPT-OSS-120Bが複数の次元で一貫して有意な結果を示している点は，
+このモデルが特徴量全体に対して感度が高い（あるいは次元間の分離が不十分である）
+可能性を示唆する．
+この点の検証には，特徴量の次元間共有分散の分析や，
+部分相関による次元固有の寄与の分離が必要であり，今後の課題とする．
+
+\section{Bootstrap重なり分析}
+\label{sec:appendix_overlap}
+
+% TODO: Bootstrap Top-K特徴量のC vs A/E/N/O重なり（overlap）分析
+% 各次元のTop-K特徴量がCのTop-K特徴量とどの程度重複するかを定量化し，
+% 一般因子混入の程度を評価する．
+% 本分析は今後の追加解析として実施予定である．
+
+\section{感度分析}
+\label{sec:appendix_sensitivity}
+
+% TODO: 感度分析（正則化パラメータα，特徴量サブセット，品質フィルタ閾値の変動に対する
+% 結果の安定性を評価する）
+% 本分析は今後の追加解析として実施予定である．
+
+%% ============================================================
+%%  References
+%% ============================================================
+% TODO: 参考文献（BibTeXまたはthebibliography環境で整備予定）
+\begin{thebibliography}{99}
+
+\bibitem{hu2025}
+Hu, C. B., et al. (2025).
+Automated scoring of an ADOS-2 item using zero-shot large language models applied to clinical dialogues.
+\textit{npj Digital Medicine}, 8, Article 133.
+
+\bibitem{altozano2026}
+Altozano, M. A., et al. (2026).
+Enhancing psychological assessments with open-ended questionnaires and large language models: An ASD case study.
+\textit{IEEE Journal of Biomedical and Health Informatics}, 30(3), 1--12.
+
+\bibitem{mun2024}
+Mun, S., et al. (2024).
+Automatic estimation of social communication severity in autistic children from speech using pre-trained language models.
+\textit{arXiv preprint}, arXiv:2409.00158.
+
+\bibitem{nakamura2025}
+Nakamura, Y., et al. (2025).
+ADOS-2会話テキストからのASD分類: BERT由来特徴量とLightGBMによる検討.
+\textit{SICE東北支部研究会資料}, 353-9.
+
+\end{thebibliography}
+
+\end{document}
