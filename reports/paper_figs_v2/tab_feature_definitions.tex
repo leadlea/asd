@@ -1,0 +1,27 @@
+{\small
+\begin{longtable}{llp{3.2cm}p{6.5cm}}
+\toprule
+Name & Cat. & Summary & Algorithm \\
+\midrule
+\endhead
+PG\_speech\_ratio & PG & Speech ratio & Speaker's total speech time / total conversation time \\
+PG\_pause\_mean & PG & Mean pause duration & Mean of intra-speaker gaps ($\geq$ gap\_tol sec) \\
+PG\_pause\_p50 & PG & Median pause & 50th percentile of intra-speaker gaps \\
+PG\_pause\_p90 & PG & 90th pctl pause & 90th percentile of intra-speaker gaps \\
+PG\_resp\_gap\_mean & PG & Mean response gap & Mean of turn-taking gaps (prev\_end $\to$ resp\_start, $\geq$ gap\_tol) \\
+PG\_resp\_gap\_p50 & PG & Median response gap & 50th percentile of turn-taking gaps \\
+PG\_resp\_gap\_p90 & PG & 90th pctl resp gap & 90th percentile of turn-taking gaps \\
+FILL\_has\_any & FILL & Filler utterance rate & Proportion of utterances containing $\geq$1 filler (etto/ee/ano) \\
+FILL\_rate\_per\_100chars & FILL & Filler rate/100chars & Total fillers / (text length / 100) \\
+IX\_oirmarker\_rate & IX & OIR marker rate & Proportion of responses starting with OIR markers (e?/eQ/nani?) \\
+IX\_oirmarker\_after\_question\_rate & IX & Post-Q OIR rate & OIR rate when previous utterance is a question \\
+IX\_yesno\_rate & IX & Yes/No response rate & Proportion of responses starting with yes/no prefixes \\
+IX\_yesno\_after\_question\_rate & IX & Post-Q Yes/No rate & Yes/No rate when previous utterance is a question \\
+IX\_lex\_overlap\_mean & IX & Lexical overlap & Mean char-bigram Jaccard between prev and response \\
+IX\_topic\_drift\_mean & IX & Topic drift & 1 $-$ IX\_lex\_overlap\_mean \\
+RESP\_NE\_AIZUCHI\_RATE & RESP & Post-NE aizuchi rate & Aizuchi rate after NE sentence-final particle \\
+RESP\_NE\_ENTROPY & RESP & Post-NE response entropy & Shannon entropy of response-initial tokens after NE \\
+RESP\_YO\_ENTROPY & RESP & Post-YO response entropy & Shannon entropy of response-initial tokens after YO \\
+\bottomrule
+\end{longtable}
+}

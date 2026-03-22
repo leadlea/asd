@@ -68,3 +68,9 @@ tmp/_inspect/
 # docs: minutes（議事録）を許可
 !docs/minutes/
 !docs/minutes/**
+
+# reports: 論文用図表（PNG + LaTeX tables）
+!reports/
+!reports/paper_figs_v2/
+!reports/paper_figs_v2/*.png
+!reports/paper_figs_v2/*.tex
