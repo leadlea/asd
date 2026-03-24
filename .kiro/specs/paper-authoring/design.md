@@ -2,19 +2,26 @@
 
 ## 概要（Overview）
 
-本設計は、CEJC home2 HQ1コーパス（N=120）から抽出した18の相互行為特徴量を用いて、4つのLLM教師が推定したBig Five性格スコア（特にConscientiousness）を予測するRidge回帰モデルの論文化に必要な成果物群を定義する。
+本設計は、CEJC home2 HQ1コーパス（N=120）から抽出した18の相互行為特徴量の**定量化指標としての提案**に必要な成果物群を定義する。
 
-主要成果物は以下の4つである:
+NCNPレビュー（山下先生・宗田さん）のフィードバックに基づき、メインメッセージを「**日本語会話における相互行為特徴量の定量化指標の提案**」に据え直した。従来の「Cの頑健性」中心の構成から、特徴量そのものの記述・分析を先に置き（1° 提案特徴量の抽出）、Big5との関連は妥当性検証の一部として後段に配置する構成（2° 外部指標を用いた妥当性検証）に改訂した。
 
-1. **論文LaTeX（`paper1_ja.tex`）**: 既存v1の全面書き直し。uplatex+dvipdfmx対応、Introduction〜Appendixの6セクション構成
-2. **図表生成スクリプト（`scripts/paper_figs/gen_paper_figs_v2.py`）**: 既存TSV/parquetから論文用PNG・LaTeXテーブルを生成
-3. **NCNPレビュー資料（`docs/homework/ncnp_review_v2.md`）**: 共同研究者向けMarkdown資料
+主要成果物は以下の6つである:
+
+1. **論文LaTeX（`paper1_ja.tex`）**: 新Results構成（特徴量の記述→相関→コーパス基本情報→Big5）を反映した全面書き直し。uplatex+dvipdfmx対応
+2. **図表生成スクリプト（`scripts/paper_figs/gen_paper_figs_v2.py`）**: 既存TSV/parquetから論文用PNG・LaTeXテーブルを生成。新規図表（分布図、相関ヒートマップ、コーパス基本情報との関連図）を追加
+3. **NCNPレビュー資料（`docs/homework/ncnp_review_v2.md`）**: 新Results構成を反映した共同研究者向けMarkdown資料
 4. **再現性検証スクリプト（`scripts/analysis/verify_reproducibility.py`）**: 論文記載値と既存結果の一致確認
+5. **紙芝居スライド資料（`reports/paper_figs_v2/kamishibai_slides.html`）**: Results構成に対応した1枚1図のプレゼンスライド
+6. **特徴量定義データ構造（`scripts/paper_figs/feature_definitions.py`）**: 18特徴量+EXCL3の定義（実装済み）
 
 設計方針:
 - 図表生成は既存の分析結果（`artifacts/analysis/results/`配下のTSV・parquet）を読み込んで可視化するのみ。再計算は行わない
 - LaTeX論文は`paper1_ja.tex`を同一パスに上書き（v1→v2）
-- 18特徴量の定義は`extract_interaction_features_min.py`のコードから導出し、2段階（概要テーブル＋アルゴリズム詳細）で記述
+- 既に完了しているタスクの成果物（`gen_paper_figs_v2.py`、`verify_reproducibility.py`、`feature_definitions.py`等）は壊さない方針で、追加・拡張として設計
+- 新規図表（分布図、相関ヒートマップ、コーパス基本情報関連図）は既存スクリプトへの関数追加で対応
+- 紙芝居スライドは独立したHTML生成スクリプトとして新規実装
+
 
 ## アーキテクチャ（Architecture）
 
@@ -26,19 +33,23 @@ graph TD
         PERM[artifacts/analysis/results/**/permutation.log]
         BOOT[artifacts/analysis/results/bootstrap/**/bootstrap_summary.tsv]
         FEAT[artifacts/analysis/features_min/*.parquet]
+        META[CEJCコーパス基本情報<br/>性別・年齢・出身・学歴]
     end
 
     subgraph 生成スクリプト層
-        FIG[gen_paper_figs_v2.py]
+        FIG[gen_paper_figs_v2.py<br/>既存+新規図表]
         VER[verify_reproducibility.py]
+        KAMI[gen_kamishibai_slides.py<br/>紙芝居スライド生成]
     end
 
     subgraph 成果物層
-        PNG[reports/paper_figs_v2/*.png]
+        PNG_EXIST[既存PNG<br/>permutation_bar / bootstrap_radar / teacher_heatmap]
+        PNG_NEW[新規PNG<br/>feature_distribution / corr_heatmap / metadata_relation]
         TEX_TAB[reports/paper_figs_v2/*.tex]
-        TEX[paper1_ja.tex]
+        TEX[paper1_ja.tex<br/>新Results構成]
         REV[docs/homework/ncnp_review_v2.md]
         REPRO[artifacts/analysis/results/reproducibility_check.tsv]
+        SLIDES[reports/paper_figs_v2/kamishibai_slides.html]
     end
 
     DS --> FIG
@@ -46,13 +57,21 @@ graph TD
     PERM --> FIG
     BOOT --> FIG
     FEAT --> FIG
+    META --> FIG
 
-    FIG --> PNG
+    FIG --> PNG_EXIST
+    FIG --> PNG_NEW
     FIG --> TEX_TAB
 
-    PNG --> TEX
+    PNG_EXIST --> TEX
+    PNG_NEW --> TEX
     TEX_TAB --> TEX
-    PNG --> REV
+    PNG_EXIST --> REV
+    PNG_NEW --> REV
+
+    PNG_EXIST --> KAMI
+    PNG_NEW --> KAMI
+    KAMI --> SLIDES
 
     RES --> VER
     PERM --> VER
@@ -62,10 +81,14 @@ graph TD
 
 ### データフロー
 
-1. **入力**: `artifacts/analysis/` 配下の既存parquet・TSVファイル（分析済み結果）
+1. **入力**: `artifacts/analysis/` 配下の既存parquet・TSVファイル（分析済み結果）+ CEJCコーパス基本情報（性別・年齢等）
 2. **図表生成**: `gen_paper_figs_v2.py` が入力を読み込み、PNG画像とLaTeXテーブルを `reports/paper_figs_v2/` に出力
-3. **論文組版**: `paper1_ja.tex` が `reports/paper_figs_v2/` の画像・テーブルを `\input{}` / `\includegraphics{}` で参照
+   - 既存図表（permutationバーチャート、bootstrapレーダー、teacher一致度ヒートマップ）はそのまま維持
+   - 新規図表（特徴量分布図、相関ヒートマップ、コーパス基本情報との関連図）を追加生成
+3. **論文組版**: `paper1_ja.tex` が `reports/paper_figs_v2/` の画像・テーブルを `\input{}` / `\includegraphics{}` で参照。Results構成を新4段構成に変更
 4. **再現性検証**: `verify_reproducibility.py` が既存結果ファイルを読み込み、論文記載値との一致をTSVで報告
+5. **紙芝居スライド**: `gen_kamishibai_slides.py` が `reports/paper_figs_v2/` のPNG画像を参照し、1枚1図のHTMLスライドを生成
+
 
 ## コンポーネントとインターフェース（Components and Interfaces）
 
@@ -80,10 +103,11 @@ graph TD
 --results_dir: str  # artifacts/analysis/results/ のパス
 --bootstrap_dir: str  # artifacts/analysis/results/bootstrap/ のパス
 --features_parquet: str  # artifacts/analysis/features_min/features_cejc_home2_hq1.parquet
+--metadata_tsv: str  # コーパス基本情報TSV（性別・年齢等）※新規追加
 --out_dir: str  # reports/paper_figs_v2/
 ```
 
-**出力**:
+**出力（既存 — 変更なし）**:
 | ファイル名 | 形式 | 内容 |
 |---|---|---|
 | `fig_permutation_C_bar.png` | PNG | Cの4教師permutation結果バーチャート（r_obs + p値） |
@@ -93,24 +117,39 @@ graph TD
 | `tab_permutation_all.tex` | LaTeX | 全trait×全teacher permutation結果テーブル |
 | `tab_feature_definitions.tex` | LaTeX | 18特徴量定義テーブル（名称、カテゴリ、概要、計算式） |
 
-**依存ライブラリ**: `pandas`, `matplotlib`, `numpy`
+**出力（新規追加）**:
+| ファイル名 | 形式 | 内容 |
+|---|---|---|
+| `fig_feature_distribution.png` | PNG | 18特徴量の分布（バイオリンプロット or ヒストグラム） |
+| `fig_corr_heatmap_block.png` | PNG | 特徴量カテゴリ内/間の相関行列ヒートマップ（ブロック構造） |
+| `fig_metadata_gender.png` | PNG | 性別×特徴量の群間比較（箱ひげ図 + 検定結果） |
+| `fig_metadata_age.png` | PNG | 年齢×特徴量の散布図 + 相関係数 |
+| `tab_descriptive_stats_full.tex` | LaTeX | 18特徴量の拡張記述統計テーブル（N, mean, SD, min, p25, p50, p75, p90, max） |
+| `tab_corr_matrix.tex` | LaTeX | 18特徴量間のPearson相関行列テーブル |
+| `tab_metadata_tests.tex` | LaTeX | コーパス基本情報との関連分析結果テーブル |
+
+**依存ライブラリ**: `pandas`, `matplotlib`, `numpy`, `scipy`（新規: 検定用）
 
 ### コンポーネント2: 論文LaTeX（`paper1_ja.tex`）
 
 **責務**: uplatex+dvipdfmxでコンパイル可能な論文本体
 
-**セクション構成**:
-1. **Introduction**: 談話×LLM×性格推定の先行研究ギャップ（`asd_paper.md`ベース）
+**セクション構成（NCNPレビュー反映後）**:
+1. **Introduction**: 日本語会話における相互行為特徴量の定量化指標の提案。談話×LLM×性格推定の先行研究ギャップ（`asd_paper.md`ベース）
 2. **Method**:
    - 2.1 データ（CEJC home2 HQ1, N=120）
    - 2.2 特徴量（18変数の2段階説明: 概要テーブル + アルゴリズム詳細）
    - 2.3 仮想教師プロトコル（IPIP-NEO-120, 4モデル）
    - 2.4 回帰モデル（Ridge + 5-fold CV）
    - 2.5 信頼性検証（permutation test 5000回, bootstrap 500回）
-3. **Results**:
-   - 3.1 Cの頑健性（主結果: 4教師permutation）
-   - 3.2 Teacher間一致度（補助結果）
-   - 3.3 Bootstrap Top Drivers（補助結果）
+3. **Results（新4段構成）**:
+   - 3.1 提案特徴量の記述統計と分布（Results 1-1）
+   - 3.2 特徴量カテゴリ内/間の相関分析（Results 1-2）
+   - 3.3 コーパス基本情報との関連性（Results 2-1）
+   - 3.4 性格特性（Big5）との関連性（Results 2-2）
+     - 3.4.1 Cの頑健性（4教師permutation）
+     - 3.4.2 Teacher間一致度
+     - 3.4.3 Bootstrap Top Drivers
 4. **Discussion**: 相互行為特徴量の解釈、差別化、限界
 5. **Conclusion**
 6. **Appendix**: A/E/N/O探索的結果、感度分析
@@ -124,7 +163,7 @@ graph TD
 
 ### コンポーネント3: 再現性検証スクリプト（`scripts/analysis/verify_reproducibility.py`）
 
-**責務**: 論文記載値と既存結果ファイルの数値一致を検証
+**責務**: 論文記載値と既存結果ファイルの数値一致を検証（既存実装を維持）
 
 **入力**: 既存の `permutation.log`, `summary.tsv`, `bootstrap_summary.tsv`
 
@@ -141,13 +180,42 @@ graph TD
 
 **責務**: 山下先生・宗田さん向けの方法＋結果サマリー
 
-**構成**:
-1. 研究の位置づけ（差別化ポイント）
+**構成（NCNPレビュー反映後）**:
+1. 研究の位置づけ（差別化ポイント: 「性格推定」ではなく「相互行為特徴量の定量化指標の提案」）
 2. 方法: 18特徴量の2段階説明
-3. 結果: Permutation / Teacher一致度 / Bootstrap（図表参照付き）
+3. 結果（新4段構成）:
+   - 3.1 特徴量の記述統計・分布
+   - 3.2 カテゴリ内/間相関
+   - 3.3 コーパス基本情報との関連
+   - 3.4 Big5との関連（Permutation / Teacher一致度 / Bootstrap）
 4. 議論ポイント（NCNPミーティング用）
 
 **図表参照**: `reports/paper_figs_v2/` 配下のPNGへの相対パス
+
+### コンポーネント5: 紙芝居スライド資料（`reports/paper_figs_v2/kamishibai_slides.html`）
+
+**責務**: Results構成に対応した1枚1図のプレゼンスライド
+
+**構成（6枚）**:
+| スライド# | タイトル | 図表 | 結論（1〜2文） |
+|---|---|---|---|
+| 1 | 提案特徴量の分布 | `fig_feature_distribution.png` | 18特徴量は適度なばらつきを持ち、個人差を捉える指標として有用 |
+| 2 | カテゴリ内/間相関 | `fig_corr_heatmap_block.png` | 同一カテゴリ内で高相関、カテゴリ間は独立性が高い |
+| 3 | コーパス基本情報との関連 | `fig_metadata_gender.png` / `fig_metadata_age.png` | 性別・年齢と一部特徴量に有意な関連 |
+| 4 | Big5との関連（Permutation） | `fig_permutation_C_bar.png` | Cは4教師中3教師で有意、教師非依存の頑健性 |
+| 5 | Teacher間一致度 | `fig_teacher_heatmap.png` | C: mean r=0.699で最高、仮想教師として安定 |
+| 6 | Bootstrap Top Drivers | `fig_bootstrap_C_radar.png` | FILL_has_any, IX_oirmarker_after_question_rate, PG_speech_ratioが上位 |
+
+**出力形式**: 自己完結型HTML（CSS埋め込み、画像は相対パス参照）
+**画像不在時**: プレースホルダーテキスト「[図表未生成: {filename}]」を表示
+
+### コンポーネント6: 特徴量定義データ構造（`scripts/paper_figs/feature_definitions.py`）
+
+**責務**: 18特徴量+EXCL3の定義（実装済み、変更なし）
+
+既存の `FeatureDefinition` dataclassと `FEATURE_DEFINITIONS` リストをそのまま維持。
+`get_explanatory_features()` で18説明変数のみを取得可能。
+
 
 ## データモデル（Data Models）
 
@@ -181,6 +249,19 @@ graph TD
 | `RESP_YO_ENTROPY` | float | 「よ」直後応答エントロピー |
 
 **controls除外列（EXCL3）**: `n_pairs_total`, `n_pairs_after_NE`, `n_pairs_after_YO`, `IX_n_pairs`, `IX_n_pairs_after_question`, `PG_total_time`, `PG_overlap_rate`, `PG_resp_overlap_rate`, `FILL_text_len`, `FILL_cnt_total`, `FILL_cnt_eto`, `FILL_cnt_e`, `FILL_cnt_ano`
+
+#### コーパス基本情報（Corpus_Metadata）
+パス: CEJCメタデータ（TSVまたはparquet）
+
+| カラム | 型 | 説明 |
+|---|---|---|
+| `speaker_id` | str | 話者ID（XYデータセットとの結合キー） |
+| `gender` | str | 性別（M/F） |
+| `age` | int | 年齢 |
+| `region` | str | 出身地域（利用可能な場合） |
+| `education` | str | 学歴（利用可能な場合） |
+
+> **注**: コーパス基本情報の利用可能性はCEJCのメタデータ公開範囲に依存する。利用不可能な属性がある場合は、利用可能な属性のみで分析を実施し、その旨を明記する。
 
 #### Permutation結果（テキスト）
 パス: `artifacts/analysis/results/cejc_home2_hq1_{trait}only_{teacher}_controls_excluded/permutation.log`
@@ -253,39 +334,58 @@ p(|r|)=0.0008  (n_perm=5000)
 
 ### Property 1: 図表生成の完全性
 
-*任意の*有効な分析結果ディレクトリ（permutation.log、bootstrap_summary.tsv、features parquetを含む）に対して、図表生成スクリプトを実行した場合、出力ディレクトリには少なくとも以下のファイルが生成される: permutationバーチャート（PNG）、bootstrapレーダー（PNG）、teacher一致度ヒートマップ（PNG）。
+*任意の*有効な分析結果ディレクトリ（permutation.log、bootstrap_summary.tsv、features parquet、コーパス基本情報を含む）に対して、図表生成スクリプトを実行した場合、出力ディレクトリには少なくとも以下のファイルが生成される: permutationバーチャート（PNG）、bootstrapレーダー（PNG）、teacher一致度ヒートマップ（PNG）、特徴量分布図（PNG）、相関行列ヒートマップ（PNG）、コーパス基本情報関連図（PNG）。
 
-**Validates: Requirements 2.1, 2.2, 2.3**
+**Validates: Requirements 2.1, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8**
 
 ### Property 2: 記述統計テーブルの完全性
 
-*任意の*有効な特徴量parquetファイル（18特徴量カラムを含む）に対して、記述統計テーブル生成を実行した場合、出力されたLaTeXテーブルは18行を含み、各行にN、mean、SD、p50、p90の5つの統計量が含まれる。
+*任意の*有効な特徴量parquetファイル（18特徴量カラムを含む）に対して、記述統計テーブル生成を実行した場合、出力されたLaTeXテーブルは18行を含み、各行にN、mean、SD、min、p25、p50、p75、p90、maxの統計量が含まれる。
 
-**Validates: Requirements 2.4**
+**Validates: Requirements 2.2, 3.1**
 
 ### Property 3: 欠損入力時のエラーメッセージの情報性
 
 *任意の*存在しないファイルパスを図表生成スクリプトに与えた場合、発生するエラーメッセージには当該ファイルパスの文字列が含まれる。
 
-**Validates: Requirements 2.7**
+**Validates: Requirements 2.10**
 
 ### Property 4: Markdown内画像参照の解決可能性
 
 *任意の*生成されたレビュー資料（Markdown）内の画像参照パスに対して、そのパスをMarkdownファイルの位置から相対解決した場合、対応するファイルが存在する。
 
-**Validates: Requirements 4.6**
+**Validates: Requirements 8.6**
 
-### Property 5: 特徴量定義の4項目完全性
+### Property 5: 特徴量定義の4項目完全性とNaN処理記述
 
-*任意の*特徴量定義エントリに対して、名称（name）、カテゴリ（PG/FILL/IX/RESP）、概要説明（1行）、計算アルゴリズムの4項目がすべて非空で含まれる。
+*任意の*特徴量定義エントリに対して、名称（name）、カテゴリ（PG/FILL/IX/RESP）、概要説明（1行）、計算アルゴリズムの4項目がすべて非空で含まれ、かつ分母がゼロになりうる特徴量についてはNaN処理の記述が含まれる。
 
-**Validates: Requirements 6.1**
+**Validates: Requirements 11.1, 11.4**
 
 ### Property 6: 有意結果への一般因子混入注記
 
 *任意の*Appendix内のteacher×trait permutation結果において、p値が有意水準（0.05）未満である場合、当該結果の近傍に一般因子混入の可能性に関する注記テキストが存在する。
 
+**Validates: Requirements 12.5**
+
+### Property 7: コーパス基本情報分析の統計的正当性
+
+*任意の*有効なコーパス基本情報（性別・年齢）と特徴量データの組み合わせに対して、性別の群間比較では検定統計量とp値が出力され、年齢との関連では相関係数とp値が出力される。
+
+**Validates: Requirements 5.2, 5.3**
+
+### Property 8: 紙芝居スライドの3要素完全性
+
+*任意の*生成された紙芝居スライドHTML内の各スライドに対して、(a) スライドタイトル、(b) 図表参照（imgタグまたはプレースホルダー）、(c) 結論テキストの3要素が含まれる。
+
+**Validates: Requirements 9.2, 9.6**
+
+### Property 9: 再現性検証の乖離記録
+
+*任意の*期待値と実測値の組み合わせに対して、両者が一致しない場合、出力TSVの当該行にmatch=Falseと差分（数値の場合は絶対差、文字列の場合は"MISMATCH"）が記録される。
+
 **Validates: Requirements 7.5**
+
 
 ## エラーハンドリング（Error Handling）
 
@@ -296,6 +396,8 @@ p(|r|)=0.0008  (n_perm=5000)
 | 入力parquetファイルが存在しない | `FileNotFoundError` を捕捉し、ファイルパスと期待スキーマを含むエラーメッセージを出力 | stderr + 非ゼロ終了コード |
 | parquetファイルに期待カラムが不足 | `KeyError` を捕捉し、不足カラム名を列挙 | stderr + 非ゼロ終了コード |
 | permutation.logのパースに失敗 | 正規表現マッチ失敗時にファイルパスとフォーマット例を出力 | stderr + 非ゼロ終了コード |
+| コーパス基本情報TSVが存在しない | `FileNotFoundError` を捕捉し、メタデータ関連図の生成をスキップ（他の図表生成は継続） | stderr（警告）+ 部分的出力 |
+| コーパス基本情報に期待カラムが不足 | 利用可能なカラムのみで分析を実施し、不足カラムを警告出力 | stderr（警告）+ 部分的出力 |
 | 出力ディレクトリが書き込み不可 | `PermissionError` を捕捉し、パスを出力 | stderr + 非ゼロ終了コード |
 | matplotlib描画エラー（データ不正） | `ValueError` を捕捉し、該当図表をスキップして他の図表生成を継続 | stderr（警告）+ 部分的出力 |
 
@@ -314,6 +416,14 @@ p(|r|)=0.0008  (n_perm=5000)
 | 参照画像ファイルが存在しない | `\includegraphics` の代わりにプレースホルダーコメント `% TODO: 画像ファイル未生成 — {path}` を挿入 |
 | `\input` 対象のテーブルファイルが存在しない | `\input` の代わりにプレースホルダーコメントを挿入 |
 | 参考文献の未解決参照 | `??` 表示を許容し、コメントで注記 |
+
+### 紙芝居スライド
+
+| エラー条件 | 対処 |
+|---|---|
+| 参照PNG画像が存在しない | `<img>` タグの代わりにプレースホルダーテキスト `[図表未生成: {filename}]` を表示 |
+| 出力ディレクトリが書き込み不可 | `PermissionError` を捕捉し、パスを出力 |
+
 
 ## テスト戦略（Testing Strategy）
 
@@ -343,20 +453,35 @@ p(|r|)=0.0008  (n_perm=5000)
 #### 図表生成スクリプト（`gen_paper_figs_v2.py`）
 
 **プロパティテスト**:
-- Property 1: ランダムに生成した有効な分析結果データ（permutation結果、bootstrap結果、特徴量データ）を入力として、全期待ファイルが出力されることを検証
-- Property 2: ランダムに生成した18カラムの特徴量DataFrameを入力として、記述統計テーブルの行数・列数を検証
+- Property 1: ランダムに生成した有効な分析結果データ（permutation結果、bootstrap結果、特徴量データ、コーパス基本情報）を入力として、全期待ファイル（既存3 PNG + 新規3 PNG）が出力されることを検証
+- Property 2: ランダムに生成した18カラムの特徴量DataFrameを入力として、拡張記述統計テーブルの行数・列数を検証
 - Property 3: ランダムに生成した存在しないファイルパスを入力として、エラーメッセージにパス文字列が含まれることを検証
 
 **ユニットテスト**:
 - 既知の分析結果（Sonnet4 C: r=0.434, p=0.0008）を入力として、バーチャートのタイトル・ラベルが正しいことを検証
 - 空のDataFrameを入力とした場合のエラーハンドリング
 - 特徴量parquetにNaN列がある場合の記述統計テーブル出力
+- 相関行列ヒートマップのブロック構造（PG/FILL/IX/RESPの順序）の検証
+- コーパス基本情報TSVが存在しない場合のスキップ動作の検証
+
+#### コーパス基本情報分析
+
+**プロパティテスト**:
+- Property 7: ランダムに生成した性別（M/F）・年齢データと特徴量データの組み合わせに対して、群間比較の検定統計量・p値、相関係数・p値が正しい形式で出力されることを検証
+
+**ユニットテスト**:
+- 性別が全員同一の場合のエラーハンドリング
+- 年齢データにNaNが含まれる場合の処理
+- 利用不可能な属性（出身地域・学歴）がある場合のフォールバック動作
 
 #### 再現性検証スクリプト（`verify_reproducibility.py`）
 
+**プロパティテスト**:
+- Property 9: ランダムに生成した期待値・実測値ペアに対して、不一致時にmatch=Falseと差分が正しく記録されることを検証
+
 **ユニットテスト**:
-- 既知の結果ファイル群を入力として、全項目が `match=True` となることを検証（要件3.1〜3.3）
-- 意図的に乖離させた結果ファイルを入力として、`match=False` と差分が正しく記録されることを検証（要件3.5）
+- 既知の結果ファイル群を入力として、全項目が `match=True` となることを検証（要件7.1〜7.3）
+- 意図的に乖離させた結果ファイルを入力として、`match=False` と差分が正しく記録されることを検証（要件7.5）
 - 結果ファイルが存在しない場合の `FILE_NOT_FOUND` 記録を検証
 
 #### NCNPレビュー資料
@@ -365,27 +490,41 @@ p(|r|)=0.0008  (n_perm=5000)
 - Property 4: 生成されたMarkdown内の全画像参照パスが実在するファイルを指すことを検証
 
 **ユニットテスト**:
-- 生成されたMarkdownに「方法」「結果」セクションが含まれることを検証（要件4.1）
-- 18特徴量の概要とアルゴリズムの両方が記載されていることを検証（要件4.2）
+- 生成されたMarkdownに「方法」「結果」セクションが含まれることを検証（要件8.1）
+- 18特徴量の概要とアルゴリズムの両方が記載されていることを検証（要件8.2）
+- 新Results構成（記述統計→相関→コーパス基本情報→Big5）の4セクションが含まれることを検証（要件8.3）
 
 #### 特徴量定義
 
 **プロパティテスト**:
-- Property 5: 特徴量定義データ構造の各エントリに4項目が非空で含まれることを検証
+- Property 5: 特徴量定義データ構造の各エントリに4項目が非空で含まれ、NaN処理記述が含まれることを検証
 
 **ユニットテスト**:
 - 18特徴量すべてが定義に含まれることを検証
-- EXCL3列が「除外変数」として明示されていることを検証（要件6.3）
-- 分母ゼロ時のNaN処理が記述されていることを検証（要件6.4）
+- EXCL3列が「除外変数」として明示されていることを検証（要件11.3）
+- 分母ゼロ時のNaN処理が記述されていることを検証（要件11.4）
 
 #### LaTeX論文構造
 
 **ユニットテスト**:
 - 6セクション（Introduction〜Appendix）の存在を検証（要件1.1）
-- Methodセクション内の4サブセクションの存在を検証（要件1.4）
-- Appendix内のA/E/N/O permutationテーブルの存在を検証（要件7.1）
-- 「探索的結果」注記の存在を検証（要件7.4）
-- 限界記述（N=120、外部検証未了）の存在を検証（要件5.5）
+- Methodセクション内の4サブセクションの存在を検証（要件1.5）
+- Results内の新4段構成（記述統計→相関→コーパス基本情報→Big5）の順序を検証（要件1.6）
+- Appendix内のA/E/N/O permutationテーブルの存在を検証（要件12.1）
+- 「探索的結果」注記の存在を検証（要件12.4）
+- 限界記述（N=120、外部検証未了）の存在を検証（要件10.5）
+- 「性格推定モデルの構築を目的としない」旨の注記の存在を検証（要件6.5）
 
 **プロパティテスト**:
 - Property 6: Appendix内の有意結果に一般因子混入注記が付されていることを検証
+
+#### 紙芝居スライド
+
+**プロパティテスト**:
+- Property 8: 生成されたHTML内の各スライドにタイトル・図表参照・結論テキストの3要素が含まれることを検証
+
+**ユニットテスト**:
+- スライド数が6枚であることを検証（要件9.3）
+- スライド順序（記述統計→相関→コーパス基本情報→Permutation→Teacher一致度→Bootstrap）の検証
+- 画像不在時のプレースホルダーテキスト表示の検証（要件9.6）
+- 出力ファイルが `reports/paper_figs_v2/kamishibai_slides.html` に生成されることを検証（要件9.4）
