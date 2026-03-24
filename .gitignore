@@ -78,6 +78,7 @@ tmp/_inspect/
 !reports/paper_figs_v2/
 !reports/paper_figs_v2/*.png
 !reports/paper_figs_v2/*.tex
+!reports/paper_figs_v2/*.html
 
 # 論文本体（LaTeX + PDF）
 !paper1_ja.tex

@@ -1,5 +1,6 @@
 ---
-inclusion: auto
+inclusion: fileMatch
+fileMatchPattern: "paper1_ja.tex,scripts/analysis/*,scripts/paper_figs/*,docs/homework/*,reports/paper_figs_v2/*"
 name: ncnp-research
 description: NCNP共同研究、会話特徴量、再現スクリプト検証、統計評価、図表生成、論文化、共同研究者レビュー資料の作成を行うときに使う
 ---
