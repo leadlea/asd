@@ -88,6 +88,7 @@ tmp/_inspect/
 !paper1_ja.tex
 !paper1_ja.pdf
 
-# .kiro: specs / steering
-!.kiro/
-!.kiro/**
+# .kiro: specs / steering（ローカル専用、リモートにpushしない）
+# !.kiro/
+# !.kiro/**
+.kiro/
