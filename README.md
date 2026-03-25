@@ -40,7 +40,8 @@ LLM仮想教師によるBig Five性格スコアとの関連を通じて指標の
 |---------|------|
 | `fig_feature_distribution.png` | 18特徴量のカテゴリ別分布 |
 | `fig_corr_heatmap_block.png` | 相関ヒートマップ（ブロック構造） |
-| `fig_metadata_age.png` | 年齢 × 特徴量の散布図 |
+| `fig_metadata_gender.png` | 性別 × 特徴量の箱ひげ図（Mann-Whitney U検定） |
+| `fig_metadata_age.png` | 年齢 × 特徴量の散布図（Pearson/Spearman相関） |
 | `fig_permutation_C_bar.png` | C の4教師 permutation test 結果 |
 | `fig_teacher_heatmap.png` | Teacher間一致度ヒートマップ |
 | `fig_bootstrap_C_radar.png` | Bootstrap Top10 レーダーチャート |
@@ -57,7 +58,7 @@ LLM仮想教師によるBig Five性格スコアとの関連を通じて指標の
 │   ├── analysis/              # 統計分析（Ridge回帰・permutation・bootstrap）
 │   ├── paper_figs/            # 論文用図表生成スクリプト
 │   ├── big5/                  # LLMによるBig5採点（Bedrock経由）
-│   ├── cejc/                  # CEJCコーパス前処理
+│   ├── cejc/                  # CEJCコーパス前処理（話者メタデータビルド含む）
 │   └── csj/                   # CSJコーパス前処理
 ├── artifacts/
 │   ├── analysis/datasets/     # 分析用データセット（parquet）
@@ -96,6 +97,12 @@ LLM仮想教師によるBig Five性格スコアとの関連を通じて指標の
 | `feature_definitions.py` | 特徴量定義の共通モジュール |
 | `gen_kamishibai_slides.py` | 紙芝居スライド生成 |
 
+### コーパス前処理（`scripts/cejc/`）
+
+| スクリプト | 用途 |
+|-----------|------|
+| `build_cejc_speaker_meta.py` | CEJC話者メタデータビルド（S3上の話者.csv + 話者・会話対応表.csv → metadata TSV） |
+
 ---
 
 ## 技術スタック
@@ -128,8 +135,16 @@ python scripts/analysis/permutation_test_ridge_fixedalpha.py
 # Bootstrap
 python scripts/analysis/bootstrap_coef_stability.py
 
-# 論文用図表生成
-python scripts/paper_figs/gen_paper_figs_v2.py
+# CEJC話者メタデータビルド（S3からCSVをダウンロード後）
+python scripts/cejc/build_cejc_speaker_meta.py \
+  --features_parquet artifacts/analysis/features_min/features_cejc_home2_hq1.parquet \
+  --speaker_csv /tmp/cejc_speaker.csv \
+  --mapping_csv /tmp/cejc_speaker_conversation.csv \
+  --out artifacts/analysis/cejc_speaker_metadata.tsv
+
+# 論文用図表生成（メタデータTSV付き）
+python scripts/paper_figs/gen_paper_figs_v2.py \
+  --metadata_tsv artifacts/analysis/cejc_speaker_metadata.tsv
 
 # 再現性検証
 python scripts/analysis/verify_reproducibility.py

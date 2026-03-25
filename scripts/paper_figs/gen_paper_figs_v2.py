@@ -975,8 +975,9 @@ def gen_metadata_gender(
         )
         return
 
-    # Merge on speaker_id
-    merged = features_df.merge(metadata_df[["speaker_id", "gender"]], on="speaker_id", how="left")
+    # Merge on (conversation_id, speaker_id) — speaker_id alone is not unique
+    merge_keys = ["conversation_id", "speaker_id"] if "conversation_id" in metadata_df.columns else ["speaker_id"]
+    merged = features_df.merge(metadata_df[merge_keys + ["gender"]], on=merge_keys, how="left")
     merged = merged.dropna(subset=["gender"])
 
     males = merged[merged["gender"] == "M"]
@@ -1076,8 +1077,9 @@ def gen_metadata_age(
         )
         return
 
-    # Merge on speaker_id
-    merged = features_df.merge(metadata_df[["speaker_id", "age"]], on="speaker_id", how="left")
+    # Merge on (conversation_id, speaker_id) — speaker_id alone is not unique
+    merge_keys = ["conversation_id", "speaker_id"] if "conversation_id" in metadata_df.columns else ["speaker_id"]
+    merged = features_df.merge(metadata_df[merge_keys + ["age"]], on=merge_keys, how="left")
     merged["age"] = pd.to_numeric(merged["age"], errors="coerce")
     merged = merged.dropna(subset=["age"])
 
@@ -1178,13 +1180,14 @@ def gen_tab_metadata_tests(
     has_gender = "gender" in metadata_df.columns
     has_age = "age" in metadata_df.columns
 
-    # Merge
-    merge_cols = ["speaker_id"]
+    # Merge on (conversation_id, speaker_id) — speaker_id alone is not unique
+    merge_keys = ["conversation_id", "speaker_id"] if "conversation_id" in metadata_df.columns else ["speaker_id"]
+    merge_cols = list(merge_keys)
     if has_gender:
         merge_cols.append("gender")
     if has_age:
         merge_cols.append("age")
-    merged = features_df.merge(metadata_df[merge_cols], on="speaker_id", how="left")
+    merged = features_df.merge(metadata_df[merge_cols], on=merge_keys, how="left")
 
     if has_age:
         merged["age"] = pd.to_numeric(merged["age"], errors="coerce")
