@@ -9,6 +9,8 @@ Usage::
     from scripts.paper_figs.feature_definitions import (
         FEATURE_DEFINITIONS,
         get_explanatory_features,
+        get_classical_features,
+        get_novel_features,
     )
 """
 
@@ -27,6 +29,7 @@ class FeatureDefinition:
     summary: str
     algorithm: str
     is_control: bool
+    classification: str  # "Classical" / "Novel" / "Control"
 
 
 # ------------------------------------------------------------------
@@ -42,6 +45,7 @@ _EXPLANATORY: List[FeatureDefinition] = [
             "NaN if total_time is 0 or missing."
         ),
         is_control=False,
+        classification="Classical",
     ),
     FeatureDefinition(
         name="PG_pause_mean",
@@ -52,6 +56,7 @@ _EXPLANATORY: List[FeatureDefinition] = [
             "(>=gap_tol sec). NaN if no qualifying gaps."
         ),
         is_control=False,
+        classification="Classical",
     ),
     FeatureDefinition(
         name="PG_pause_p50",
@@ -62,6 +67,7 @@ _EXPLANATORY: List[FeatureDefinition] = [
             "NaN if no qualifying gaps."
         ),
         is_control=False,
+        classification="Classical",
     ),
     FeatureDefinition(
         name="PG_pause_p90",
@@ -72,6 +78,7 @@ _EXPLANATORY: List[FeatureDefinition] = [
             "NaN if no qualifying gaps."
         ),
         is_control=False,
+        classification="Classical",
     ),
     FeatureDefinition(
         name="PG_resp_gap_mean",
@@ -82,6 +89,7 @@ _EXPLANATORY: List[FeatureDefinition] = [
             ">=gap_tol sec). NaN if no qualifying gaps."
         ),
         is_control=False,
+        classification="Classical",
     ),
     FeatureDefinition(
         name="PG_resp_gap_p50",
@@ -92,6 +100,7 @@ _EXPLANATORY: List[FeatureDefinition] = [
             "NaN if no qualifying gaps."
         ),
         is_control=False,
+        classification="Classical",
     ),
     FeatureDefinition(
         name="PG_resp_gap_p90",
@@ -102,6 +111,7 @@ _EXPLANATORY: List[FeatureDefinition] = [
             "NaN if no qualifying gaps."
         ),
         is_control=False,
+        classification="Classical",
     ),
     FeatureDefinition(
         name="FILL_has_any",
@@ -112,6 +122,7 @@ _EXPLANATORY: List[FeatureDefinition] = [
             "(etto/ee/ano). NaN if speaker has no utterances."
         ),
         is_control=False,
+        classification="Classical",
     ),
     FeatureDefinition(
         name="FILL_rate_per_100chars",
@@ -122,6 +133,7 @@ _EXPLANATORY: List[FeatureDefinition] = [
             "NaN if text_len is 0."
         ),
         is_control=False,
+        classification="Classical",
     ),
     FeatureDefinition(
         name="IX_oirmarker_rate",
@@ -133,6 +145,7 @@ _EXPLANATORY: List[FeatureDefinition] = [
             "where speaker is responder."
         ),
         is_control=False,
+        classification="Novel",
     ),
     FeatureDefinition(
         name="IX_oirmarker_after_question_rate",
@@ -143,6 +156,7 @@ _EXPLANATORY: List[FeatureDefinition] = [
             "NaN if no question-preceded pairs."
         ),
         is_control=False,
+        classification="Novel",
     ),
     FeatureDefinition(
         name="IX_yesno_rate",
@@ -153,6 +167,7 @@ _EXPLANATORY: List[FeatureDefinition] = [
             "(hai/un/ee/iie etc)."
         ),
         is_control=False,
+        classification="Novel",
     ),
     FeatureDefinition(
         name="IX_yesno_after_question_rate",
@@ -163,6 +178,7 @@ _EXPLANATORY: List[FeatureDefinition] = [
             "NaN if no question-preceded pairs."
         ),
         is_control=False,
+        classification="Novel",
     ),
     FeatureDefinition(
         name="IX_lex_overlap_mean",
@@ -173,6 +189,7 @@ _EXPLANATORY: List[FeatureDefinition] = [
             "previous utterance and response."
         ),
         is_control=False,
+        classification="Novel",
     ),
     FeatureDefinition(
         name="IX_topic_drift_mean",
@@ -183,6 +200,7 @@ _EXPLANATORY: List[FeatureDefinition] = [
             "IX_lex_overlap_mean by construction."
         ),
         is_control=False,
+        classification="Novel",
     ),
     FeatureDefinition(
         name="RESP_NE_AIZUCHI_RATE",
@@ -194,6 +212,7 @@ _EXPLANATORY: List[FeatureDefinition] = [
             "NaN if n_pairs_after_NE is 0."
         ),
         is_control=False,
+        classification="Novel",
     ),
     FeatureDefinition(
         name="RESP_NE_ENTROPY",
@@ -204,6 +223,7 @@ _EXPLANATORY: List[FeatureDefinition] = [
             "sentence-final particle. NaN if n_pairs_after_NE is 0."
         ),
         is_control=False,
+        classification="Novel",
     ),
     FeatureDefinition(
         name="RESP_YO_ENTROPY",
@@ -214,6 +234,7 @@ _EXPLANATORY: List[FeatureDefinition] = [
             "sentence-final particle. NaN if n_pairs_after_YO is 0."
         ),
         is_control=False,
+        classification="Novel",
     ),
 ]
 
@@ -227,6 +248,7 @@ _CONTROLS: List[FeatureDefinition] = [
         summary="Total adjacent pairs",
         algorithm="Count of all adjacent speaker-switch pairs.",
         is_control=True,
+        classification="Control",
     ),
     FeatureDefinition(
         name="n_pairs_after_NE",
@@ -234,6 +256,7 @@ _CONTROLS: List[FeatureDefinition] = [
         summary="Pairs after NE particle",
         algorithm="Count of pairs where previous utterance ends with NE.",
         is_control=True,
+        classification="Control",
     ),
     FeatureDefinition(
         name="n_pairs_after_YO",
@@ -241,6 +264,7 @@ _CONTROLS: List[FeatureDefinition] = [
         summary="Pairs after YO particle",
         algorithm="Count of pairs where previous utterance ends with YO.",
         is_control=True,
+        classification="Control",
     ),
     FeatureDefinition(
         name="IX_n_pairs",
@@ -248,6 +272,7 @@ _CONTROLS: List[FeatureDefinition] = [
         summary="IX pair count",
         algorithm="Total adjacent pairs (same as n_pairs_total).",
         is_control=True,
+        classification="Control",
     ),
     FeatureDefinition(
         name="IX_n_pairs_after_question",
@@ -255,6 +280,7 @@ _CONTROLS: List[FeatureDefinition] = [
         summary="Pairs after question",
         algorithm="Count of pairs where previous utterance is a question.",
         is_control=True,
+        classification="Control",
     ),
     FeatureDefinition(
         name="PG_total_time",
@@ -262,6 +288,7 @@ _CONTROLS: List[FeatureDefinition] = [
         summary="Total conversation time",
         algorithm="end_time.max() - start_time.min() for the conversation.",
         is_control=True,
+        classification="Control",
     ),
     FeatureDefinition(
         name="PG_overlap_rate",
@@ -269,6 +296,7 @@ _CONTROLS: List[FeatureDefinition] = [
         summary="Overlap rate",
         algorithm="Proportion of turn-taking gaps < -gap_tol (overlaps).",
         is_control=True,
+        classification="Control",
     ),
     FeatureDefinition(
         name="PG_resp_overlap_rate",
@@ -276,6 +304,7 @@ _CONTROLS: List[FeatureDefinition] = [
         summary="Response overlap rate",
         algorithm="Same as PG_overlap_rate in current implementation.",
         is_control=True,
+        classification="Control",
     ),
     FeatureDefinition(
         name="FILL_text_len",
@@ -283,6 +312,7 @@ _CONTROLS: List[FeatureDefinition] = [
         summary="Text character count",
         algorithm="Total whitespace-stripped character count of speaker's utterances.",
         is_control=True,
+        classification="Control",
     ),
     FeatureDefinition(
         name="FILL_cnt_total",
@@ -290,6 +320,7 @@ _CONTROLS: List[FeatureDefinition] = [
         summary="Total filler count",
         algorithm="Sum of etto + ee + ano filler occurrences.",
         is_control=True,
+        classification="Control",
     ),
     FeatureDefinition(
         name="FILL_cnt_eto",
@@ -297,6 +328,7 @@ _CONTROLS: List[FeatureDefinition] = [
         summary="Etto filler count",
         algorithm="Count of etto/eto fillers in speaker's text.",
         is_control=True,
+        classification="Control",
     ),
     FeatureDefinition(
         name="FILL_cnt_e",
@@ -304,6 +336,7 @@ _CONTROLS: List[FeatureDefinition] = [
         summary="Ee filler count",
         algorithm="Count of ee/e~ fillers in speaker's text.",
         is_control=True,
+        classification="Control",
     ),
     FeatureDefinition(
         name="FILL_cnt_ano",
@@ -311,6 +344,7 @@ _CONTROLS: List[FeatureDefinition] = [
         summary="Ano filler count",
         algorithm="Count of ano fillers in speaker's text.",
         is_control=True,
+        classification="Control",
     ),
 ]
 
@@ -325,3 +359,13 @@ FEATURE_DEFINITIONS: List[FeatureDefinition] = _EXPLANATORY + _CONTROLS
 def get_explanatory_features() -> List[FeatureDefinition]:
     """Return only the 18 explanatory features (is_control=False)."""
     return [f for f in FEATURE_DEFINITIONS if not f.is_control]
+
+
+def get_classical_features() -> List[FeatureDefinition]:
+    """Return Classical features (PG + FILL, 9 features)."""
+    return [f for f in FEATURE_DEFINITIONS if f.classification == "Classical"]
+
+
+def get_novel_features() -> List[FeatureDefinition]:
+    """Return Novel features (IX + RESP, 9 features)."""
+    return [f for f in FEATURE_DEFINITIONS if f.classification == "Novel"]

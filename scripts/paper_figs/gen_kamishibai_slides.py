@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
 """紙芝居スライド生成スクリプト
 
-Results構成に対応した6枚のスライドを1枚1図で構成するHTML生成スクリプト。
-各スライドに (a) タイトル、(b) 図表（imgタグ）、(c) 結論テキスト（1〜2文）を含む。
+Results構成に対応したスライドを1枚1図で構成するHTML生成スクリプト。
+Methods 2枚 + Results 6枚 = 計8枚。
+各スライドに (a) タイトル、(b) 図表またはテキスト/HTMLコンテンツ、(c) 結論テキスト（1〜2文）を含む。
 画像不在時はプレースホルダーテキスト「[図表未生成: {filename}]」を表示する。
 
 出力: reports/paper_figs_v2/kamishibai_slides.html
@@ -14,6 +15,14 @@ import argparse
 from dataclasses import dataclass
 from pathlib import Path
 
+try:
+    from scripts.paper_figs.feature_definitions import (
+        get_classical_features,
+        get_novel_features,
+    )
+except ModuleNotFoundError:
+    from feature_definitions import get_classical_features, get_novel_features  # type: ignore[import-untyped]
+
 
 @dataclass
 class Slide:
@@ -23,13 +32,89 @@ class Slide:
     title: str
     images: list[str]  # 画像ファイル名のリスト（1枚 or 複数枚）
     conclusion: str
+    html_content: str = ""  # テキスト/HTMLコンテンツ（Methodsスライド等）
+
+
+# --- 特徴量分類テーブル生成 ---------------------------------------------------
+
+
+def _build_feature_classification_table() -> str:
+    """Classical vs Novel 特徴量のHTML比較テーブルを生成する"""
+    classical = get_classical_features()
+    novel = get_novel_features()
+
+    rows: list[str] = []
+    max_len = max(len(classical), len(novel))
+    for i in range(max_len):
+        c_name = classical[i].name if i < len(classical) else ""
+        c_summary = classical[i].summary if i < len(classical) else ""
+        n_name = novel[i].name if i < len(novel) else ""
+        n_summary = novel[i].summary if i < len(novel) else ""
+        rows.append(
+            f"<tr><td>{i + 1}</td>"
+            f"<td>{c_name}</td><td>{c_summary}</td>"
+            f"<td>{n_name}</td><td>{n_summary}</td></tr>"
+        )
+
+    return (
+        '<table class="feature-table">'
+        "<thead><tr>"
+        "<th>#</th>"
+        "<th colspan=\"2\">Classical（既存研究ベース: PG + FILL = 9個）</th>"
+        "<th colspan=\"2\">Novel（新規提案: IX + RESP = 9個）</th>"
+        "</tr><tr>"
+        "<th></th><th>特徴量名</th><th>概要</th><th>特徴量名</th><th>概要</th>"
+        "</tr></thead>"
+        "<tbody>" + "".join(rows) + "</tbody>"
+        "</table>"
+    )
 
 
 # --- スライド定義 -----------------------------------------------------------
 
 SLIDES: list[Slide] = [
+    # --- Methods スライド (1-2) ---
     Slide(
         number=1,
+        title="データと手法",
+        images=[],
+        conclusion=(
+            "N=120の自然会話データに対し、Ridge回帰＋置換検定で"
+            "特徴量とBig5の関連を頑健に評価する設計である。"
+        ),
+        html_content=(
+            '<div class="methods-text">'
+            "<h3>データ</h3>"
+            "<ul>"
+            "<li><b>コーパス:</b> CEJC（日本語日常会話コーパス）home2サブセット</li>"
+            "<li><b>品質フィルタ:</b> HQ1（高品質フィルタ適用済み）</li>"
+            "<li><b>サンプルサイズ:</b> N = 120（conversation × speaker）</li>"
+            "<li><b>特徴量:</b> 18説明変数（Classical 9 + Novel 9）</li>"
+            "</ul>"
+            "<h3>手法</h3>"
+            "<ul>"
+            "<li><b>回帰モデル:</b> Ridge回帰（α = 100）</li>"
+            "<li><b>交差検証:</b> 5-fold subject-wise CV</li>"
+            "<li><b>統計検定:</b> Permutation test（5,000回、seed = 42）</li>"
+            "<li><b>安定性評価:</b> Bootstrap係数安定性分析</li>"
+            "<li><b>教師ラベル:</b> 4 LLM教師のitem-level平均（アンサンブル）</li>"
+            "</ul>"
+            "</div>"
+        ),
+    ),
+    Slide(
+        number=2,
+        title="特徴量の分類",
+        images=[],
+        conclusion=(
+            "既存研究ベースのClassical 9特徴量と、"
+            "会話分析・相互行為論に基づくNovel 9特徴量の2群で構成される。"
+        ),
+        html_content=_build_feature_classification_table(),
+    ),
+    # --- Results スライド (3-8) ---
+    Slide(
+        number=3,
         title="提案特徴量の分布",
         images=["fig_feature_distribution.png"],
         conclusion=(
@@ -38,7 +123,7 @@ SLIDES: list[Slide] = [
         ),
     ),
     Slide(
-        number=2,
+        number=4,
         title="カテゴリ内/間相関",
         images=["fig_corr_heatmap_block.png"],
         conclusion=(
@@ -47,7 +132,7 @@ SLIDES: list[Slide] = [
         ),
     ),
     Slide(
-        number=3,
+        number=5,
         title="コーパス基本情報との関連",
         images=["fig_metadata_gender.png", "fig_metadata_age.png"],
         conclusion=(
@@ -55,25 +140,25 @@ SLIDES: list[Slide] = [
         ),
     ),
     Slide(
-        number=4,
-        title="Big5との関連 — Permutation Test",
-        images=["fig_permutation_C_bar.png"],
-        conclusion=(
-            "Conscientiousness（C）は4教師中3教師で有意であり、"
-            "教師非依存の頑健性を示す。"
-        ),
-    ),
-    Slide(
-        number=5,
-        title="Teacher間一致度",
-        images=["fig_teacher_heatmap.png"],
-        conclusion=(
-            "C: mean r=0.699で最高であり、"
-            "仮想教師として最も安定している。"
-        ),
-    ),
-    Slide(
         number=6,
+        title="アンサンブルBig5 Permutation",
+        images=["fig_ensemble_permutation.png"],
+        conclusion=(
+            "4教師item-level平均によるアンサンブルBig5で、"
+            "Cが頑健に有意であることを確認した。"
+        ),
+    ),
+    Slide(
+        number=7,
+        title="ベースラインvs拡張モデル",
+        images=["fig_baseline_vs_extended.png"],
+        conclusion=(
+            "Novel特徴量の追加により予測精度が向上し、"
+            "新規提案特徴量の付加価値を示す。"
+        ),
+    ),
+    Slide(
+        number=8,
         title="Bootstrap Top Drivers",
         images=["fig_bootstrap_C_radar.png"],
         conclusion=(
@@ -162,6 +247,53 @@ body {
   border-radius: 6px;
   width: 100%;
 }
+.methods-text {
+  flex: 1;
+  width: 100%;
+  text-align: left;
+  font-size: 18px;
+  line-height: 1.8;
+  padding: 8px 16px;
+}
+.methods-text h3 {
+  font-size: 22px;
+  color: #1a1a2e;
+  margin: 16px 0 8px;
+}
+.methods-text ul {
+  margin: 0 0 8px 24px;
+}
+.methods-text li {
+  margin-bottom: 4px;
+}
+.feature-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 15px;
+  margin: 8px 0;
+}
+.feature-table th, .feature-table td {
+  border: 1px solid #ccc;
+  padding: 6px 10px;
+  text-align: left;
+}
+.feature-table thead th {
+  background: #e8edf5;
+  font-weight: 700;
+  text-align: center;
+}
+.feature-table tbody tr:nth-child(even) {
+  background: #f9f9f9;
+}
+.slide-content {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  width: 100%;
+  margin-bottom: 24px;
+  overflow-y: auto;
+}
 .nav {
   text-align: center;
   font-size: 14px;
@@ -179,16 +311,28 @@ def _image_html(filename: str, out_dir: Path) -> str:
 
 
 def generate_slides_html(out_dir: Path) -> str:
-    """6枚のスライドを含む自己完結型HTMLを生成する"""
+    """8枚のスライド（Methods 2枚 + Results 6枚）を含む自己完結型HTMLを生成する"""
     total = len(SLIDES)
     slide_blocks: list[str] = []
 
     for slide in SLIDES:
-        # 画像セクション
-        multi_class = " multi" if len(slide.images) > 1 else ""
-        images_html = "\n        ".join(
-            _image_html(img, out_dir) for img in slide.images
-        )
+        # コンテンツセクション: html_contentがあればそれを使い、なければ画像を表示
+        if slide.html_content:
+            content_html = (
+                f'      <div class="slide-content">\n'
+                f'        {slide.html_content}\n'
+                f'      </div>'
+            )
+        else:
+            multi_class = " multi" if len(slide.images) > 1 else ""
+            images_html = "\n        ".join(
+                _image_html(img, out_dir) for img in slide.images
+            )
+            content_html = (
+                f'      <div class="slide-images{multi_class}">\n'
+                f'        {images_html}\n'
+                f'      </div>'
+            )
 
         # ナビゲーション
         nav_parts: list[str] = []
@@ -203,9 +347,7 @@ def generate_slides_html(out_dir: Path) -> str:
     <div class="slide" id="slide-{slide.number}">
       <div class="slide-number">Slide {slide.number} / {total}</div>
       <div class="slide-title">{slide.title}</div>
-      <div class="slide-images{multi_class}">
-        {images_html}
-      </div>
+{content_html}
       <div class="slide-conclusion">{slide.conclusion}</div>
     </div>
     <div class="nav">{nav_html}</div>"""

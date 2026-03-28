@@ -21,6 +21,11 @@ from typing import NamedTuple
 import numpy as np
 import pandas as pd
 
+try:
+    from scripts.paper_figs.feature_definitions import get_explanatory_features
+except ModuleNotFoundError:
+    from feature_definitions import get_explanatory_features  # type: ignore[import-untyped]
+
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -359,20 +364,190 @@ def gen_fig_permutation_C_bar(results_dir: Path, out_dir: Path) -> None:
                   edgecolor="white", linewidth=0.8)
     for bar, p in zip(bars, p_vals):
         ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 0.008,
-                f"p={p:.4f}", ha="center", va="bottom", fontsize=8)
+                f"p={p:.4f}", ha="center", va="bottom", fontsize=9)
     ax.legend(handles=[
         Patch(facecolor="#2166ac", edgecolor="white", label="p < 0.05"),
         Patch(facecolor="#b2182b", edgecolor="white", label="p >= 0.05"),
-    ], loc="upper right", fontsize=8, framealpha=0.9)
+    ], loc="upper right", fontsize=10, framealpha=0.9)
     ax.set_xticks(range(len(teachers_disp)))
-    ax.set_xticklabels(teachers_disp, fontsize=9)
-    ax.set_ylabel("Observed correlation ($r_{obs}$)", fontsize=10)
-    ax.set_title("Permutation Test: Conscientiousness (C)", fontsize=11, pad=10)
+    ax.set_xticklabels(teachers_disp, fontsize=10)
+    ax.set_ylabel("Observed correlation ($r_{obs}$)", fontsize=12)
+    ax.set_title("Permutation Test: Conscientiousness (C)", fontsize=13, pad=10)
     ax.set_ylim(0, max(r_obs_vals) * 1.25)
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
     fig.tight_layout()
     fig.savefig(out_dir / "fig_permutation_C_bar.png", dpi=300, bbox_inches="tight")
+    plt.close(fig)
+
+
+def gen_fig_ensemble_permutation(results_dir: Path, out_dir: Path) -> None:
+    """Generate ensemble 5-trait Permutation results bar chart (fig_ensemble_permutation.png).
+
+    Reads ensemble_summary.tsv from results_dir and draws a bar chart with
+    5 bars (O, C, E, A, N) showing r_obs values.  Bars are coloured by
+    significance: blue (#2166ac) for p < 0.05, red (#b2182b) otherwise.
+    Each bar is annotated with its p-value.
+
+    Parameters
+    ----------
+    results_dir : Path
+        Directory containing ``ensemble_summary.tsv``
+        (columns: trait, r_obs, p_value).
+    out_dir : Path
+        Directory where fig_ensemble_permutation.png will be saved.
+
+    Raises
+    ------
+    FileNotFoundError
+        If ensemble_summary.tsv does not exist.
+    """
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    from matplotlib.patches import Patch
+
+    summary_path = results_dir / "ensemble_summary.tsv"
+    if not summary_path.exists():
+        raise FileNotFoundError(
+            f"ensemble_summary.tsv not found: {summary_path}\n"
+            f"Expected columns: trait, r_obs, p_value"
+        )
+
+    df = pd.read_csv(summary_path, sep="\t")
+
+    # Ensure expected trait order: O, C, E, A, N
+    trait_order = ["O", "C", "E", "A", "N"]
+    df = df.set_index("trait").loc[trait_order].reset_index()
+
+    traits = df["trait"].tolist()
+    r_obs_vals = df["r_obs"].tolist()
+    p_vals = df["p_value"].tolist()
+
+    fig, ax = plt.subplots(figsize=(6, 4))
+    colors = ["#2166ac" if p < 0.05 else "#b2182b" for p in p_vals]
+    bars = ax.bar(range(len(traits)), r_obs_vals, color=colors, width=0.55,
+                  edgecolor="white", linewidth=0.8)
+
+    for bar, p in zip(bars, p_vals):
+        ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 0.008,
+                f"p={p:.4f}", ha="center", va="bottom", fontsize=9)
+
+    ax.legend(handles=[
+        Patch(facecolor="#2166ac", edgecolor="white", label="p < 0.05"),
+        Patch(facecolor="#b2182b", edgecolor="white", label="p >= 0.05"),
+    ], loc="upper right", fontsize=10, framealpha=0.9)
+
+    ax.set_xticks(range(len(traits)))
+    ax.set_xticklabels(traits, fontsize=12)
+    ax.set_ylabel("Observed correlation ($r_{obs}$)", fontsize=12)
+    ax.set_title("Ensemble Permutation Test: Big Five (5 Traits)", fontsize=13, pad=10)
+    ax.set_ylim(0, max(r_obs_vals) * 1.25 if max(r_obs_vals) > 0 else 0.5)
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+
+    fig.tight_layout()
+    fig.savefig(out_dir / "fig_ensemble_permutation.png", dpi=300, bbox_inches="tight")
+    plt.close(fig)
+
+
+def gen_fig_baseline_vs_extended(results_dir: Path, out_dir: Path) -> None:
+    """Generate baseline vs extended model comparison figure (fig_baseline_vs_extended.png).
+
+    Reads all ``baseline_vs_extended_*.tsv`` files from *results_dir* and
+    draws a grouped bar chart comparing r_baseline (Classical 9 features)
+    vs r_extended (all 18 features) for each Big Five trait (O, C, E, A, N).
+    Δr is annotated above each pair.
+
+    If multiple teachers exist for the same trait, values are averaged
+    across teachers.
+
+    Parameters
+    ----------
+    results_dir : Path
+        Directory containing ``baseline_vs_extended_*.tsv`` files
+        (columns: trait, teacher, r_baseline, p_baseline, r_extended,
+        p_extended, delta_r).
+    out_dir : Path
+        Directory where fig_baseline_vs_extended.png will be saved.
+
+    Raises
+    ------
+    FileNotFoundError
+        If no baseline_vs_extended_*.tsv files are found.
+    """
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    # --- Collect all TSV files ---
+    tsv_files = sorted(results_dir.glob("baseline_vs_extended_*.tsv"))
+    if not tsv_files:
+        raise FileNotFoundError(
+            f"No baseline_vs_extended_*.tsv files found in: {results_dir}\n"
+            f"Expected columns: trait, teacher, r_baseline, p_baseline, "
+            f"r_extended, p_extended, delta_r"
+        )
+
+    # --- Read and concatenate ---
+    frames = [pd.read_csv(f, sep="\t") for f in tsv_files]
+    df = pd.concat(frames, ignore_index=True)
+
+    # --- Average across teachers per trait ---
+    trait_order = ["O", "C", "E", "A", "N"]
+    agg = (
+        df.groupby("trait")[["r_baseline", "r_extended", "delta_r"]]
+        .mean()
+    )
+
+    # Ensure trait order; skip missing traits
+    traits = [t for t in trait_order if t in agg.index]
+    r_base = [agg.loc[t, "r_baseline"] for t in traits]
+    r_ext = [agg.loc[t, "r_extended"] for t in traits]
+    delta = [agg.loc[t, "delta_r"] for t in traits]
+
+    # --- Draw grouped bar chart ---
+    x = np.arange(len(traits))
+    width = 0.32
+
+    fig, ax = plt.subplots(figsize=(7, 4.5))
+    bars_base = ax.bar(
+        x - width / 2, r_base, width,
+        label="Baseline (Classical 9)",
+        color="#92c5de", edgecolor="white", linewidth=0.8,
+    )
+    bars_ext = ax.bar(
+        x + width / 2, r_ext, width,
+        label="Extended (All 18)",
+        color="#2166ac", edgecolor="white", linewidth=0.8,
+    )
+
+    # --- Annotate Δr above each pair ---
+    for i in range(len(traits)):
+        pair_max = max(r_base[i], r_ext[i])
+        dr = delta[i]
+        sign = "+" if dr >= 0 else ""
+        ax.text(
+            x[i], pair_max + 0.015,
+            f"Δr={sign}{dr:.3f}",
+            ha="center", va="bottom", fontsize=9, fontstyle="italic",
+        )
+
+    ax.set_xticks(x)
+    ax.set_xticklabels(traits, fontsize=12)
+    ax.set_ylabel("Observed correlation ($r_{obs}$)", fontsize=12)
+    ax.set_title(
+        "Baseline (Classical 9) vs Extended (All 18) Model Comparison",
+        fontsize=13, pad=10,
+    )
+    y_max = max(max(r_base), max(r_ext)) if traits else 0.5
+    ax.set_ylim(0, y_max * 1.35)
+    ax.legend(loc="upper right", fontsize=10, framealpha=0.9)
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+
+    fig.tight_layout()
+    fig.savefig(out_dir / "fig_baseline_vs_extended.png", dpi=300, bbox_inches="tight")
     plt.close(fig)
 
 
@@ -424,12 +599,12 @@ def gen_fig_bootstrap_C_radar(bootstrap_dir: Path, out_dir: Path) -> None:
 
     # --- Axis labels ---
     ax.set_xticks(angles[:-1])
-    ax.set_xticklabels(labels, fontsize=8.5)
+    ax.set_xticklabels(labels, fontsize=9)
 
     # Radial ticks
     ax.set_ylim(0, 1.0)
     ax.set_yticks([0.2, 0.4, 0.6, 0.8, 1.0])
-    ax.set_yticklabels(["0.2", "0.4", "0.6", "0.8", "1.0"], fontsize=7, color="grey")
+    ax.set_yticklabels(["0.2", "0.4", "0.6", "0.8", "1.0"], fontsize=8, color="grey")
 
     ax.set_title(
         "Bootstrap Stability: Top-10 Features for C (Sonnet4)",
@@ -437,11 +612,11 @@ def gen_fig_bootstrap_C_radar(bootstrap_dir: Path, out_dir: Path) -> None:
         fontweight="bold",
         pad=24,
     )
-    ax.legend(loc="upper right", bbox_to_anchor=(1.25, 1.10), fontsize=9)
+    ax.legend(loc="upper right", bbox_to_anchor=(1.25, 1.10), fontsize=10)
 
     fig.tight_layout()
     out_path = out_dir / "fig_bootstrap_C_radar.png"
-    fig.savefig(out_path, dpi=200, bbox_inches="tight")
+    fig.savefig(out_path, dpi=300, bbox_inches="tight")
     plt.close(fig)
 
 
@@ -509,9 +684,9 @@ def gen_fig_teacher_heatmap(out_dir: Path) -> None:
     # Axis labels
     teacher_labels = [TEACHER_DISPLAY[t] for t in TEACHERS]
     ax.set_xticks(range(len(TEACHERS)))
-    ax.set_xticklabels(teacher_labels, fontsize=9)
+    ax.set_xticklabels(teacher_labels, fontsize=10)
     ax.set_yticks(range(len(TRAITS)))
-    ax.set_yticklabels(TRAITS, fontsize=10, fontweight="bold")
+    ax.set_yticklabels(TRAITS, fontsize=12, fontweight="bold")
 
     # Annotate trait mean r on the right side
     for i, mr in enumerate(trait_mean_r):
@@ -524,16 +699,16 @@ def gen_fig_teacher_heatmap(out_dir: Path) -> None:
 
     ax.set_title("Inter-Teacher Agreement (per-teacher mean r)",
                  fontsize=12, fontweight="bold", pad=12)
-    ax.set_xlabel("Teacher (LLM)", fontsize=10)
-    ax.set_ylabel("Trait", fontsize=10)
+    ax.set_xlabel("Teacher (LLM)", fontsize=12)
+    ax.set_ylabel("Trait", fontsize=12)
 
     # Colorbar
     cbar = fig.colorbar(im, ax=ax, fraction=0.025, pad=0.02)
-    cbar.set_label("Mean Pearson r", fontsize=9)
+    cbar.set_label("Mean Pearson r", fontsize=10)
 
     fig.tight_layout()
     out_path = out_dir / "fig_teacher_heatmap.png"
-    fig.savefig(out_path, dpi=200, bbox_inches="tight")
+    fig.savefig(out_path, dpi=300, bbox_inches="tight")
     plt.close(fig)
 
 
@@ -710,7 +885,7 @@ def gen_feature_distribution(features_df: pd.DataFrame, out_dir: Path) -> None:
                     valid_labels.append(label)
 
         if not data_list:
-            ax.set_title(f"{cat}", fontsize=11, fontweight="bold")
+            ax.set_title(f"{cat}", fontsize=12, fontweight="bold")
             ax.text(0.5, 0.5, "No data", ha="center", va="center",
                     transform=ax.transAxes, fontsize=10, color="grey")
             continue
@@ -732,11 +907,11 @@ def gen_feature_distribution(features_df: pd.DataFrame, out_dir: Path) -> None:
                 parts[key].set_linewidth(1.2)
 
         ax.set_xticks(range(len(valid_labels)))
-        ax.set_xticklabels(valid_labels, fontsize=7.5, rotation=45, ha="right")
-        ax.set_title(f"{cat}", fontsize=11, fontweight="bold", color=color)
+        ax.set_xticklabels(valid_labels, fontsize=8, rotation=45, ha="right")
+        ax.set_title(f"{cat}", fontsize=12, fontweight="bold", color=color)
         ax.spines["top"].set_visible(False)
         ax.spines["right"].set_visible(False)
-        ax.tick_params(axis="y", labelsize=8)
+        ax.tick_params(axis="y", labelsize=9)
 
     fig.suptitle("Distribution of 18 Interaction Features by Category",
                  fontsize=13, fontweight="bold", y=1.02)
@@ -818,7 +993,7 @@ def gen_corr_heatmap_block(features_df: pd.DataFrame, out_dir: Path) -> None:
             # Use white text on dark backgrounds
             text_color = "white" if abs(val) > 0.6 else "black"
             ax.text(j, i, f"{val:.2f}", ha="center", va="center",
-                    fontsize=5.5, color=text_color)
+                    fontsize=7, color=text_color)
 
     # --- Category boundary lines ---
     cumulative = 0
@@ -835,7 +1010,7 @@ def gen_corr_heatmap_block(features_df: pd.DataFrame, out_dir: Path) -> None:
         if size > 0:
             mid = cumulative + size / 2 - 0.5
             ax.text(mid, -1.5, cat, ha="center", va="center",
-                    fontsize=11, fontweight="bold",
+                    fontsize=12, fontweight="bold",
                     color={"PG": "#2166ac", "FILL": "#4daf4a",
                            "IX": "#ff7f00", "RESP": "#984ea3"}.get(cat, "black"))
             cumulative += size
@@ -1021,15 +1196,15 @@ def gen_metadata_gender(
                 sig_marker = " *" if p_val < 0.05 else ""
                 ax.set_title(
                     f"{feat}\nU={u_stat:.0f}, p={p_val:.4f}{sig_marker}",
-                    fontsize=7.5,
+                    fontsize=9,
                     fontweight="bold" if p_val < 0.05 else "normal",
                 )
             except ValueError:
-                ax.set_title(f"{feat}\n(test N/A)", fontsize=7.5)
+                ax.set_title(f"{feat}\n(test N/A)", fontsize=9)
         else:
-            ax.set_title(f"{feat}\n(insufficient data)", fontsize=7.5)
+            ax.set_title(f"{feat}\n(insufficient data)", fontsize=9)
 
-        ax.tick_params(axis="both", labelsize=7)
+        ax.tick_params(axis="both", labelsize=8)
         ax.spines["top"].set_visible(False)
         ax.spines["right"].set_visible(False)
 
@@ -1136,9 +1311,9 @@ def gen_metadata_age(
         else:
             annotation_lines.append("(n < 3)")
 
-        ax.set_title("\n".join(annotation_lines), fontsize=7, fontweight="normal")
-        ax.set_xlabel("Age", fontsize=7)
-        ax.tick_params(axis="both", labelsize=7)
+        ax.set_title("\n".join(annotation_lines), fontsize=9, fontweight="normal")
+        ax.set_xlabel("Age", fontsize=9)
+        ax.tick_params(axis="both", labelsize=8)
         ax.spines["top"].set_visible(False)
         ax.spines["right"].set_visible(False)
 
@@ -1327,67 +1502,177 @@ def gen_tab_permutation_all(results_dir: Path, out_dir: Path) -> None:
     out_path.write_text(latex, encoding="utf-8")
 
 
-def gen_tab_feature_definitions(out_dir: Path) -> None:
-    """Generate feature definitions LaTeX table. [Task 1.8]
+def gen_tab_ensemble_permutation(results_dir: Path, out_dir: Path) -> None:
+    """Generate ensemble permutation results LaTeX table (tab_ensemble_permutation.tex).
 
-    Outputs a booktabs-style LaTeX longtable with 18 rows, each containing:
-    Name, Category, Summary, Algorithm.
+    Reads ensemble_summary.tsv and produces a booktabs-style LaTeX table
+    with rows for each trait (O, C, E, A, N) and columns: Trait, r_obs, p-value.
+    Significant results (p < 0.05) are bolded.
+
+    Parameters
+    ----------
+    results_dir : Path
+        Directory containing ``ensemble_summary.tsv``
+        (columns: trait, r_obs, p_value).
+    out_dir : Path
+        Directory where tab_ensemble_permutation.tex will be saved.
+
+    Raises
+    ------
+    FileNotFoundError
+        If ensemble_summary.tsv does not exist.
+    """
+    summary_path = results_dir / "ensemble_summary.tsv"
+    if not summary_path.exists():
+        raise FileNotFoundError(
+            f"ensemble_summary.tsv not found: {summary_path}\n"
+            f"Expected columns: trait, r_obs, p_value"
+        )
+
+    df = pd.read_csv(summary_path, sep="\t")
+
+    trait_order = ["O", "C", "E", "A", "N"]
+    df = df.set_index("trait").loc[trait_order].reset_index()
+
+    rows: list[str] = []
+    for _, row in df.iterrows():
+        trait = row["trait"]
+        r_obs = row["r_obs"]
+        p_val = row["p_value"]
+        r_str = f"{r_obs:.3f}"
+        p_str = f"{p_val:.4f}"
+        if p_val < 0.05:
+            r_str = f"\\textbf{{{r_str}}}"
+            p_str = f"\\textbf{{{p_str}}}"
+        rows.append(f"{trait} & {r_str} & {p_str} \\\\")
+
+    body = "\n".join(rows)
+    latex = (
+        "\\begin{tabular}{lcc}\n"
+        "\\toprule\n"
+        "Trait & $r_{obs}$ & $p$-value \\\\\n"
+        "\\midrule\n"
+        f"{body}\n"
+        "\\bottomrule\n"
+        "\\end{tabular}\n"
+    )
+
+    out_path = out_dir / "tab_ensemble_permutation.tex"
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    out_path.write_text(latex, encoding="utf-8")
+
+
+def gen_tab_baseline_vs_extended(results_dir: Path, out_dir: Path) -> None:
+    """Generate baseline vs extended comparison LaTeX table (tab_baseline_vs_extended.tex).
+
+    Reads all ``baseline_vs_extended_*.tsv`` files from *results_dir* and
+    produces a booktabs-style LaTeX table with rows for each trait (O, C, E, A, N)
+    and columns: Trait, r_baseline, r_extended, Δr.
+    If multiple teachers exist for the same trait, values are averaged across teachers.
+    Significant improvements (Δr > 0) are bolded.
+
+    Parameters
+    ----------
+    results_dir : Path
+        Directory containing ``baseline_vs_extended_*.tsv`` files
+        (columns: trait, teacher, r_baseline, p_baseline, r_extended,
+        p_extended, delta_r).
+    out_dir : Path
+        Directory where tab_baseline_vs_extended.tex will be saved.
+
+    Raises
+    ------
+    FileNotFoundError
+        If no baseline_vs_extended_*.tsv files are found.
+    """
+    tsv_files = sorted(results_dir.glob("baseline_vs_extended_*.tsv"))
+    if not tsv_files:
+        raise FileNotFoundError(
+            f"No baseline_vs_extended_*.tsv files found in: {results_dir}\n"
+            f"Expected columns: trait, teacher, r_baseline, p_baseline, "
+            f"r_extended, p_extended, delta_r"
+        )
+
+    frames = [pd.read_csv(f, sep="\t") for f in tsv_files]
+    df = pd.concat(frames, ignore_index=True)
+
+    # Average across teachers per trait
+    agg = df.groupby("trait")[["r_baseline", "r_extended", "delta_r"]].mean()
+
+    trait_order = ["O", "C", "E", "A", "N"]
+    rows: list[str] = []
+    for trait in trait_order:
+        if trait not in agg.index:
+            rows.append(f"{trait} & --- & --- & --- \\\\")
+            continue
+        r_base = agg.loc[trait, "r_baseline"]
+        r_ext = agg.loc[trait, "r_extended"]
+        dr = agg.loc[trait, "delta_r"]
+        r_base_str = f"{r_base:.3f}"
+        r_ext_str = f"{r_ext:.3f}"
+        sign = "+" if dr >= 0 else ""
+        dr_str = f"{sign}{dr:.3f}"
+        if dr > 0:
+            r_ext_str = f"\\textbf{{{r_ext_str}}}"
+            dr_str = f"\\textbf{{{dr_str}}}"
+        rows.append(f"{trait} & {r_base_str} & {r_ext_str} & {dr_str} \\\\")
+
+    body = "\n".join(rows)
+    latex = (
+        "\\begin{tabular}{lccc}\n"
+        "\\toprule\n"
+        "Trait & $r_{baseline}$ & $r_{extended}$ & $\\Delta r$ \\\\\n"
+        "\\midrule\n"
+        f"{body}\n"
+        "\\bottomrule\n"
+        "\\end{tabular}\n"
+    )
+
+    out_path = out_dir / "tab_baseline_vs_extended.tex"
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    out_path.write_text(latex, encoding="utf-8")
+
+
+def gen_tab_feature_definitions(out_dir: Path) -> None:
+    """Generate feature definitions LaTeX table with Classification column.
+
+    Outputs a booktabs-style LaTeX longtable with 18 rows (explanatory
+    features only), each containing: Name, Cat., Class., Summary, Algorithm.
+
+    The feature data is sourced from ``feature_definitions.py`` via
+    ``get_explanatory_features()``, which provides the ``classification``
+    field ("Classical" or "Novel") for each feature.
 
     Parameters
     ----------
     out_dir : Path
         Directory where tab_feature_definitions.tex will be saved.
     """
-    # Hardcoded 18 feature definitions (name, category, summary, algorithm)
-    features = [
-        ("PG\\_speech\\_ratio", "PG", "Speech ratio",
-         "Speaker's total speech time / total conversation time"),
-        ("PG\\_pause\\_mean", "PG", "Mean pause duration",
-         "Mean of intra-speaker gaps ($\\geq$ gap\\_tol sec)"),
-        ("PG\\_pause\\_p50", "PG", "Median pause",
-         "50th percentile of intra-speaker gaps"),
-        ("PG\\_pause\\_p90", "PG", "90th pctl pause",
-         "90th percentile of intra-speaker gaps"),
-        ("PG\\_resp\\_gap\\_mean", "PG", "Mean response gap",
-         "Mean of turn-taking gaps (prev\\_end $\\to$ resp\\_start, $\\geq$ gap\\_tol)"),
-        ("PG\\_resp\\_gap\\_p50", "PG", "Median response gap",
-         "50th percentile of turn-taking gaps"),
-        ("PG\\_resp\\_gap\\_p90", "PG", "90th pctl resp gap",
-         "90th percentile of turn-taking gaps"),
-        ("FILL\\_has\\_any", "FILL", "Filler utterance rate",
-         "Proportion of utterances containing $\\geq$1 filler (etto/ee/ano)"),
-        ("FILL\\_rate\\_per\\_100chars", "FILL", "Filler rate/100chars",
-         "Total fillers / (text length / 100)"),
-        ("IX\\_oirmarker\\_rate", "IX", "OIR marker rate",
-         "Proportion of responses starting with OIR markers (e?/eQ/nani?)"),
-        ("IX\\_oirmarker\\_after\\_question\\_rate", "IX", "Post-Q OIR rate",
-         "OIR rate when previous utterance is a question"),
-        ("IX\\_yesno\\_rate", "IX", "Yes/No response rate",
-         "Proportion of responses starting with yes/no prefixes"),
-        ("IX\\_yesno\\_after\\_question\\_rate", "IX", "Post-Q Yes/No rate",
-         "Yes/No rate when previous utterance is a question"),
-        ("IX\\_lex\\_overlap\\_mean", "IX", "Lexical overlap",
-         "Mean char-bigram Jaccard between prev and response"),
-        ("IX\\_topic\\_drift\\_mean", "IX", "Topic drift",
-         "1 $-$ IX\\_lex\\_overlap\\_mean"),
-        ("RESP\\_NE\\_AIZUCHI\\_RATE", "RESP", "Post-NE aizuchi rate",
-         "Aizuchi rate after NE sentence-final particle"),
-        ("RESP\\_NE\\_ENTROPY", "RESP", "Post-NE response entropy",
-         "Shannon entropy of response-initial tokens after NE"),
-        ("RESP\\_YO\\_ENTROPY", "RESP", "Post-YO response entropy",
-         "Shannon entropy of response-initial tokens after YO"),
-    ]
+    explanatory = get_explanatory_features()
+
+    def _escape_latex(text: str) -> str:
+        """Escape special LaTeX characters in free-text fields."""
+        text = text.replace("_", r"\_")
+        text = text.replace("->", r"$\rightarrow$")
+        text = text.replace(">=", r"$\geq$")
+        return text
 
     rows: list[str] = []
-    for name, cat, summary, algo in features:
-        rows.append(f"{name} & {cat} & {summary} & {algo} \\\\")
+    for feat in explanatory:
+        name_tex = feat.name.replace("_", r"\_")
+        algo_tex = _escape_latex(feat.algorithm)
+        summary_tex = _escape_latex(feat.summary)
+        rows.append(
+            f"{name_tex} & {feat.category} & {feat.classification} "
+            f"& {summary_tex} & {algo_tex} \\\\"
+        )
 
     body = "\n".join(rows)
     latex = (
         "{\\small\n"
-        "\\begin{longtable}{llp{3.2cm}p{6.5cm}}\n"
+        "\\begin{longtable}{lllp{3.0cm}p{5.8cm}}\n"
         "\\toprule\n"
-        "Name & Cat. & Summary & Algorithm \\\\\n"
+        "Name & Cat. & Class. & Summary & Algorithm \\\\\n"
         "\\midrule\n"
         "\\endhead\n"
         f"{body}\n"
@@ -1467,6 +1752,11 @@ def main(argv: list[str] | None = None) -> None:
         ("fig_feature_distribution.png", gen_feature_distribution, [features_df, out_dir]),
         ("tab_descriptive_stats_full.tex", gen_descriptive_stats_full_table, [features_df, out_dir]),
         ("fig_corr_heatmap_block.png + tab_corr_matrix.tex", gen_corr_heatmap_block, [features_df, out_dir]),
+        # --- New ensemble / baseline-vs-extended figures and tables ---
+        ("fig_ensemble_permutation.png", gen_fig_ensemble_permutation, [results_dir, out_dir]),
+        ("fig_baseline_vs_extended.png", gen_fig_baseline_vs_extended, [results_dir, out_dir]),
+        ("tab_ensemble_permutation.tex", gen_tab_ensemble_permutation, [results_dir, out_dir]),
+        ("tab_baseline_vs_extended.tex", gen_tab_baseline_vs_extended, [results_dir, out_dir]),
     ]
 
     # --- Metadata-related generators (only when metadata is available) ---
