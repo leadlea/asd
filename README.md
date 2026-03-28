@@ -61,7 +61,7 @@ LLM仮想教師によるBig Five性格スコアとの関連を通じて指標の
 |-------------|------|
 | [論文PDF](paper1_ja.pdf) | コンパイル済みPDF（27ページ） |
 | [論文ドラフト（LaTeX）](paper1_ja.tex) | 論文本体（uplatex + dvipdfmx） |
-| [紙芝居スライド](reports/paper_figs_v2/kamishibai_slides.html) | 8枚構成のプレゼン用HTML（Methods 2枚 + Results 6枚） |
+| [紙芝居スライド](https://leadlea.github.io/asd/reports/paper_figs_v2/kamishibai_slides.html) | 8枚構成のプレゼン用HTML（Methods 2枚 + Results 6枚） |
 | [NCNPレビュー資料 v2](docs/homework/ncnp_review_v2.md) | 研究構成・結果・議論ポイント（共同研究者向け） |
 | [先行研究サーベイ](docs/homework/asd_paper.md) | Hu 2025, Altozano 2026, Mun 2024 等の整理 |
 | [Big5再現実験の全手順](docs/homework/paper.md) | データ→特徴量→回帰→検定の全パイプライン |
