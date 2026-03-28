@@ -510,34 +510,12 @@ Bootstrap安定性分析（3.4.4節），
 表\ref{tab:ensemble_perm}に，アンサンブルBig5スコアに対する
 全5次元の置換検定結果を示す．
 
-% TODO: tab_ensemble_permutation.tex が生成され次第，以下のコメントを解除
-% \begin{table}[htbp]
-% \centering
-% \caption{アンサンブルBig5に対する置換検定結果（全5次元）．
-% 観測相関係数$r_{\text{obs}}$および$p$値を示す．太字は$p < 0.05$．}
-% \label{tab:ensemble_perm}
-% \input{reports/paper_figs_v2/tab_ensemble_permutation.tex}
-% \end{table}
-
-% --- プレースホルダー: テーブル未生成時 ---
 \begin{table}[htbp]
 \centering
 \caption{アンサンブルBig5に対する置換検定結果（全5次元）．
 観測相関係数$r_{\text{obs}}$および$p$値を示す．太字は$p < 0.05$．}
 \label{tab:ensemble_perm}
-\begin{tabular}{lcc}
-\toprule
-次元 & $r_{\text{obs}}$ & $p$ \\
-\midrule
-O（開放性） & --- & --- \\
-C（誠実性） & --- & --- \\
-E（外向性） & --- & --- \\
-A（協調性） & --- & --- \\
-N（神経症傾向） & --- & --- \\
-\bottomrule
-\end{tabular}
-\par\smallskip
-{\footnotesize\textit{注: アンサンブル分析の実行後に実数値で更新予定．}}
+\input{reports/paper_figs_v2/tab_ensemble_permutation.tex}
 \end{table}
 
 Conscientiousness（C: 誠実性）はアンサンブルにおいても最も頑健な結果を示し，
@@ -545,14 +523,14 @@ Conscientiousness（C: 誠実性）はアンサンブルにおいても最も頑
 この結果は，Cの予測可能性が特定のLLM教師に依存しない頑健な知見であることを
 アンサンブルの観点からも裏付けるものである．
 
-% TODO: fig_ensemble_permutation.png が生成され次第，以下のコメントを解除
-% \begin{figure}[htbp]
-% \centering
-% \includegraphics[width=0.9\linewidth]{fig_ensemble_permutation.png}
-% \caption{アンサンブルBig5の置換検定結果（全5次元）．
-% バーは観測相関係数$r_{\text{obs}}$を示す．
-% 有意（$p < 0.05$）と非有意で色分け．}
-% \label{fig:ensemble_perm}
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.9\linewidth]{fig_ensemble_permutation.png}
+\caption{アンサンブルBig5の置換検定結果（全5次元）．
+バーは観測相関係数$r_{\text{obs}}$を示す．
+有意（$p < 0.05$）と非有意で色分け．}
+\label{fig:ensemble_perm}
+\end{figure}
 % \end{figure}
 
 アンサンブルを用いることで，個別教師ごとの結果一覧による混乱を回避し，
@@ -632,45 +610,22 @@ GPT-OSS-120Bが全次元で有意な結果を示した点は，
 拡張モデル（全18特徴量）の予測精度を比較した．
 表\ref{tab:baseline_ext}に，全5次元の比較結果を示す．
 
-% TODO: tab_baseline_vs_extended.tex が生成され次第，以下のコメントを解除
-% \begin{table}[htbp]
-% \centering
-% \caption{ベースライン（Classical 9特徴量）vs 拡張モデル（全18特徴量）の比較．
-% $\Delta r = r_{\text{extended}} - r_{\text{baseline}}$．}
-% \label{tab:baseline_ext}
-% \input{reports/paper_figs_v2/tab_baseline_vs_extended.tex}
-% \end{table}
-
-% --- プレースホルダー: テーブル未生成時 ---
 \begin{table}[htbp]
 \centering
 \caption{ベースライン（Classical 9特徴量）vs 拡張モデル（全18特徴量）の比較．
 $\Delta r = r_{\text{extended}} - r_{\text{baseline}}$．}
 \label{tab:baseline_ext}
-\begin{tabular}{lccccc}
-\toprule
-次元 & $r_{\text{baseline}}$ & $p_{\text{baseline}}$ & $r_{\text{extended}}$ & $p_{\text{extended}}$ & $\Delta r$ \\
-\midrule
-O & --- & --- & --- & --- & --- \\
-C & --- & --- & --- & --- & --- \\
-E & --- & --- & --- & --- & --- \\
-A & --- & --- & --- & --- & --- \\
-N & --- & --- & --- & --- & --- \\
-\bottomrule
-\end{tabular}
-\par\smallskip
-{\footnotesize\textit{注: ベースラインvs拡張比較分析の実行後に実数値で更新予定．}}
+\input{reports/paper_figs_v2/tab_baseline_vs_extended.tex}
 \end{table}
 
-% TODO: fig_baseline_vs_extended.png が生成され次第，以下のコメントを解除
-% \begin{figure}[htbp]
-% \centering
-% \includegraphics[width=0.9\linewidth]{fig_baseline_vs_extended.png}
-% \caption{ベースラインvs拡張モデルの予測精度比較（全5次元）．
-% 各次元について$r_{\text{baseline}}$と$r_{\text{extended}}$を並列表示し，
-% $\Delta r$を付記．}
-% \label{fig:baseline_ext}
-% \end{figure}
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.9\linewidth]{fig_baseline_vs_extended.png}
+\caption{ベースラインvs拡張モデルの予測精度比較（全5次元）．
+各次元について$r_{\text{baseline}}$と$r_{\text{extended}}$を並列表示し，
+$\Delta r$を付記．}
+\label{fig:baseline_ext}
+\end{figure}
 
 $\Delta r$が正の値を示す次元では，Novel Features（IX系・RESP系）の追加が
 予測精度の向上に寄与していることを意味する．
