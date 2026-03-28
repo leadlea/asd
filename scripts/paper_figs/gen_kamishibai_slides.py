@@ -318,6 +318,40 @@ body {
   color: #888;
   margin: 8px 0 32px;
 }
+.nav-link {
+  color: #2166ac;
+  text-decoration: none;
+  font-weight: 500;
+}
+.nav-link:hover {
+  text-decoration: underline;
+}
+.slide-images img {
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.slide-images img:hover {
+  opacity: 0.85;
+}
+.modal-overlay {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(0,0,0,0.8);
+  z-index: 1000;
+  justify-content: center;
+  align-items: center;
+  cursor: zoom-out;
+}
+.modal-overlay.active {
+  display: flex;
+}
+.modal-overlay img {
+  max-width: 95vw;
+  max-height: 95vh;
+  border-radius: 8px;
+  box-shadow: 0 4px 32px rgba(0,0,0,0.5);
+}
 """
 
 
@@ -362,10 +396,14 @@ def generate_slides_html(out_dir: Path) -> str:
         # ナビゲーション
         nav_parts: list[str] = []
         if slide.number > 1:
-            nav_parts.append("← prev")
+            nav_parts.append(
+                f'<a href="#slide-{slide.number - 1}" class="nav-link">← prev</a>'
+            )
         nav_parts.append(f"{slide.number} / {total}")
         if slide.number < total:
-            nav_parts.append("next →")
+            nav_parts.append(
+                f'<a href="#slide-{slide.number + 1}" class="nav-link">next →</a>'
+            )
         nav_html = " &nbsp;|&nbsp; ".join(nav_parts)
 
         block = f"""\
@@ -393,6 +431,43 @@ def generate_slides_html(out_dir: Path) -> str:
 <body>
 
 {slides_body}
+
+<div class="modal-overlay" id="imgModal">
+  <img id="modalImg" src="" alt="拡大表示">
+</div>
+
+<script>
+// 画像クリックでモーダル拡大
+document.querySelectorAll('.slide-images img').forEach(img => {{
+  img.addEventListener('click', () => {{
+    const modal = document.getElementById('imgModal');
+    document.getElementById('modalImg').src = img.src;
+    modal.classList.add('active');
+  }});
+}});
+document.getElementById('imgModal').addEventListener('click', () => {{
+  document.getElementById('imgModal').classList.remove('active');
+}});
+// Escキーでモーダルを閉じる
+document.addEventListener('keydown', e => {{
+  if (e.key === 'Escape') document.getElementById('imgModal').classList.remove('active');
+}});
+// 左右キーでスライド移動
+document.addEventListener('keydown', e => {{
+  if (document.getElementById('imgModal').classList.contains('active')) return;
+  const slides = document.querySelectorAll('.slide');
+  let current = 0;
+  slides.forEach((s, i) => {{
+    const rect = s.getBoundingClientRect();
+    if (rect.top < window.innerHeight / 2 && rect.bottom > 0) current = i;
+  }});
+  if (e.key === 'ArrowRight' && current < slides.length - 1) {{
+    slides[current + 1].scrollIntoView({{ behavior: 'smooth' }});
+  }} else if (e.key === 'ArrowLeft' && current > 0) {{
+    slides[current - 1].scrollIntoView({{ behavior: 'smooth' }});
+  }}
+}});
+</script>
 
 </body>
 </html>
