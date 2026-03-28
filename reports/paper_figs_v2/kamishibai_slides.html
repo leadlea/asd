@@ -80,6 +80,17 @@ body {
   border-radius: 6px;
   width: 100%;
 }
+.methods-note {
+  font-size: 14px;
+  line-height: 1.5;
+  color: #666;
+  background: #f8f8f0;
+  border-left: 3px solid #b0b060;
+  padding: 8px 16px;
+  margin-bottom: 12px;
+  width: 100%;
+  border-radius: 0 4px 4px 0;
+}
 .methods-text {
   flex: 1;
   width: 100%;
@@ -160,6 +171,7 @@ body {
     <div class="slide" id="slide-3">
       <div class="slide-number">Slide 3 / 8</div>
       <div class="slide-title">提案特徴量の分布</div>
+      <div class="methods-note">📐 CEJC home2 HQ1（N=120）から抽出した18特徴量（Classical 9 + Novel 9）のバイオリンプロット。</div>
       <div class="slide-images">
         <img src="fig_feature_distribution.png" alt="fig_feature_distribution.png">
       </div>
@@ -170,6 +182,7 @@ body {
     <div class="slide" id="slide-4">
       <div class="slide-number">Slide 4 / 8</div>
       <div class="slide-title">カテゴリ内/間相関</div>
+      <div class="methods-note">📐 18特徴量間のPearson相関行列。カテゴリ順: PG→FILL→IX→RESP。</div>
       <div class="slide-images">
         <img src="fig_corr_heatmap_block.png" alt="fig_corr_heatmap_block.png">
       </div>
@@ -180,6 +193,7 @@ body {
     <div class="slide" id="slide-5">
       <div class="slide-number">Slide 5 / 8</div>
       <div class="slide-title">コーパス基本情報との関連</div>
+      <div class="methods-note">📐 性別: Mann-Whitney U検定（M=54, F=66）。年齢: Pearson r / Spearman ρ。</div>
       <div class="slide-images multi">
         <img src="fig_metadata_gender.png" alt="fig_metadata_gender.png">
         <img src="fig_metadata_age.png" alt="fig_metadata_age.png">
@@ -191,16 +205,18 @@ body {
     <div class="slide" id="slide-6">
       <div class="slide-number">Slide 6 / 8</div>
       <div class="slide-title">アンサンブルBig5 Permutation</div>
+      <div class="methods-note">📐 4教師のIPIP-NEO-120 item-level平均 → Ridge（α=100）+ 5-fold CV + Permutation test（5,000回）。</div>
       <div class="slide-images">
         <img src="fig_ensemble_permutation.png" alt="fig_ensemble_permutation.png">
       </div>
-      <div class="slide-conclusion">4教師item-level平均によるアンサンブルBig5で、Cが頑健に有意であることを確認した。</div>
+      <div class="slide-conclusion">4教師item-level平均によるアンサンブルBig5で、O, C, A, Nの4次元が有意（Eのみ非有意）。</div>
     </div>
     <div class="nav">← prev &nbsp;|&nbsp; 6 / 8 &nbsp;|&nbsp; next →</div>
 
     <div class="slide" id="slide-7">
       <div class="slide-number">Slide 7 / 8</div>
       <div class="slide-title">ベースラインvs拡張モデル</div>
+      <div class="methods-note">📐 Baseline: Classical 9特徴量のみ。Extended: 全18特徴量。同一Ridge + Permutation設定で比較。</div>
       <div class="slide-images">
         <img src="fig_baseline_vs_extended.png" alt="fig_baseline_vs_extended.png">
       </div>
@@ -211,6 +227,7 @@ body {
     <div class="slide" id="slide-8">
       <div class="slide-number">Slide 8 / 8</div>
       <div class="slide-title">Bootstrap Top Drivers</div>
+      <div class="methods-note">📐 C（Sonnet4基準）のBootstrap 500回リサンプリング。Top-K inclusion rate + 符号一致率。</div>
       <div class="slide-images">
         <img src="fig_bootstrap_C_radar.png" alt="fig_bootstrap_C_radar.png">
       </div>

@@ -33,6 +33,7 @@ class Slide:
     images: list[str]  # 画像ファイル名のリスト（1枚 or 複数枚）
     conclusion: str
     html_content: str = ""  # テキスト/HTMLコンテンツ（Methodsスライド等）
+    methods_note: str = ""  # 各スライドの分析手法注釈（1〜2行）
 
 
 # --- 特徴量分類テーブル生成 ---------------------------------------------------
@@ -121,6 +122,7 @@ SLIDES: list[Slide] = [
             "18特徴量は適度なばらつきを持ち、"
             "個人差を捉える指標として有用である。"
         ),
+        methods_note="CEJC home2 HQ1（N=120）から抽出した18特徴量（Classical 9 + Novel 9）のバイオリンプロット。",
     ),
     Slide(
         number=4,
@@ -130,6 +132,7 @@ SLIDES: list[Slide] = [
             "同一カテゴリ内で高相関を示す一方、"
             "カテゴリ間は独立性が高い。"
         ),
+        methods_note="18特徴量間のPearson相関行列。カテゴリ順: PG→FILL→IX→RESP。",
     ),
     Slide(
         number=5,
@@ -138,6 +141,7 @@ SLIDES: list[Slide] = [
         conclusion=(
             "性別・年齢と一部特徴量に有意な関連が認められた。"
         ),
+        methods_note="性別: Mann-Whitney U検定（M=54, F=66）。年齢: Pearson r / Spearman ρ。",
     ),
     Slide(
         number=6,
@@ -145,8 +149,9 @@ SLIDES: list[Slide] = [
         images=["fig_ensemble_permutation.png"],
         conclusion=(
             "4教師item-level平均によるアンサンブルBig5で、"
-            "Cが頑健に有意であることを確認した。"
+            "O, C, A, Nの4次元が有意（Eのみ非有意）。"
         ),
+        methods_note="4教師のIPIP-NEO-120 item-level平均 → Ridge（α=100）+ 5-fold CV + Permutation test（5,000回）。",
     ),
     Slide(
         number=7,
@@ -156,6 +161,7 @@ SLIDES: list[Slide] = [
             "Novel特徴量の追加により予測精度が向上し、"
             "新規提案特徴量の付加価値を示す。"
         ),
+        methods_note="Baseline: Classical 9特徴量のみ。Extended: 全18特徴量。同一Ridge + Permutation設定で比較。",
     ),
     Slide(
         number=8,
@@ -165,6 +171,7 @@ SLIDES: list[Slide] = [
             "FILL_has_any, IX_oirmarker_after_question_rate, "
             "PG_speech_ratioが上位ドライバーである。"
         ),
+        methods_note="C（Sonnet4基準）のBootstrap 500回リサンプリング。Top-K inclusion rate + 符号一致率。",
     ),
 ]
 
@@ -246,6 +253,17 @@ body {
   background: #f0f4ff;
   border-radius: 6px;
   width: 100%;
+}
+.methods-note {
+  font-size: 14px;
+  line-height: 1.5;
+  color: #666;
+  background: #f8f8f0;
+  border-left: 3px solid #b0b060;
+  padding: 8px 16px;
+  margin-bottom: 12px;
+  width: 100%;
+  border-radius: 0 4px 4px 0;
 }
 .methods-text {
   flex: 1;
@@ -334,6 +352,13 @@ def generate_slides_html(out_dir: Path) -> str:
                 f'      </div>'
             )
 
+        # Methods注釈（各スライドの分析手法）
+        methods_note_html = ""
+        if slide.methods_note:
+            methods_note_html = (
+                f'      <div class="methods-note">📐 {slide.methods_note}</div>\n'
+            )
+
         # ナビゲーション
         nav_parts: list[str] = []
         if slide.number > 1:
@@ -347,7 +372,7 @@ def generate_slides_html(out_dir: Path) -> str:
     <div class="slide" id="slide-{slide.number}">
       <div class="slide-number">Slide {slide.number} / {total}</div>
       <div class="slide-title">{slide.title}</div>
-{content_html}
+{methods_note_html}{content_html}
       <div class="slide-conclusion">{slide.conclusion}</div>
     </div>
     <div class="nav">{nav_html}</div>"""
