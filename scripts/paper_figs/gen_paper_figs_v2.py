@@ -827,10 +827,11 @@ def gen_fig_teacher_corr_matrix(results_dir: Path, out_dir: Path) -> None:
     tsv_teachers = ["sonnet4", "qwen3-235b", "deepseek-v3", "gpt-oss-120b"]
     display_labels = ["Sonnet4", "Qwen3\n235B", "DeepSeek\nV3", "GPT-OSS\n120B"]
 
-    fig, axes = plt.subplots(1, 5, figsize=(22, 4.2))
+    fig, axes = plt.subplots(3, 2, figsize=(10, 14))
+    axes_flat = axes.flatten()
 
     for idx, trait in enumerate(trait_order):
-        ax = axes[idx]
+        ax = axes_flat[idx]
         corr_path = teacher_corr_path(trait)
         corr_df = read_teacher_corr(corr_path)
 
@@ -848,25 +849,29 @@ def gen_fig_teacher_corr_matrix(results_dir: Path, out_dir: Path) -> None:
             square=True,
             linewidths=0.8,
             linecolor="white",
-            cbar=idx == 4,  # colorbar only on the last panel
-            cbar_kws={"shrink": 0.8, "label": "Pearson r"} if idx == 4 else {},
-            annot_kws={"fontsize": 10},
+            cbar=False,
+            annot_kws={"fontsize": 11},
         )
 
         ax.set_title(f"{trait}", fontsize=14, fontweight="bold", pad=8)
-        ax.set_xticklabels(display_labels, fontsize=8, rotation=0, ha="center")
-        ax.set_yticklabels(display_labels, fontsize=8, rotation=0, va="center")
+        ax.set_xticklabels(display_labels, fontsize=9, rotation=0, ha="center")
+        ax.set_yticklabels(display_labels, fontsize=9, rotation=0, va="center")
 
-        # Only show y-axis labels on the leftmost panel
-        if idx > 0:
-            ax.set_yticklabels([])
-            ax.set_ylabel("")
+    # Use the 6th subplot for a shared colorbar
+    ax_cb = axes_flat[5]
+    ax_cb.set_visible(False)
+    import matplotlib.cm as cm
+    import matplotlib.colors as mcolors
+    norm = mcolors.Normalize(vmin=0.0, vmax=1.0)
+    sm = cm.ScalarMappable(cmap="YlOrRd", norm=norm)
+    sm.set_array([])
+    cbar = fig.colorbar(sm, ax=ax_cb, fraction=0.6, pad=0.05, label="Pearson r")
 
     fig.suptitle(
-        "Inter-Teacher Pearson Correlation (4 LLM Teachers × 5 Traits)",
-        fontsize=13,
+        "Inter-Teacher Pearson Correlation\n(4 LLM Teachers × 5 Traits)",
+        fontsize=14,
         fontweight="bold",
-        y=1.03,
+        y=0.98,
     )
     fig.tight_layout()
     out_path = out_dir / "fig_teacher_corr_matrix.png"
@@ -1260,7 +1265,8 @@ def _gen_tab_corr_matrix(
     legend = ", ".join(legend_items)
 
     latex = (
-        "{\\tiny\n"
+        "\\resizebox{\\textwidth}{!}{\n"
+        "{\\scriptsize\n"
         f"\\begin{{tabular}}{{{col_spec}}}\n"
         "\\toprule\n"
         f" & {header_nums} \\\\\n"
@@ -1268,6 +1274,7 @@ def _gen_tab_corr_matrix(
         f"{body}\n"
         "\\bottomrule\n"
         "\\end{tabular}\n"
+        "}\n"
         "}\n"
         "\n"
         "\\vspace{2mm}\n"
@@ -1850,8 +1857,8 @@ def gen_tab_feature_definitions(out_dir: Path) -> None:
 
     body = "\n".join(rows)
     latex = (
-        "{\\small\n"
-        "\\begin{longtable}{lllp{3.0cm}p{5.8cm}}\n"
+        "{\\footnotesize\n"
+        "\\begin{longtable}{lllp{2.5cm}p{4.5cm}}\n"
         "\\toprule\n"
         "Name & Cat. & Class. & Summary & Algorithm \\\\\n"
         "\\midrule\n"
@@ -2168,12 +2175,17 @@ def gen_fig_bootstrap_variance(results_dir: Path, out_dir: Path) -> None:
     for _, row in df.iterrows():
         feat = row["feature"]
         if row["ci_excludes_zero"]:
-            labels.append(f"$\\bf{{{feat.replace('_', chr(95))}}}$")
+            labels.append(feat)
         else:
             labels.append(feat)
 
     ax.set_yticks(y_pos)
     ax.set_yticklabels(labels, fontsize=9)
+
+    # Bold the labels for ci_excludes_zero features
+    for i, (_, row) in enumerate(df.iterrows()):
+        if row["ci_excludes_zero"]:
+            ax.get_yticklabels()[i].set_fontweight("bold")
     ax.set_xlabel("Ridge coefficient (mean ± 95% CI)", fontsize=11)
     ax.set_title(
         "Bootstrap Coefficient Stability (Forest Plot)",
