@@ -472,7 +472,7 @@ def gen_fig_ensemble_permutation(results_dir: Path, out_dir: Path) -> None:
                markeredgecolor="#b2182b", markeredgewidth=2, markersize=10,
                label="p ≥ 0.05"),
     ]
-    ax_scatter.legend(handles=legend_handles, loc="upper right", fontsize=9,
+    ax_scatter.legend(handles=legend_handles, loc="upper left", fontsize=9,
                       framealpha=0.9)
 
     ax_scatter.set_xticks(x_positions)
