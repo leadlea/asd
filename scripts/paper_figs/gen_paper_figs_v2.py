@@ -382,12 +382,19 @@ def gen_fig_permutation_C_bar(results_dir: Path, out_dir: Path) -> None:
 
 
 def gen_fig_ensemble_permutation(results_dir: Path, out_dir: Path) -> None:
-    """Generate ensemble 5-trait Permutation results bar chart (fig_ensemble_permutation.png).
+    """Generate ensemble 5-trait Permutation scatter plot (fig_ensemble_permutation.png).
 
-    Reads ensemble_summary.tsv from results_dir and draws a bar chart with
-    5 bars (O, C, E, A, N) showing r_obs values.  Bars are coloured by
-    significance: blue (#2166ac) for p < 0.05, red (#b2182b) otherwise.
-    Each bar is annotated with its p-value.
+    Reads ensemble_summary.tsv from results_dir and draws a scatter plot
+    with 5 points (O, C, E, A, N) showing r_obs values.
+
+    - Horizontal reference line at r=0
+    - Filled markers (●) for significant traits (p < 0.05)
+    - Open markers (○) for non-significant traits (p >= 0.05)
+    - p-value annotations next to each point
+    - Small summary table below the plot showing trait / r_obs / p-value
+
+    Replaces the previous bar chart implementation per Requirement 12.2
+    (棒グラフを散布図+テーブル形式に変更).
 
     Parameters
     ----------
@@ -405,7 +412,7 @@ def gen_fig_ensemble_permutation(results_dir: Path, out_dir: Path) -> None:
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
-    from matplotlib.patches import Patch
+    from matplotlib.lines import Line2D
 
     summary_path = results_dir / "ensemble_summary.tsv"
     if not summary_path.exists():
@@ -424,27 +431,90 @@ def gen_fig_ensemble_permutation(results_dir: Path, out_dir: Path) -> None:
     r_obs_vals = df["r_obs"].tolist()
     p_vals = df["p_value"].tolist()
 
-    fig, ax = plt.subplots(figsize=(6, 4))
-    colors = ["#2166ac" if p < 0.05 else "#b2182b" for p in p_vals]
-    bars = ax.bar(range(len(traits)), r_obs_vals, color=colors, width=0.55,
-                  edgecolor="white", linewidth=0.8)
+    # --- Scatter plot (upper) + table (lower) ---
+    fig, (ax_scatter, ax_table) = plt.subplots(
+        2, 1, figsize=(6, 5.5),
+        gridspec_kw={"height_ratios": [3, 1.2]},
+    )
 
-    for bar, p in zip(bars, p_vals):
-        ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 0.008,
-                f"p={p:.4f}", ha="center", va="bottom", fontsize=9)
+    # Horizontal reference line at r=0
+    ax_scatter.axhline(y=0, color="#999999", linewidth=0.8, linestyle="--", zorder=1)
 
-    ax.legend(handles=[
-        Patch(facecolor="#2166ac", edgecolor="white", label="p < 0.05"),
-        Patch(facecolor="#b2182b", edgecolor="white", label="p >= 0.05"),
-    ], loc="upper right", fontsize=10, framealpha=0.9)
+    # Plot each trait as a scatter point
+    x_positions = list(range(len(traits)))
+    for i, (trait, r_obs, p_val) in enumerate(zip(traits, r_obs_vals, p_vals)):
+        is_sig = p_val < 0.05
+        ax_scatter.scatter(
+            i, r_obs,
+            s=120,
+            color="#2166ac" if is_sig else "none",
+            edgecolors="#2166ac" if is_sig else "#b2182b",
+            linewidths=2.0,
+            zorder=3,
+            marker="o",
+        )
+        # p-value annotation (offset to the right)
+        sig_star = " *" if is_sig else ""
+        ax_scatter.annotate(
+            f"p={p_val:.4f}{sig_star}",
+            xy=(i, r_obs),
+            xytext=(8, 6),
+            textcoords="offset points",
+            fontsize=8.5,
+            color="#2166ac" if is_sig else "#b2182b",
+        )
 
-    ax.set_xticks(range(len(traits)))
-    ax.set_xticklabels(traits, fontsize=12)
-    ax.set_ylabel("Observed correlation ($r_{obs}$)", fontsize=12)
-    ax.set_title("Ensemble Permutation Test: Big Five (5 Traits)", fontsize=13, pad=10)
-    ax.set_ylim(0, max(r_obs_vals) * 1.25 if max(r_obs_vals) > 0 else 0.5)
-    ax.spines["top"].set_visible(False)
-    ax.spines["right"].set_visible(False)
+    # Legend
+    legend_handles = [
+        Line2D([0], [0], marker="o", color="w", markerfacecolor="#2166ac",
+               markeredgecolor="#2166ac", markersize=10, label="p < 0.05"),
+        Line2D([0], [0], marker="o", color="w", markerfacecolor="none",
+               markeredgecolor="#b2182b", markeredgewidth=2, markersize=10,
+               label="p ≥ 0.05"),
+    ]
+    ax_scatter.legend(handles=legend_handles, loc="upper right", fontsize=9,
+                      framealpha=0.9)
+
+    ax_scatter.set_xticks(x_positions)
+    ax_scatter.set_xticklabels(traits, fontsize=12)
+    ax_scatter.set_ylabel("Observed correlation ($r_{obs}$)", fontsize=11)
+    ax_scatter.set_title("Ensemble Permutation Test: Big Five (5 Traits)",
+                         fontsize=12, pad=10)
+    # y-axis range: include 0 and some margin
+    y_min = min(0, min(r_obs_vals)) - 0.05
+    y_max = max(r_obs_vals) * 1.25 if max(r_obs_vals) > 0 else 0.5
+    ax_scatter.set_ylim(y_min, y_max)
+    ax_scatter.spines["top"].set_visible(False)
+    ax_scatter.spines["right"].set_visible(False)
+
+    # --- Summary table (lower panel) ---
+    ax_table.axis("off")
+    table_data = []
+    for trait, r_obs, p_val in zip(traits, r_obs_vals, p_vals):
+        sig_mark = "*" if p_val < 0.05 else ""
+        table_data.append([trait, f"{r_obs:.3f}", f"{p_val:.4f}{sig_mark}"])
+
+    tbl = ax_table.table(
+        cellText=table_data,
+        colLabels=["Trait", "$r_{obs}$", "$p$-value"],
+        loc="center",
+        cellLoc="center",
+    )
+    tbl.auto_set_font_size(False)
+    tbl.set_fontsize(10)
+    tbl.scale(0.85, 1.4)
+
+    # Style header row
+    for j in range(3):
+        cell = tbl[0, j]
+        cell.set_facecolor("#e0e0e0")
+        cell.set_text_props(fontweight="bold")
+
+    # Highlight significant rows
+    for i, p_val in enumerate(p_vals):
+        if p_val < 0.05:
+            for j in range(3):
+                tbl[i + 1, j].set_facecolor("#d4e6f1")
 
     fig.tight_layout()
     fig.savefig(out_dir / "fig_ensemble_permutation.png", dpi=300, bbox_inches="tight")
@@ -452,7 +522,13 @@ def gen_fig_ensemble_permutation(results_dir: Path, out_dir: Path) -> None:
 
 
 def gen_fig_baseline_vs_extended(results_dir: Path, out_dir: Path) -> None:
-    """Generate baseline vs extended model comparison figure (fig_baseline_vs_extended.png).
+    """[DEPRECATED] Generate baseline vs extended model comparison figure.
+
+    .. deprecated::
+        This function generates a 2-stage bar chart (baseline vs extended).
+        It will be replaced by ``gen_fig_three_stage_comparison()`` in Task 7.5,
+        which supports the 3-stage Ridge comparison (Demographics → +Classical
+        → +Novel).  Kept for backward compatibility until Task 7.5 is complete.
 
     Reads all ``baseline_vs_extended_*.tsv`` files from *results_dir* and
     draws a grouped bar chart comparing r_baseline (Classical 9 features)
@@ -476,6 +552,8 @@ def gen_fig_baseline_vs_extended(results_dir: Path, out_dir: Path) -> None:
     FileNotFoundError
         If no baseline_vs_extended_*.tsv files are found.
     """
+    # NOTE: DEPRECATED — will be replaced by gen_fig_three_stage_comparison()
+    # in Task 7.5 (3段階Ridge結果の図表追加).  See Requirement 12.2.
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
@@ -712,6 +790,90 @@ def gen_fig_teacher_heatmap(out_dir: Path) -> None:
     plt.close(fig)
 
 
+def gen_fig_teacher_corr_matrix(results_dir: Path, out_dir: Path) -> None:
+    """Generate 4×4 teacher Pearson correlation heatmaps for each Big5 trait.
+
+    For each of the 5 Big Five traits (O, C, E, A, N), reads the 4×4
+    inter-teacher Pearson correlation matrix and draws a seaborn-style
+    annotated heatmap.  The 5 heatmaps are arranged in a 1×5 grid.
+
+    The correlation data is read from ``docs/homework/assets/teacher_corr_{trait}.tsv``
+    via the existing ``read_teacher_corr()`` / ``teacher_corr_path()`` helpers.
+
+    Parameters
+    ----------
+    results_dir : Path
+        Results directory (unused directly, but kept for interface consistency
+        with other gen_fig_* functions).  Teacher correlation TSVs are read
+        from ``docs/homework/assets/``.
+    out_dir : Path
+        Directory where ``fig_teacher_corr_matrix.png`` will be saved.
+
+    Raises
+    ------
+    FileNotFoundError
+        If any of the 5 teacher correlation TSV files are missing.
+
+    Notes
+    -----
+    **Validates: Requirements 12.3**
+    """
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    import seaborn as sns
+
+    trait_order = ["O", "C", "E", "A", "N"]
+    tsv_teachers = ["sonnet4", "qwen3-235b", "deepseek-v3", "gpt-oss-120b"]
+    display_labels = ["Sonnet4", "Qwen3\n235B", "DeepSeek\nV3", "GPT-OSS\n120B"]
+
+    fig, axes = plt.subplots(1, 5, figsize=(22, 4.2))
+
+    for idx, trait in enumerate(trait_order):
+        ax = axes[idx]
+        corr_path = teacher_corr_path(trait)
+        corr_df = read_teacher_corr(corr_path)
+
+        # Extract 4×4 matrix aligned to tsv_teachers order
+        mat = corr_df.loc[tsv_teachers, tsv_teachers].values
+
+        sns.heatmap(
+            mat,
+            ax=ax,
+            annot=True,
+            fmt=".2f",
+            cmap="YlOrRd",
+            vmin=0.0,
+            vmax=1.0,
+            square=True,
+            linewidths=0.8,
+            linecolor="white",
+            cbar=idx == 4,  # colorbar only on the last panel
+            cbar_kws={"shrink": 0.8, "label": "Pearson r"} if idx == 4 else {},
+            annot_kws={"fontsize": 10},
+        )
+
+        ax.set_title(f"{trait}", fontsize=14, fontweight="bold", pad=8)
+        ax.set_xticklabels(display_labels, fontsize=8, rotation=0, ha="center")
+        ax.set_yticklabels(display_labels, fontsize=8, rotation=0, va="center")
+
+        # Only show y-axis labels on the leftmost panel
+        if idx > 0:
+            ax.set_yticklabels([])
+            ax.set_ylabel("")
+
+    fig.suptitle(
+        "Inter-Teacher Pearson Correlation (4 LLM Teachers × 5 Traits)",
+        fontsize=13,
+        fontweight="bold",
+        y=1.03,
+    )
+    fig.tight_layout()
+    out_path = out_dir / "fig_teacher_corr_matrix.png"
+    fig.savefig(out_path, dpi=300, bbox_inches="tight")
+    plt.close(fig)
+
+
 def gen_tab_descriptive_stats(features_parquet: Path, out_dir: Path) -> None:
     """Generate descriptive statistics LaTeX table. [Task 1.6]
 
@@ -762,7 +924,7 @@ def gen_tab_descriptive_stats(features_parquet: Path, out_dir: Path) -> None:
 def gen_descriptive_stats_full_table(features_df: pd.DataFrame, out_dir: Path) -> None:
     """Generate extended descriptive statistics LaTeX table. [Task 10.3]
 
-    Computes 9 statistics (N, mean, SD, min, p25, p50, p75, p90, max)
+    Computes 8 statistics (N, mean, SD, min, p25, p50, p75, max)
     for each of the 18 FEATURE_COLUMNS and writes a booktabs-style
     LaTeX tabular to tab_descriptive_stats_full.tex.
 
@@ -792,7 +954,7 @@ def gen_descriptive_stats_full_table(features_df: pd.DataFrame, out_dir: Path) -
             # All NaN — fill with dashes
             feat_tex = feat.replace("_", r"\_")
             rows.append(
-                f"{feat_tex} & {n} & --- & --- & --- & --- & --- & --- & --- & --- \\\\"
+                f"{feat_tex} & {n} & --- & --- & --- & --- & --- & --- & --- \\\\"
             )
             continue
         mean = valid.mean()
@@ -801,20 +963,19 @@ def gen_descriptive_stats_full_table(features_df: pd.DataFrame, out_dir: Path) -
         p25 = valid.quantile(0.25)
         p50 = valid.quantile(0.5)
         p75 = valid.quantile(0.75)
-        p90 = valid.quantile(0.9)
         vmax = valid.max()
 
         feat_tex = feat.replace("_", r"\_")
         rows.append(
             f"{feat_tex} & {n} & {mean:.3f} & {sd:.3f} & {vmin:.3f} "
-            f"& {p25:.3f} & {p50:.3f} & {p75:.3f} & {p90:.3f} & {vmax:.3f} \\\\"
+            f"& {p25:.3f} & {p50:.3f} & {p75:.3f} & {vmax:.3f} \\\\"
         )
 
     body = "\n".join(rows)
     latex = (
-        "\\begin{tabular}{lrrrrrrrrr}\n"
+        "\\begin{tabular}{lrrrrrrrr}\n"
         "\\toprule\n"
-        "Feature & $N$ & Mean & SD & Min & p25 & p50 & p75 & p90 & Max \\\\\n"
+        "Feature & $N$ & Mean & SD & Min & p25 & p50 & p75 & Max \\\\\n"
         "\\midrule\n"
         f"{body}\n"
         "\\bottomrule\n"
@@ -1123,9 +1284,9 @@ def _gen_tab_corr_matrix(
 def gen_metadata_gender(
     features_df: pd.DataFrame, metadata_df: pd.DataFrame, out_dir: Path
 ) -> None:
-    """Generate gender × feature boxplots with Mann-Whitney U tests. [Task 10.5]
+    """Generate gender × feature violin plots with Mann-Whitney U tests. [Task 10.5]
 
-    For each of the 18 features, draws side-by-side boxplots for M vs F
+    For each of the 18 features, draws side-by-side violin plots for M vs F
     and annotates each subplot with the Mann-Whitney U statistic and p-value.
 
     Parameters
@@ -1177,17 +1338,37 @@ def gen_metadata_gender(
         m_vals = males[feat].dropna().values
         f_vals = females[feat].dropna().values
 
-        # Boxplot
-        bp = ax.boxplot(
-            [m_vals, f_vals],
-            tick_labels=["M", "F"],
-            patch_artist=True,
-            widths=0.5,
-        )
-        bp["boxes"][0].set_facecolor("#4393c3")
-        bp["boxes"][1].set_facecolor("#d6604d")
-        bp["boxes"][0].set_alpha(0.7)
-        bp["boxes"][1].set_alpha(0.7)
+        # Violin plot
+        data_list = [m_vals, f_vals]
+        positions = [0, 1]
+        if len(m_vals) > 1 and len(f_vals) > 1:
+            parts = ax.violinplot(data_list, positions=positions,
+                                  showmeans=True, showmedians=True,
+                                  showextrema=True)
+            # Style violin bodies: M=blue, F=red
+            body_colors = ["#4393c3", "#d6604d"]
+            for pc, col in zip(parts["bodies"], body_colors):
+                pc.set_facecolor(col)
+                pc.set_alpha(0.6)
+                pc.set_edgecolor(col)
+            for key in ("cmeans", "cmedians", "cbars", "cmins", "cmaxes"):
+                if key in parts:
+                    parts[key].set_color("#333333")
+                    parts[key].set_linewidth(1.0)
+        else:
+            # Fallback to boxplot when sample too small for violin
+            bp = ax.boxplot(
+                data_list,
+                tick_labels=["M", "F"],
+                patch_artist=True,
+                widths=0.5,
+            )
+            bp["boxes"][0].set_facecolor("#4393c3")
+            bp["boxes"][1].set_facecolor("#d6604d")
+            bp["boxes"][0].set_alpha(0.7)
+            bp["boxes"][1].set_alpha(0.7)
+        ax.set_xticks(positions)
+        ax.set_xticklabels(["M", "F"])
 
         # Mann-Whitney U test
         if len(m_vals) >= 1 and len(f_vals) >= 1:
@@ -1687,6 +1868,634 @@ def gen_tab_feature_definitions(out_dir: Path) -> None:
 
 
 # ---------------------------------------------------------------------------
+# Three-stage Ridge comparison (Task 7.5)
+# ---------------------------------------------------------------------------
+def _read_three_stage_tsvs(results_dir: Path) -> pd.DataFrame:
+    """Read and concatenate all three_stage_*.tsv files from *results_dir*.
+
+    Parameters
+    ----------
+    results_dir : Path
+        Directory containing ``three_stage_{trait}_{teacher}.tsv`` files.
+
+    Returns
+    -------
+    pd.DataFrame
+        Concatenated DataFrame with columns: trait, teacher, stage,
+        n_features, feature_set, r_obs, p_value, delta_r_from_prev.
+
+    Raises
+    ------
+    FileNotFoundError
+        If no three_stage_*.tsv files are found.
+    """
+    tsv_files = sorted(results_dir.glob("three_stage_*.tsv"))
+    if not tsv_files:
+        raise FileNotFoundError(
+            f"No three_stage_*.tsv files found in: {results_dir}\n"
+            f"Expected columns: trait, teacher, stage, n_features, "
+            f"feature_set, r_obs, p_value, delta_r_from_prev"
+        )
+    frames = [pd.read_csv(f, sep="\t") for f in tsv_files]
+    return pd.concat(frames, ignore_index=True)
+
+
+def gen_fig_three_stage_comparison(results_dir: Path, out_dir: Path) -> None:
+    """Generate 3-stage Ridge comparison grouped bar chart.
+
+    For each Big5 trait, shows 3 grouped bars (Stage 1, 2, 3) with r_obs
+    values.  Δr between stages is annotated above each group.  Significant
+    stages (p < 0.05) use filled bars; non-significant stages use hatched
+    bars.
+
+    If multiple teachers exist for the same trait × stage, values are
+    averaged across teachers.
+
+    Parameters
+    ----------
+    results_dir : Path
+        Directory containing ``three_stage_*.tsv`` files.
+    out_dir : Path
+        Directory where ``fig_three_stage_comparison.png`` will be saved.
+
+    Notes
+    -----
+    **Validates: Requirements 3.3, 3.4**
+    """
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    try:
+        df = _read_three_stage_tsvs(results_dir)
+    except FileNotFoundError as exc:
+        print(f"WARNING: {exc} — fig_three_stage_comparison.png の生成をスキップ",
+              file=sys.stderr)
+        return
+
+    trait_order = ["O", "C", "E", "A", "N"]
+
+    # Average across teachers per trait × stage
+    agg = (
+        df.groupby(["trait", "stage"])[["r_obs", "p_value", "delta_r_from_prev"]]
+        .mean()
+        .reset_index()
+    )
+
+    # Stage colours and labels
+    stage_colors = {1: "#92c5de", 2: "#4393c3", 3: "#2166ac"}
+    stage_labels = {
+        1: "Stage 1: Demographics",
+        2: "Stage 2: +Classical",
+        3: "Stage 3: +Novel",
+    }
+    stages = [1, 2, 3]
+    n_stages = len(stages)
+
+    x = np.arange(len(trait_order))
+    width = 0.24
+
+    fig, ax = plt.subplots(figsize=(9, 5))
+
+    for si, stage in enumerate(stages):
+        r_vals = []
+        p_vals = []
+        for trait in trait_order:
+            row = agg[(agg["trait"] == trait) & (agg["stage"] == stage)]
+            if len(row) > 0:
+                r_vals.append(row["r_obs"].values[0])
+                p_vals.append(row["p_value"].values[0])
+            else:
+                r_vals.append(0.0)
+                p_vals.append(1.0)
+
+        positions = x + (si - 1) * width
+        color = stage_colors[stage]
+
+        for i in range(len(trait_order)):
+            is_sig = p_vals[i] < 0.05
+            ax.bar(
+                positions[i], r_vals[i], width,
+                color=color if is_sig else "none",
+                edgecolor=color,
+                linewidth=1.5,
+                hatch="" if is_sig else "///",
+                label=stage_labels[stage] if i == 0 else "",
+            )
+
+    # Annotate Δr between stages above each trait group
+    for i, trait in enumerate(trait_order):
+        group_vals = []
+        for stage in stages:
+            row = agg[(agg["trait"] == trait) & (agg["stage"] == stage)]
+            if len(row) > 0:
+                group_vals.append(row["r_obs"].values[0])
+            else:
+                group_vals.append(0.0)
+
+        group_max = max(group_vals) if group_vals else 0.0
+
+        # Δr Stage 1→2
+        dr12_rows = agg[(agg["trait"] == trait) & (agg["stage"] == 2)]
+        if len(dr12_rows) > 0:
+            dr12 = dr12_rows["delta_r_from_prev"].values[0]
+            if not np.isnan(dr12):
+                sign12 = "+" if dr12 >= 0 else ""
+                ax.text(
+                    x[i] - width * 0.5, group_max + 0.025,
+                    f"Δ₁₂={sign12}{dr12:.3f}",
+                    ha="center", va="bottom", fontsize=7.5,
+                    fontstyle="italic", color="#4393c3",
+                )
+
+        # Δr Stage 2→3
+        dr23_rows = agg[(agg["trait"] == trait) & (agg["stage"] == 3)]
+        if len(dr23_rows) > 0:
+            dr23 = dr23_rows["delta_r_from_prev"].values[0]
+            if not np.isnan(dr23):
+                sign23 = "+" if dr23 >= 0 else ""
+                ax.text(
+                    x[i] + width * 0.5, group_max + 0.055,
+                    f"Δ₂₃={sign23}{dr23:.3f}",
+                    ha="center", va="bottom", fontsize=7.5,
+                    fontstyle="italic", color="#2166ac",
+                )
+
+    ax.set_xticks(x)
+    ax.set_xticklabels(trait_order, fontsize=12)
+    ax.set_ylabel("Observed correlation ($r_{obs}$)", fontsize=12)
+    ax.set_title(
+        "Three-Stage Ridge Comparison: Demographics → +Classical → +Novel",
+        fontsize=12, pad=10,
+    )
+    y_max = agg["r_obs"].max() if len(agg) > 0 else 0.5
+    ax.set_ylim(0, y_max * 1.45)
+    ax.legend(loc="upper right", fontsize=9, framealpha=0.9)
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+
+    # Add note about hatched bars
+    ax.text(
+        0.01, 0.97, "Filled = p < 0.05, Hatched = p ≥ 0.05",
+        transform=ax.transAxes, fontsize=8, va="top", color="#666666",
+    )
+
+    fig.tight_layout()
+    out_path = out_dir / "fig_three_stage_comparison.png"
+    fig.savefig(out_path, dpi=300, bbox_inches="tight")
+    plt.close(fig)
+
+
+def _read_bootstrap_variance_tsvs(results_dir: Path) -> pd.DataFrame:
+    """Read and concatenate all bootstrap_variance_*.tsv files from *results_dir*.
+
+    Parameters
+    ----------
+    results_dir : Path
+        Directory containing ``bootstrap_variance_{trait}_{teacher}.tsv`` files.
+
+    Returns
+    -------
+    pd.DataFrame
+        Concatenated DataFrame with columns: feature, coef_mean, coef_sd,
+        ci_lower, ci_upper, ci_excludes_zero.  An extra ``_source`` column
+        records the originating filename stem for multi-file disambiguation.
+
+    Raises
+    ------
+    FileNotFoundError
+        If no bootstrap_variance_*.tsv files are found.
+    """
+    tsv_files = sorted(results_dir.glob("bootstrap_variance_*.tsv"))
+    if not tsv_files:
+        raise FileNotFoundError(
+            f"No bootstrap_variance_*.tsv files found in: {results_dir}\n"
+            f"Expected columns: feature, coef_mean, coef_sd, ci_lower, "
+            f"ci_upper, ci_excludes_zero"
+        )
+    frames = []
+    for f in tsv_files:
+        tmp = pd.read_csv(f, sep="\t")
+        tmp["_source"] = f.stem
+        frames.append(tmp)
+    return pd.concat(frames, ignore_index=True)
+
+
+def gen_fig_bootstrap_variance(results_dir: Path, out_dir: Path) -> None:
+    """Generate forest plot of bootstrap coefficient stability (coef_mean ± 95% CI).
+
+    Reads ``bootstrap_variance_*.tsv`` files and draws a horizontal forest
+    plot: each of the 18 features is a row, with a point at coef_mean and
+    a horizontal bar spanning [ci_lower, ci_upper].  A vertical reference
+    line at x=0 is drawn.  Features where ci_excludes_zero is True are
+    highlighted with a distinct colour and bold label.
+
+    If multiple trait/teacher combinations exist, the first available file
+    (or one containing "ensemble" in the filename) is used.
+
+    Parameters
+    ----------
+    results_dir : Path
+        Directory containing ``bootstrap_variance_*.tsv`` files.
+    out_dir : Path
+        Directory where ``fig_bootstrap_variance.png`` will be saved.
+
+    Notes
+    -----
+    **Validates: Requirements 4.5, 4.6**
+    """
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    try:
+        df_all = _read_bootstrap_variance_tsvs(results_dir)
+    except FileNotFoundError as exc:
+        print(f"WARNING: {exc} — fig_bootstrap_variance.png の生成をスキップ",
+              file=sys.stderr)
+        return
+
+    # Pick a single source: prefer "ensemble", else first available
+    sources = df_all["_source"].unique().tolist()
+    chosen = sources[0]
+    for s in sources:
+        if "ensemble" in s.lower():
+            chosen = s
+            break
+    df = df_all[df_all["_source"] == chosen].copy()
+
+    if df.empty:
+        print("WARNING: bootstrap_variance data is empty — "
+              "fig_bootstrap_variance.png の生成をスキップ",
+              file=sys.stderr)
+        return
+
+    # Ensure ci_excludes_zero is boolean
+    df["ci_excludes_zero"] = df["ci_excludes_zero"].astype(bool)
+
+    # Sort by coef_mean descending so the largest positive is at the top
+    df = df.sort_values("coef_mean", ascending=True).reset_index(drop=True)
+
+    n = len(df)
+    y_pos = np.arange(n)
+
+    fig, ax = plt.subplots(figsize=(8, max(5, n * 0.38)))
+
+    # Vertical reference line at x=0
+    ax.axvline(x=0, color="#999999", linewidth=1.0, linestyle="--", zorder=1)
+
+    for i, row in df.iterrows():
+        excl = row["ci_excludes_zero"]
+        color = "#2166ac" if excl else "#b2182b"
+        alpha_val = 1.0 if excl else 0.6
+
+        # Horizontal CI bar
+        ax.plot(
+            [row["ci_lower"], row["ci_upper"]], [i, i],
+            color=color, linewidth=2.5 if excl else 1.8,
+            alpha=alpha_val, zorder=2,
+        )
+        # Point at coef_mean
+        ax.scatter(
+            row["coef_mean"], i,
+            color=color, s=50 if excl else 30,
+            edgecolors="white", linewidths=0.5,
+            zorder=3,
+        )
+
+    # Y-axis labels: bold for ci_excludes_zero
+    labels = []
+    for _, row in df.iterrows():
+        feat = row["feature"]
+        if row["ci_excludes_zero"]:
+            labels.append(f"$\\bf{{{feat.replace('_', chr(95))}}}$")
+        else:
+            labels.append(feat)
+
+    ax.set_yticks(y_pos)
+    ax.set_yticklabels(labels, fontsize=9)
+    ax.set_xlabel("Ridge coefficient (mean ± 95% CI)", fontsize=11)
+    ax.set_title(
+        "Bootstrap Coefficient Stability (Forest Plot)",
+        fontsize=12, fontweight="bold", pad=10,
+    )
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+
+    # Legend
+    from matplotlib.lines import Line2D
+    legend_handles = [
+        Line2D([0], [0], color="#2166ac", linewidth=2.5, marker="o",
+               markerfacecolor="#2166ac", markersize=7,
+               label="CI excludes zero"),
+        Line2D([0], [0], color="#b2182b", linewidth=1.8, marker="o",
+               markerfacecolor="#b2182b", markersize=5, alpha=0.6,
+               label="CI includes zero"),
+    ]
+    ax.legend(handles=legend_handles, loc="lower right", fontsize=9,
+              framealpha=0.9)
+
+    fig.tight_layout()
+    out_path = out_dir / "fig_bootstrap_variance.png"
+    fig.savefig(out_path, dpi=300, bbox_inches="tight")
+    plt.close(fig)
+
+
+def gen_tab_bootstrap_variance(results_dir: Path, out_dir: Path) -> None:
+    """Generate bootstrap variance analysis LaTeX booktabs table.
+
+    Reads ``bootstrap_variance_*.tsv`` files and produces a table with
+    columns: Feature, coef_mean, coef_sd, CI_lower, CI_upper, Sig.
+    Features where ci_excludes_zero is True are bolded.
+
+    If multiple trait/teacher combinations exist, the first available file
+    (or one containing "ensemble" in the filename) is used.
+
+    Parameters
+    ----------
+    results_dir : Path
+        Directory containing ``bootstrap_variance_*.tsv`` files.
+    out_dir : Path
+        Directory where ``tab_bootstrap_variance.tex`` will be saved.
+
+    Notes
+    -----
+    **Validates: Requirements 4.5, 4.6**
+    """
+    try:
+        df_all = _read_bootstrap_variance_tsvs(results_dir)
+    except FileNotFoundError as exc:
+        print(f"WARNING: {exc} — tab_bootstrap_variance.tex の生成をスキップ",
+              file=sys.stderr)
+        return
+
+    # Pick a single source: prefer "ensemble", else first available
+    sources = df_all["_source"].unique().tolist()
+    chosen = sources[0]
+    for s in sources:
+        if "ensemble" in s.lower():
+            chosen = s
+            break
+    df = df_all[df_all["_source"] == chosen].copy()
+
+    if df.empty:
+        print("WARNING: bootstrap_variance data is empty — "
+              "tab_bootstrap_variance.tex の生成をスキップ",
+              file=sys.stderr)
+        return
+
+    # Ensure ci_excludes_zero is boolean
+    df["ci_excludes_zero"] = df["ci_excludes_zero"].astype(bool)
+
+    rows: list[str] = []
+    for _, row in df.iterrows():
+        feat = row["feature"]
+        feat_tex = feat.replace("_", r"\_")
+        excl = row["ci_excludes_zero"]
+
+        mean_str = f"{row['coef_mean']:.4f}"
+        sd_str = f"{row['coef_sd']:.4f}"
+        ci_lo_str = f"{row['ci_lower']:.4f}"
+        ci_hi_str = f"{row['ci_upper']:.4f}"
+        sig_str = "\\checkmark" if excl else ""
+
+        if excl:
+            feat_tex = f"\\textbf{{{feat_tex}}}"
+            mean_str = f"\\textbf{{{mean_str}}}"
+            sd_str = f"\\textbf{{{sd_str}}}"
+            ci_lo_str = f"\\textbf{{{ci_lo_str}}}"
+            ci_hi_str = f"\\textbf{{{ci_hi_str}}}"
+
+        rows.append(
+            f"{feat_tex} & {mean_str} & {sd_str} & {ci_lo_str} & {ci_hi_str} & {sig_str} \\\\"
+        )
+
+    body = "\n".join(rows)
+    latex = (
+        "\\begin{tabular}{lrrrrc}\n"
+        "\\toprule\n"
+        "Feature & $\\bar{\\beta}$ & SD & CI$_{2.5}$ & CI$_{97.5}$ & Sig. \\\\\n"
+        "\\midrule\n"
+        f"{body}\n"
+        "\\bottomrule\n"
+        "\\end{tabular}\n"
+    )
+
+    out_path = out_dir / "tab_bootstrap_variance.tex"
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    out_path.write_text(latex, encoding="utf-8")
+
+
+# ---------------------------------------------------------------------------
+# Permutation coefficient test (Task 7.7)
+# ---------------------------------------------------------------------------
+def _read_permutation_coef_tsvs(results_dir: Path) -> pd.DataFrame:
+    """Read and concatenate all permutation_coef_*.tsv files from *results_dir*.
+
+    Parameters
+    ----------
+    results_dir : Path
+        Directory containing ``permutation_coef_{trait}_{teacher}.tsv`` files.
+
+    Returns
+    -------
+    pd.DataFrame
+        Concatenated DataFrame with columns: feature, coef_obs, p_value,
+        significant.  An extra ``_source`` column records the originating
+        filename stem for multi-file disambiguation.
+
+    Raises
+    ------
+    FileNotFoundError
+        If no permutation_coef_*.tsv files are found.
+    """
+    tsv_files = sorted(results_dir.glob("permutation_coef_*.tsv"))
+    if not tsv_files:
+        raise FileNotFoundError(
+            f"No permutation_coef_*.tsv files found in: {results_dir}\n"
+            f"Expected columns: feature, coef_obs, p_value, significant"
+        )
+    frames = []
+    for f in tsv_files:
+        tmp = pd.read_csv(f, sep="\t")
+        tmp["_source"] = f.stem
+        frames.append(tmp)
+    return pd.concat(frames, ignore_index=True)
+
+
+def gen_tab_permutation_coef(results_dir: Path, out_dir: Path) -> None:
+    """Generate permutation coefficient test LaTeX booktabs table.
+
+    Reads ``permutation_coef_*.tsv`` files and produces a table with
+    columns: Feature, coef_obs, p_value, Sig.
+    Features where significant (p < 0.05) are bolded.
+
+    If multiple trait/teacher combinations exist, the first available file
+    (or one containing "ensemble" in the filename) is used.
+
+    Parameters
+    ----------
+    results_dir : Path
+        Directory containing ``permutation_coef_*.tsv`` files.
+    out_dir : Path
+        Directory where ``tab_permutation_coef.tex`` will be saved.
+
+    Notes
+    -----
+    **Validates: Requirements 4.5**
+    """
+    try:
+        df_all = _read_permutation_coef_tsvs(results_dir)
+    except FileNotFoundError as exc:
+        print(f"WARNING: {exc} — tab_permutation_coef.tex の生成をスキップ",
+              file=sys.stderr)
+        return
+
+    # Pick a single source: prefer "ensemble", else first available
+    sources = df_all["_source"].unique().tolist()
+    chosen = sources[0]
+    for s in sources:
+        if "ensemble" in s.lower():
+            chosen = s
+            break
+    df = df_all[df_all["_source"] == chosen].copy()
+
+    if df.empty:
+        print("WARNING: permutation_coef data is empty — "
+              "tab_permutation_coef.tex の生成をスキップ",
+              file=sys.stderr)
+        return
+
+    # Ensure significant is boolean
+    df["significant"] = df["significant"].astype(bool)
+
+    rows: list[str] = []
+    for _, row in df.iterrows():
+        feat = row["feature"]
+        feat_tex = feat.replace("_", r"\_")
+        is_sig = row["significant"]
+
+        coef_str = f"{row['coef_obs']:.4f}"
+        p_str = f"{row['p_value']:.4f}"
+        sig_str = "\\checkmark" if is_sig else ""
+
+        if is_sig:
+            feat_tex = f"\\textbf{{{feat_tex}}}"
+            coef_str = f"\\textbf{{{coef_str}}}"
+            p_str = f"\\textbf{{{p_str}}}"
+
+        rows.append(
+            f"{feat_tex} & {coef_str} & {p_str} & {sig_str} \\\\"
+        )
+
+    body = "\n".join(rows)
+    latex = (
+        "\\begin{tabular}{lrrc}\n"
+        "\\toprule\n"
+        "Feature & $\\beta_{obs}$ & $p$-value & Sig. \\\\\n"
+        "\\midrule\n"
+        f"{body}\n"
+        "\\bottomrule\n"
+        "\\end{tabular}\n"
+    )
+
+    out_path = out_dir / "tab_permutation_coef.tex"
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    out_path.write_text(latex, encoding="utf-8")
+
+
+def gen_tab_three_stage(results_dir: Path, out_dir: Path) -> None:
+    """Generate 3-stage Ridge comparison LaTeX booktabs table.
+
+    Reads ``three_stage_*.tsv`` files and produces a table with columns:
+    Trait, Stage, n_features, r_obs, p-value, Δr.
+
+    If multiple teachers exist for the same trait × stage, values are
+    averaged across teachers.
+
+    Parameters
+    ----------
+    results_dir : Path
+        Directory containing ``three_stage_*.tsv`` files.
+    out_dir : Path
+        Directory where ``tab_three_stage.tex`` will be saved.
+
+    Notes
+    -----
+    **Validates: Requirements 3.3, 3.4**
+    """
+    try:
+        df = _read_three_stage_tsvs(results_dir)
+    except FileNotFoundError as exc:
+        print(f"WARNING: {exc} — tab_three_stage.tex の生成をスキップ",
+              file=sys.stderr)
+        return
+
+    trait_order = ["O", "C", "E", "A", "N"]
+    stage_names = {1: "Demographics", 2: "+Classical", 3: "+Novel"}
+
+    # Average across teachers per trait × stage
+    agg = (
+        df.groupby(["trait", "stage"])[["n_features", "r_obs", "p_value", "delta_r_from_prev"]]
+        .mean()
+        .reset_index()
+    )
+
+    rows: list[str] = []
+    for trait in trait_order:
+        first_in_trait = True
+        for stage in [1, 2, 3]:
+            row = agg[(agg["trait"] == trait) & (agg["stage"] == stage)]
+            if len(row) == 0:
+                continue
+            r_obs = row["r_obs"].values[0]
+            p_val = row["p_value"].values[0]
+            n_feat = int(round(row["n_features"].values[0]))
+            dr = row["delta_r_from_prev"].values[0]
+
+            # Format trait column (show only on first row of group)
+            trait_str = trait if first_in_trait else ""
+            first_in_trait = False
+
+            # Format r_obs and p_value (bold if significant)
+            r_str = f"{r_obs:.3f}"
+            p_str = f"{p_val:.4f}"
+            if p_val < 0.05:
+                r_str = f"\\textbf{{{r_str}}}"
+                p_str = f"\\textbf{{{p_str}}}"
+
+            # Format delta_r
+            if np.isnan(dr):
+                dr_str = "---"
+            else:
+                sign = "+" if dr >= 0 else ""
+                dr_str = f"{sign}{dr:.3f}"
+
+            stage_str = stage_names.get(stage, str(stage))
+            rows.append(
+                f"{trait_str} & {stage_str} & {n_feat} & {r_str} & {p_str} & {dr_str} \\\\"
+            )
+        # Add midrule between traits (except after last)
+        if trait != trait_order[-1]:
+            rows.append("\\midrule")
+
+    body = "\n".join(rows)
+    latex = (
+        "\\begin{tabular}{llrccc}\n"
+        "\\toprule\n"
+        "Trait & Stage & $n_{feat}$ & $r_{obs}$ & $p$-value & $\\Delta r$ \\\\\n"
+        "\\midrule\n"
+        f"{body}\n"
+        "\\bottomrule\n"
+        "\\end{tabular}\n"
+    )
+
+    out_path = out_dir / "tab_three_stage.tex"
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    out_path.write_text(latex, encoding="utf-8")
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 def main(argv: list[str] | None = None) -> None:
@@ -1757,6 +2566,13 @@ def main(argv: list[str] | None = None) -> None:
         ("fig_baseline_vs_extended.png", gen_fig_baseline_vs_extended, [results_dir, out_dir]),
         ("tab_ensemble_permutation.tex", gen_tab_ensemble_permutation, [results_dir, out_dir]),
         ("tab_baseline_vs_extended.tex", gen_tab_baseline_vs_extended, [results_dir, out_dir]),
+        # --- 3-stage Ridge, Bootstrap variance, Permutation coef, Teacher corr ---
+        ("fig_three_stage_comparison.png", gen_fig_three_stage_comparison, [results_dir, out_dir]),
+        ("tab_three_stage.tex", gen_tab_three_stage, [results_dir, out_dir]),
+        ("fig_bootstrap_variance.png", gen_fig_bootstrap_variance, [results_dir, out_dir]),
+        ("tab_bootstrap_variance.tex", gen_tab_bootstrap_variance, [results_dir, out_dir]),
+        ("tab_permutation_coef.tex", gen_tab_permutation_coef, [results_dir, out_dir]),
+        ("fig_teacher_corr_matrix.png", gen_fig_teacher_corr_matrix, [results_dir, out_dir]),
     ]
 
     # --- Metadata-related generators (only when metadata is available) ---

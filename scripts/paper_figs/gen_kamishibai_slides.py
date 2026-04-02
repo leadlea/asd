@@ -155,23 +155,23 @@ SLIDES: list[Slide] = [
     ),
     Slide(
         number=7,
-        title="ベースラインvs拡張モデル",
-        images=["fig_baseline_vs_extended.png"],
+        title="3段階Ridge回帰比較",
+        images=["fig_three_stage_comparison.png"],
         conclusion=(
-            "Novel特徴量の追加により予測精度が向上し、"
-            "新規提案特徴量の付加価値を示す。"
+            "人口統計→Classical→Novelの段階的追加により予測精度が向上し、"
+            "各特徴量群の追加効果（Δr）を明示する。"
         ),
-        methods_note="Baseline: Classical 9特徴量のみ。Extended: 全18特徴量。同一Ridge + Permutation設定で比較。",
+        methods_note="Stage 1: 人口統計のみ（2変数）→ Stage 2: +Classical（11変数）→ Stage 3: +Novel（20変数）。Ridge（α=100）+ 5-fold CV + Permutation test（5,000回）。",
     ),
     Slide(
         number=8,
-        title="Bootstrap Top Drivers",
-        images=["fig_bootstrap_C_radar.png"],
+        title="Bootstrap分散分析",
+        images=["fig_bootstrap_variance.png"],
         conclusion=(
-            "FILL_has_any, IX_oirmarker_after_question_rate, "
-            "PG_speech_ratioが上位ドライバーである。"
+            "95%CIがゼロを跨がない特徴量を「影響が強い特徴量」として同定し、"
+            "SD/CIベースで係数の安定性を評価する。"
         ),
-        methods_note="C（Sonnet4基準）のBootstrap 500回リサンプリング。Top-K inclusion rate + 符号一致率。",
+        methods_note="Bootstrap 500回リサンプリング（N=120復元抽出）。各特徴量の回帰係数の平均・SD・95%CIを算出。",
     ),
 ]
 
