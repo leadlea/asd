@@ -1,8 +1,7 @@
 # Worklog: 宗田さんフィードバック対応 v1（soda-feedback-v1）
 
 日付: 2026-04-02
-担当: 福原玄（実装）、Kiro（支援）
-Spec: `.kiro/specs/soda-feedback-v1/`
+担当: 福原玄（実装）
 
 ## 背景
 
