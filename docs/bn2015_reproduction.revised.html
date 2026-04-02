@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>Bang & Nadig (2015) 検算レポート ＋ MVP整合チェック</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,"Apple Color Emoji","Segoe UI Emoji";line-height:1.6;margin:24px;max-width:980px}
+  h1,h2,h3{line-height:1.25}
+  code,kbd,pre{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace}
+  .note{background:#f6f8fa;border:1px solid #e5e7eb;border-radius:8px;padding:12px 14px;margin:12px 0}
+  .pill{display:inline-block;background:#eef2ff;color:#1e1b4b;border:1px solid #c7d2fe;border-radius:999px;padding:.15rem .6rem;font-size:.85rem;margin-right:.35rem}
+  table{border-collapse:collapse;width:100%;margin:8px 0 18px}
+  th,td{border:1px solid #e5e7eb;padding:8px 10px;text-align:right}
+  th:first-child,td:first-child{text-align:left}
+  small{color:#6b7280}
+  .ok{color:#065f46}
+  .ng{color:#b91c1c}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media (max-width: 800px){ .grid{grid-template-columns:1fr} }
+</style>
+</head>
+<body>
+
+<h1>Bang &amp; Nadig (2015) 検算レポート ＋ MVP整合チェック</h1>
+
+<div class="note">
+  <strong>用語の明確化（重要）</strong><br>
+  本レポートで用いる <span class="pill">ASD/TYP</span> ラベルは、
+  <u>子どもの診断群</u>を指します（列名は <code>child_group</code>）。
+  「母親MLU」は <em>ASD/TYP児に対する母親の発話</em>（入力）の統計であり、
+  母親自身の診断ではありません。
+</div>
+
+<p>
+  データは <strong>ASDBank（TalkBank/CHILDES）Nadig</strong> の英語 <code>.cha</code> を使用（音声 <code>.wav</code> は未使用）。
+  解析は <strong>CLANに近いカウント</strong>を目標に、<code>%mor</code> を優先し、欠落時は表層語へフォールバックしました。
+</p>
+
+<div class="grid">
+  <div class="note">
+    <strong>リンク</strong><br>
+    ・検算レポート（GitHub Pages）：<br>
+    <a href="https://leadlea.github.io/asd/bn2015_reproduction.html" target="_blank">bn2015_reproduction.html</a><br>
+    ・検算README（再現手順／列名定義／実行コマンド）：<br>
+    <a href="https://github.com/leadlea/asd/blob/main/README_Bamg2015.md" target="_blank">README_Bamg2015.md</a><br>
+    ・MVPサマリ（別レポート）：<br>
+    <a href="https://leadlea.github.io/asd/ASD_TD_MVP_Report.html" target="_blank">ASD_TD_MVP_Report.html</a>
+  </div>
+  <div class="note">
+    <strong>ライセンス／ポリシー</strong><br>
+    ASDBank/TalkBank の <code>.cha</code> を日本語に翻訳して共有・公開することは規約上不可。<br>
+    本公開は統計量・要約に限定し、原文テキストは再配布しません。
+  </div>
+</div>
+
+<h2>TL;DR（結論）</h2>
+<ul>
+  <li>子ども発話（CHI）の <strong>MLU単独の群差はごく小</strong>。</li>
+  <li><strong>TTR↑（ASD）× NDW↓（ASD）</strong> の相補パターンが安定して観察され、
+      <strong>複数指標を統合するMVP方針は妥当</strong>。</li>
+</ul>
+
+<h2>結果サマリ（子ども発話：CHI）</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th>指標</th>
+      <th>ASD（mean）</th>
+      <th>TYP（mean）</th>
+      <th>n（ASD/TYP）</th>
+      <th>効果量 d</th>
+      <th>Welch p</th>
+      <th>備考</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>MLU（語/発話）</td>
+      <td>3.283</td>
+      <td>3.227</td>
+      <td>13 / 25</td>
+      <td>+0.064</td>
+      <td>—</td>
+      <td>差は極小</td>
+    </tr>
+    <tr>
+      <td>TTR</td>
+      <td>0.5615</td>
+      <td>0.5017</td>
+      <td>13 / 25</td>
+      <td>+0.560</td>
+      <td>0.155</td>
+      <td>ASD高め</td>
+    </tr>
+    <tr>
+      <td>NDW@100（等量化）</td>
+      <td>54.4</td>
+      <td>60.8</td>
+      <td>13 / 25</td>
+      <td>−0.529</td>
+      <td>0.201</td>
+      <td>ASD低め（方向安定）</td>
+    </tr>
+  </tbody>
+</table>
+
+<p><small>参考：NDW@50=32.6 vs 35.0、NDW@150=69.4 vs 79.0 でも <em>ASD &lt; TYP</em> の方向性は安定。</small></p>
+
+<h2>補助：母親発話（MOT）での検算</h2>
+<p>Bang &amp; Nadig (2015) の英語小計に対応する形で、同パイプラインで母親MLUも算出（あくまで装置の健全性確認）。
+列名はすべて <code>child_group</code>（子どもの診断群）に統一。</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>条件</th>
+      <th>ASD mean±sd</th>
+      <th>TYP mean±sd</th>
+      <th>n（ASD/TYP）</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Strict（最小1語・間投詞含む）</td>
+      <td>4.364 ± 0.666</td>
+      <td>4.637 ± 0.833</td>
+      <td>11 / 24</td>
+    </tr>
+    <tr>
+      <td>Robust（最小2語・間投詞除外）</td>
+      <td>4.896 ± 0.651</td>
+      <td>5.385 ± 0.806</td>
+      <td>11 / 24</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>MVPとの整合</h2>
+<ul>
+  <li>MLU単独では群差が小さい一方、TTR/NDWの方向性は安定。談話標識・参照表現・品詞比率などの複数指標と併せて判別する
+      <strong>現在のMVP設計（多指標統合・0.55しきい値仮置き）</strong>は妥当。</li>
+  <li>今後は年齢・発話量（MLU帯）での層別と、NDW@Nの最適N域の検討を進めます。</li>
+</ul>
+
+<h2>再現手順（簡易）</h2>
+<pre><code># 前提
+python -m venv .venv &amp;&amp; source .venv/bin/activate
+pip install PyYAML scipy
+
+# CHIのMLU
+python reproduce/bang_nadig_2015/parse_cha_compute_mlu.py   --config reproduce/bang_nadig_2015/reproduce_bang_nadig_2015.yaml
+
+# TTR/NDW（総語数ベース）
+python reproduce/bang_nadig_2015/compute_ttr_ndw.py
+
+# 等量化 NDW@100
+python reproduce/bang_nadig_2015/compute_ndw_atN.py --N 100 --dump_csv
+</code></pre>
+
+<h2>引用</h2>
+<ul>
+  <li>Bang, J., &amp; Nadig, A. (2015). <em>Autism Research</em>. DOI: <a href="https://doi.org/10.1002/aur.1448" target="_blank">10.1002/aur.1448</a></li>
+  <li>TalkBank/CHILDES (ASDBank) — data licenses and usage terms.</li>
+</ul>
+
+</body>
+</html>

@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>Reproduction — Bang & Nadig (2015) Autism Research — English subset (Mother input)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<style>
+body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;line-height:1.6;margin:32px;}
+h1,h2{margin:0.2em 0;}
+table{border-collapse:collapse;width:100%;margin:16px 0;}
+th,td{border:1px solid #ddd;padding:8px;text-align:center;}
+th{background:#f6f7f9;}
+small, .note{color:#555;}
+.code{font-family:ui-monospace,Consolas,Menlo,monospace;background:#f8f8f8;padding:2px 6px;border-radius:4px;}
+a{color:#145cc0;}
+</style>
+</head>
+<body>
+  <h1>Reproduction — Bang & Nadig (2015) Autism Research — English subset (Mother input)</h1>
+  <p>Dataset: ASDBank/CHILDES (English subset), Speaker=MOT, aggregation=per mother → group, token=%mor with surface fallback.</p>
+  <p>Paper DOI: <a href="https://doi.org/10.1002/aur.1440" target="_blank">10.1002/aur.1440</a> | PDF: <a href="https://talkbank.org/asd/access/0docs/Bang2015.pdf" target="_blank">open PDF</a></p>
+  <h2>Summary (Mother MLU, words/utterance)</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Group</th>
+        <th>Paper mean</th>
+        <th>Paper sd</th>
+        <th>Strict n</th>
+        <th>Strict mean</th>
+        <th>Strict sd</th>
+        <th>Robust n</th>
+        <th>Robust mean</th>
+        <th>Robust sd</th>
+        <th>Your MVP mean</th>
+        <th>Your MVP sd</th>
+      </tr>
+    </thead>
+    <tbody>
+      
+        <tr>
+          <td>ASD</td>
+          <td>5.06</td>
+          <td>0.92</td>
+          <td>11</td>
+          <td>4.364</td>
+          <td>0.666</td>
+          <td>11</td>
+          <td>4.896</td>
+          <td>0.651</td>
+          <td></td>
+          <td></td>
+        </tr>
+        
+        <tr>
+          <td>TYP</td>
+          <td>5.4</td>
+          <td>0.81</td>
+          <td>24</td>
+          <td>4.637</td>
+          <td>0.833</td>
+          <td>24</td>
+          <td>5.385</td>
+          <td>0.806</td>
+          <td></td>
+          <td></td>
+        </tr>
+        
+    </tbody>
+  </table>
+
+  <h2>Notes</h2>
+  <ul>
+    <li><span class="code">Strict</span>: <span class="code">min_utterance_len_tokens=1</span>, <span class="code">exclude_pure_intj=false</span>（厳密再現）。</li>
+    <li><span class="code">Robust</span>: <span class="code">min_utterance_len_tokens=2</span>, <span class="code">exclude_pure_intj=true</span>（1語発話/あいづち歪みの感度分析）。</li>
+    <li>MVP report: <a href="https://leadlea.github.io/asd/ASD_TD_MVP_Report.html" target="_blank">https://leadlea.github.io/asd/ASD_TD_MVP_Report.html</a></li>
+  </ul>
+</body>
+</html>

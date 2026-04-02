@@ -5,7 +5,7 @@ LLM仮想教師によるBig Five性格スコアとの関連を通じて指標の
 
 - 研究者: 福原玄（Lead lea）、山下祐一（NCNP）、宗田卓史（NCNP）
 - 対象学会: 成人発達支援学会（2026年9月@高知）
-- 論文の軸: 相互行為特徴量の提案 + 2段階妥当性検証
+- 論文の軸: 相互行為特徴量の提案 + 2段階妥当性検証（3段階Ridge + Permutation係数検定 + Bootstrap分散分析）
 
 ---
 
@@ -17,8 +17,10 @@ LLM仮想教師によるBig Five性格スコアとの関連を通じて指標の
 2. 4つのLLM（Sonnet4, Qwen3-235B, DeepSeek-V3, GPT-OSS-120B）で Big Five を仮想教師として採点
 3. **アンサンブルBig5**（4教師item-level平均）を主結果として報告 → **5次元中4次元（O, C, A, N）で有意**
 4. Ridge回帰 + permutation test（5000回）+ bootstrap（500回）で頑健性を検証
-5. ベースライン（Classical 9個）vs 拡張モデル（全18個）比較で **Novel特徴量の付加価値** を定量化
-6. 交絡統制（性別・年齢）後も **Cの有意性が維持**（3/4教師、平均Δr=+0.026）
+5. **3段階Ridge回帰比較**（人口統計のみ → +Classical → +Novel）で段階的な追加効果を定量化
+6. **Permutation回帰係数検定** + **Bootstrap分散分析**（SD/CIベース）の2本立てで寄与特徴量を同定
+7. 交絡統制（性別・年齢）後も **Cの有意性が維持**（3/4教師、平均Δr=+0.026）
+8. **話者重複の定量報告**: 74名ユニーク話者/25名重複（59.2%）、subject-wise splitで対処
 
 ---
 
@@ -44,10 +46,24 @@ LLM仮想教師によるBig Five性格スコアとの関連を通じて指標の
 - 3/4教師で有意性維持、平均Δr=+0.026（精度向上）
 - 特徴量とCの関連は性別・年齢の交絡ではないことを確認
 
-### Bootstrap Top Drivers（C, Sonnet4基準）
-- FILL_has_any（フィラー出現率, +）
-- IX_oirmarker_after_question_rate（質問直後OIR率, +）
-- PG_speech_ratio（発話率, +）
+### Cの主要寄与特徴量（Permutation有意 ∩ Bootstrap CI非跨ぎ: 7共通特徴量）
+- PG\_speech\_ratio（発話率, +）
+- PG\_pause\_mean（平均沈黙長, −）
+- PG\_pause\_p50（沈黙長中央値, −）
+- PG\_pause\_p90（沈黙長90パーセンタイル, −）
+- IX\_yesno\_rate（YES/NO応答率, +）
+- IX\_yesno\_after\_question\_rate（質問直後YES/NO率, +）
+- RESP\_NE\_ENTROPY（「ね」直後応答多様性, −）
+
+### 3段階Ridge回帰比較（アンサンブルBig5）
+
+| Trait | Stage1 (人口統計) | Stage2 (+Classical) | Stage3 (+Novel) | Δr₂→₃ |
+|-------|------------------|--------------------|-----------------|---------| 
+| O | r=0.309* | r=0.464** | r=0.442** | -0.023 |
+| **C** | **r=0.408**\*\* | **r=0.395**\*\* | **r=0.445**\*\* | **+0.050** |
+| E | r=0.100 | r=0.268* | r=0.208 | -0.060 |
+| A | r=0.494** | r=0.457** | r=0.464** | +0.007 |
+| N | r=0.173 | r=0.162 | r=0.223 | +0.061 |
 
 ### 教師間一致度
 - C: mean r=0.699（最高）→ 仮想教師として最も安定
@@ -59,9 +75,10 @@ LLM仮想教師によるBig Five性格スコアとの関連を通じて指標の
 
 | ドキュメント | 内容 |
 |-------------|------|
-| [論文PDF](paper1_ja.pdf) | コンパイル済みPDF（27ページ） |
+| [論文PDF](paper1_ja.pdf) | コンパイル済みPDF（38ページ） |
 | [論文ドラフト（LaTeX）](paper1_ja.tex) | 論文本体（uplatex + dvipdfmx） |
 | [紙芝居スライド](https://leadlea.github.io/asd/reports/paper_figs_v2/kamishibai_slides.html) | 8枚構成のプレゼン用HTML（Methods 2枚 + Results 6枚） |
+| [作業報告（宗田FB対応）](docs/worklog_2026-04-02_soda_feedback_v1.md) | 4本柱＋細かいコメント対応の全記録 |
 | [NCNPレビュー資料 v2](docs/homework/ncnp_review_v2.md) | 研究構成・結果・議論ポイント（共同研究者向け） |
 | [先行研究サーベイ](docs/homework/asd_paper.md) | Hu 2025, Altozano 2026, Mun 2024 等の整理 |
 | [Big5再現実験の全手順](docs/homework/paper.md) | データ→特徴量→回帰→検定の全パイプライン |
@@ -82,8 +99,14 @@ LLM仮想教師によるBig Five性格スコアとの関連を通じて指標の
 | `fig_permutation_C_bar.png` | C の4教師 permutation test 結果 |
 | `fig_teacher_heatmap.png` | Teacher間一致度ヒートマップ |
 | `fig_bootstrap_C_radar.png` | Bootstrap Top10 レーダーチャート |
+| `fig_three_stage_comparison.png` | 3段階Ridge回帰比較（5次元） |
+| `fig_bootstrap_variance.png` | Bootstrap分散分析フォレストプロット |
+| `fig_teacher_corr_matrix.png` | 4×4教師間Pearson相関行列（5次元） |
 | `tab_ensemble_permutation.tex` | アンサンブル結果LaTeXテーブル |
 | `tab_baseline_vs_extended.tex` | ベースラインvs拡張比較LaTeXテーブル |
+| `tab_three_stage.tex` | 3段階Ridge比較LaTeXテーブル |
+| `tab_permutation_coef.tex` | Permutation回帰係数検定LaTeXテーブル |
+| `tab_bootstrap_variance.tex` | Bootstrap分散分析LaTeXテーブル |
 | `tab_feature_definitions.tex` | 特徴量定義テーブル（Classical/Novel分類付き） |
 
 ---
@@ -130,6 +153,10 @@ LLM仮想教師によるBig Five性格スコアとの関連を通じて指標の
 | `ensemble_permutation.py` | アンサンブルBig5（4教師平均）permutation test |
 | `baseline_vs_extended.py` | ベースライン（Classical 9個）vs 拡張（全18個）比較 |
 | `confound_analysis.py` | 交絡変数（性別・年齢）統制分析 |
+| `speaker_overlap_analysis.py` | 話者重複調査（ユニーク話者数・重複件数・性別内訳） |
+| `three_stage_ridge.py` | 3段階Ridge回帰比較（人口統計→+Classical→+Novel） |
+| `permutation_coef_test.py` | Permutation回帰係数検定（個別特徴量の有意性） |
+| `bootstrap_variance.py` | Bootstrap分散分析（SD/CIベースの係数安定性） |
 | `verify_reproducibility.py` | 再現性検証（11項目チェック） |
 
 ### 図表生成（`scripts/paper_figs/`）
@@ -222,8 +249,14 @@ uplatex paper1_ja.tex && dvipdfmx paper1_ja.dvi
 
 ---
 
-## 山下先生フィードバック対応ログ
+## フィードバック対応ログ
 
+### 宗田さんフィードバック対応（2026-04-02）
+→ [docs/worklog_2026-04-02_soda_feedback_v1.md](docs/worklog_2026-04-02_soda_feedback_v1.md)
+
+4本柱（話者重複・Appendix切り分け・3段階Ridge・説明可能性再整理）＋細かいコメント全対応。新規スクリプト4本、プロパティテスト6本、アンサンブルBig5で全分析実行。
+
+### 山下先生フィードバック対応
 → [docs/homework/yamashita_feedback_v3_log.md](docs/homework/yamashita_feedback_v3_log.md)
 
 11項目すべて対応完了。対応内容・Before→Afterの一覧、想定外の結果（アンサンブルでO/A/Nも有意）、交絡統制結果の詳細を記載。

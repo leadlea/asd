@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>Nanami/TYP 話者分離 比較レポート（pyannote vs F0）</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, "YuGothic", "Yu Gothic", sans-serif;
+      margin: 0;
+      padding: 24px;
+      background: #f6f7fb;
+      color: #222;
+      line-height: 1.6;
+    }
+    h1, h2, h3 {
+      margin: 0 0 0.5em;
+    }
+    h1 {
+      font-size: 1.6rem;
+      margin-bottom: 1rem;
+    }
+    h2 {
+      font-size: 1.3rem;
+      margin-top: 2rem;
+      border-left: 4px solid #3b82f6;
+      padding-left: 0.5rem;
+    }
+    p.lead {
+      margin-bottom: 1rem;
+      color: #555;
+    }
+    .badge {
+      display: inline-block;
+      padding: 0.1em 0.6em;
+      border-radius: 999px;
+      font-size: 0.8rem;
+      background: #e5e7eb;
+      margin-right: 0.4em;
+    }
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 16px 20px;
+      box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
+      margin-bottom: 16px;
+    }
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+      margin-top: 8px;
+    }
+    .summary-item h3 {
+      font-size: 0.95rem;
+      margin-bottom: 0.2rem;
+      color: #555;
+    }
+    .summary-item .value {
+      font-size: 1.2rem;
+      font-weight: 600;
+    }
+    .summary-item .sub {
+      font-size: 0.8rem;
+      color: #777;
+    }
+    .tbl-wrapper {
+      margin-top: 8px;
+      overflow-x: auto;
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
+      padding: 8px 12px;
+    }
+    table.tbl {
+      border-collapse: collapse;
+      width: 100%;
+      font-size: 0.8rem;
+    }
+    table.tbl thead tr {
+      background: #eff2fb;
+    }
+    table.tbl th,
+    table.tbl td {
+      padding: 6px 8px;
+      border-bottom: 1px solid #e5e7eb;
+      text-align: center;
+      white-space: nowrap;
+    }
+    table.tbl th {
+      font-weight: 600;
+      color: #374151;
+    }
+    table.tbl tr:nth-child(even) td {
+      background: #fafbff;
+    }
+    table.tbl tr:hover td {
+      background: #e0f2fe;
+    }
+    .tbl-wide {
+      font-size: 0.75rem;
+    }
+    .note {
+      font-size: 0.8rem;
+      color: #6b7280;
+      margin-top: 4px;
+    }
+    footer {
+      margin-top: 32px;
+      font-size: 0.75rem;
+      color: #9ca3af;
+      text-align: right;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Nanami/TYP 話者分離 比較レポート（pyannote vs F0）</h1>
+  <p class="lead">
+    MiPro/Nanami（TYP）8セッション（10129〜20319）について、従来の <strong>F0しきい値ベース話者推定</strong> と
+    <strong>pyannote.audio を用いた話者分離</strong> を比較した結果をまとめたレポートです。<br>
+    compare_nanami.py が出力した CSV（token シェア・詳細・合計値）をもとに自動生成しています。
+  </p>
+
+  <div class="card">
+    <span class="badge">Summary</span>
+    <div class="summary-grid">
+      <div class="summary-item">
+        <h3>DIAR: CHI Token シェア</h3>
+        <div class="value">30.9%</div>
+        <div class="sub">CHI: 11,178 / MOT: 25,047 tokens</div>
+      </div>
+      <div class="summary-item">
+        <h3>F0: CHI Token シェア</h3>
+        <div class="value">22.4%</div>
+        <div class="sub">CHI: 8,466 / MOT: 29,357 tokens</div>
+      </div>
+      <div class="summary-item">
+        <h3>差（DIAR − F0）</h3>
+        <div class="value">8.5 pt</div>
+        <div class="sub">F0は系統的にCHIを少なめに推定</div>
+      </div>
+    </div>
+  </div>
+
+  <h2>1. セッション別 CHI トークン比（pyannote vs F0）</h2>
+  <div class="tbl-wrapper">
+    <table class="dataframe tbl">
+  <thead>
+    <tr style="text-align: center;">
+      <th>Session</th>
+      <th>DIAR CHI Token %</th>
+      <th>F0 CHI Token %</th>
+      <th>DIAR − F0 (pt)</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>10129</td>
+      <td>77.4</td>
+      <td>60.4</td>
+      <td>17.1</td>
+    </tr>
+    <tr>
+      <td>10225</td>
+      <td>85.1</td>
+      <td>16.7</td>
+      <td>68.4</td>
+    </tr>
+    <tr>
+      <td>10421</td>
+      <td>17.4</td>
+      <td>29.8</td>
+      <td>-12.4</td>
+    </tr>
+    <tr>
+      <td>10622</td>
+      <td>92.4</td>
+      <td>7.0</td>
+      <td>85.3</td>
+    </tr>
+    <tr>
+      <td>10928</td>
+      <td>6.3</td>
+      <td>14.1</td>
+      <td>-7.8</td>
+    </tr>
+    <tr>
+      <td>11025</td>
+      <td>7.3</td>
+      <td>35.7</td>
+      <td>-28.4</td>
+    </tr>
+    <tr>
+      <td>20213</td>
+      <td>20.5</td>
+      <td>24.1</td>
+      <td>-3.6</td>
+    </tr>
+    <tr>
+      <td>20319</td>
+      <td>17.0</td>
+      <td>5.1</td>
+      <td>11.9</td>
+    </tr>
+  </tbody>
+</table>
+  </div>
+  <p class="note">
+    ※ 各セッションの CHI トークン比を 0–100% で表示。<br>
+    DIAR − F0 が正のとき、F0法が子ども発話を少なめに見積もっていたことを意味します。
+  </p>
+
+  <h2>2. セッション別 詳細指標（utterance数 / Token数 / MLU / Prosody / 語用論）</h2>
+  <div class="tbl-wrapper">
+    <table class="dataframe tbl tbl-wide">
+  <thead>
+    <tr style="text-align: center;">
+      <th>session</th>
+      <th>F0_CHI_n_utts</th>
+      <th>F0_CHI_n_tokens</th>
+      <th>F0_CHI_mlu</th>
+      <th>F0_CHI_f0_mean</th>
+      <th>F0_CHI_speech_rate</th>
+      <th>F0_CHI_question_rate</th>
+      <th>F0_CHI_dm_per_100t</th>
+      <th>F0_CHI_mental_per_100t</th>
+      <th>F0_MOT_n_utts</th>
+      <th>F0_MOT_n_tokens</th>
+      <th>F0_MOT_mlu</th>
+      <th>F0_MOT_f0_mean</th>
+      <th>F0_MOT_speech_rate</th>
+      <th>F0_MOT_question_rate</th>
+      <th>F0_MOT_dm_per_100t</th>
+      <th>F0_MOT_mental_per_100t</th>
+      <th>DIAR_CHI_n_utts</th>
+      <th>DIAR_CHI_n_tokens</th>
+      <th>DIAR_CHI_mlu</th>
+      <th>DIAR_CHI_f0_mean</th>
+      <th>DIAR_CHI_speech_rate</th>
+      <th>DIAR_CHI_question_rate</th>
+      <th>DIAR_CHI_dm_per_100t</th>
+      <th>DIAR_CHI_mental_per_100t</th>
+      <th>DIAR_MOT_n_utts</th>
+      <th>DIAR_MOT_n_tokens</th>
+      <th>DIAR_MOT_mlu</th>
+      <th>DIAR_MOT_f0_mean</th>
+      <th>DIAR_MOT_speech_rate</th>
+      <th>DIAR_MOT_question_rate</th>
+      <th>DIAR_MOT_dm_per_100t</th>
+      <th>DIAR_MOT_mental_per_100t</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>10129</td>
+      <td>263.0</td>
+      <td>2407.0</td>
+      <td>9.152091</td>
+      <td>322.726004</td>
+      <td>10.674786</td>
+      <td>0.145038</td>
+      <td>3.340292</td>
+      <td>0.083507</td>
+      <td>174.0</td>
+      <td>1580.0</td>
+      <td>9.080460</td>
+      <td>247.425541</td>
+      <td>10.786108</td>
+      <td>0.120690</td>
+      <td>2.675159</td>
+      <td>0.318471</td>
+      <td>212.0</td>
+      <td>2563.0</td>
+      <td>12.089623</td>
+      <td>287.144536</td>
+      <td>10.748500</td>
+      <td>0.037915</td>
+      <td>3.956130</td>
+      <td>0.039170</td>
+      <td>40.0</td>
+      <td>747.0</td>
+      <td>18.675000</td>
+      <td>270.296899</td>
+      <td>10.590543</td>
+      <td>0.175000</td>
+      <td>0.673854</td>
+      <td>0.539084</td>
+    </tr>
+    <tr>
+      <td>10225</td>
+      <td>131.0</td>
+      <td>803.0</td>
+      <td>6.129771</td>
+      <td>354.150524</td>
+      <td>10.328770</td>
+      <td>0.175573</td>
+      <td>3.735990</td>
+      <td>0.373599</td>
+      <td>148.0</td>
+      <td>4009.0</td>
+      <td>27.087838</td>
+      <td>226.844037</td>
+      <td>10.499028</td>
+      <td>0.074324</td>
+      <td>3.950988</td>
+      <td>0.600150</td>
+      <td>199.0</td>
+      <td>3385.0</td>
+      <td>17.010050</td>
+      <td>287.516775</td>
+      <td>10.443237</td>
+      <td>0.110553</td>
+      <td>4.406980</td>
+      <td>0.118308</td>
+      <td>25.0</td>
+      <td>592.0</td>
+      <td>23.680000</td>
+      <td>270.019461</td>
+      <td>10.209493</td>
+      <td>0.040000</td>
+      <td>3.045685</td>
+      <td>1.184433</td>
+    </tr>
+    <tr>
+      <td>10421</td>
+      <td>55.0</td>
+      <td>551.0</td>
+      <td>10.018182</td>
+      <td>371.317574</td>
+      <td>10.839378</td>
+      <td>0.000000</td>
+      <td>0.000000</td>
+      <td>0.000000</td>
+      <td>56.0</td>
+      <td>1297.0</td>
+      <td>23.160714</td>
+      <td>302.774416</td>
+      <td>11.027176</td>
+      <td>0.000000</td>
+      <td>0.000000</td>
+      <td>0.000000</td>
+      <td>78.0</td>
+      <td>745.0</td>
+      <td>9.551282</td>
+      <td>319.454041</td>
+      <td>10.897041</td>
+      <td>0.128205</td>
+      <td>2.035278</td>
+      <td>1.763908</td>
+      <td>258.0</td>
+      <td>3534.0</td>
+      <td>13.697674</td>
+      <td>305.241885</td>
+      <td>10.650655</td>
+      <td>0.116279</td>
+      <td>4.060193</td>
+      <td>0.539466</td>
+    </tr>
+    <tr>
+      <td>10622</td>
+      <td>48.0</td>
+      <td>216.0</td>
+      <td>4.500000</td>
+      <td>430.981603</td>
+      <td>10.283868</td>
+      <td>0.041667</td>
+      <td>3.240741</td>
+      <td>0.000000</td>
+      <td>102.0</td>
+      <td>2854.0</td>
+      <td>27.980392</td>
+      <td>281.348231</td>
+      <td>10.186952</td>
+      <td>0.107843</td>
+      <td>3.445851</td>
+      <td>0.246132</td>
+      <td>29.0</td>
+      <td>1806.0</td>
+      <td>62.275862</td>
+      <td>337.579326</td>
+      <td>10.473613</td>
+      <td>0.000000</td>
+      <td>0.830565</td>
+      <td>0.000000</td>
+      <td>17.0</td>
+      <td>149.0</td>
+      <td>8.764706</td>
+      <td>350.884460</td>
+      <td>10.073109</td>
+      <td>0.000000</td>
+      <td>0.000000</td>
+      <td>0.000000</td>
+    </tr>
+    <tr>
+      <td>10928</td>
+      <td>257.0</td>
+      <td>998.0</td>
+      <td>3.883268</td>
+      <td>512.312572</td>
+      <td>9.880145</td>
+      <td>0.112840</td>
+      <td>3.733602</td>
+      <td>0.000000</td>
+      <td>466.0</td>
+      <td>6068.0</td>
+      <td>13.021459</td>
+      <td>365.844057</td>
+      <td>9.576398</td>
+      <td>0.100858</td>
+      <td>4.725711</td>
+      <td>0.214805</td>
+      <td>109.0</td>
+      <td>468.0</td>
+      <td>4.293578</td>
+      <td>428.671723</td>
+      <td>9.764303</td>
+      <td>0.055046</td>
+      <td>3.246753</td>
+      <td>0.000000</td>
+      <td>517.0</td>
+      <td>6960.0</td>
+      <td>13.462282</td>
+      <td>385.144956</td>
+      <td>9.627785</td>
+      <td>0.147002</td>
+      <td>4.359122</td>
+      <td>0.187644</td>
+    </tr>
+    <tr>
+      <td>11025</td>
+      <td>205.0</td>
+      <td>1911.0</td>
+      <td>9.321951</td>
+      <td>397.176443</td>
+      <td>10.399464</td>
+      <td>0.136585</td>
+      <td>2.460733</td>
+      <td>0.209424</td>
+      <td>253.0</td>
+      <td>3444.0</td>
+      <td>13.612648</td>
+      <td>314.067447</td>
+      <td>10.342538</td>
+      <td>0.158103</td>
+      <td>3.923278</td>
+      <td>0.116245</td>
+      <td>35.0</td>
+      <td>396.0</td>
+      <td>11.314286</td>
+      <td>357.260106</td>
+      <td>10.673646</td>
+      <td>0.114286</td>
+      <td>2.538071</td>
+      <td>0.253807</td>
+      <td>164.0</td>
+      <td>5057.0</td>
+      <td>30.835366</td>
+      <td>344.343431</td>
+      <td>10.358792</td>
+      <td>0.158537</td>
+      <td>3.700772</td>
+      <td>0.237483</td>
+    </tr>
+    <tr>
+      <td>20213</td>
+      <td>120.0</td>
+      <td>1247.0</td>
+      <td>10.391667</td>
+      <td>402.709809</td>
+      <td>10.352401</td>
+      <td>0.008333</td>
+      <td>3.132530</td>
+      <td>0.000000</td>
+      <td>174.0</td>
+      <td>3930.0</td>
+      <td>22.586207</td>
+      <td>303.246578</td>
+      <td>10.507841</td>
+      <td>0.028736</td>
+      <td>3.823604</td>
+      <td>0.229416</td>
+      <td>53.0</td>
+      <td>847.0</td>
+      <td>15.981132</td>
+      <td>319.961109</td>
+      <td>10.685575</td>
+      <td>0.000000</td>
+      <td>6.729634</td>
+      <td>0.000000</td>
+      <td>72.0</td>
+      <td>3293.0</td>
+      <td>45.736111</td>
+      <td>301.401788</td>
+      <td>10.686402</td>
+      <td>0.000000</td>
+      <td>4.502586</td>
+      <td>0.030423</td>
+    </tr>
+    <tr>
+      <td>20319</td>
+      <td>71.0</td>
+      <td>333.0</td>
+      <td>4.690141</td>
+      <td>408.689583</td>
+      <td>10.110123</td>
+      <td>0.112676</td>
+      <td>1.812689</td>
+      <td>0.000000</td>
+      <td>242.0</td>
+      <td>6175.0</td>
+      <td>25.516529</td>
+      <td>278.016198</td>
+      <td>10.521177</td>
+      <td>0.144628</td>
+      <td>3.901170</td>
+      <td>0.260078</td>
+      <td>105.0</td>
+      <td>968.0</td>
+      <td>9.219048</td>
+      <td>296.210162</td>
+      <td>10.641294</td>
+      <td>0.190476</td>
+      <td>3.017690</td>
+      <td>0.208117</td>
+      <td>216.0</td>
+      <td>4715.0</td>
+      <td>21.828704</td>
+      <td>273.159303</td>
+      <td>10.512652</td>
+      <td>0.111111</td>
+      <td>4.320988</td>
+      <td>0.191571</td>
+    </tr>
+  </tbody>
+</table>
+  </div>
+
+
+  <footer>
+    Generated by build_nanami_compare_html.py
+  </footer>
+</body>
+</html>
