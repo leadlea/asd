@@ -28,6 +28,29 @@ from sklearn.preprocessing import StandardScaler
 TRAITS = ["O", "C", "E", "A", "N"]
 TEACHERS = ["sonnet4", "qwen3-235b", "deepseek-v3", "gpt-oss-120b"]
 
+# Columns always excluded from features (control variables + collinear).
+# PG_overlap_rate is intentionally NOT listed here — it is a Classical
+# explanatory variable (restored from CTRL per yamashita-feedback-v4).
+DEFAULT_EXCLUDE: set[str] = {
+    "conversation_id",
+    "speaker_id",
+    # Collinear with IX_lex_overlap_mean (r = -1.00)
+    "IX_topic_drift_mean",
+    # Control / denominator columns
+    "n_pairs_total",
+    "n_pairs_after_NE",
+    "n_pairs_after_YO",
+    "IX_n_pairs",
+    "IX_n_pairs_after_question",
+    "PG_total_time",
+    "PG_resp_overlap_rate",
+    "FILL_text_len",
+    "FILL_cnt_total",
+    "FILL_cnt_eto",
+    "FILL_cnt_e",
+    "FILL_cnt_ano",
+}
+
 
 # ── Core functions (same logic as permutation_test_ridge_fixedalpha.py) ──
 def pearsonr(a, b) -> float:
@@ -109,6 +132,57 @@ def load_trait_scores(items_dir: str, trait: str, teachers: list[str]) -> pd.Dat
     return merged[["conversation_id", "speaker_id", "trait_score"]].copy()
 
 
+# ── Holm-Bonferroni correction ───────────────────────────────────────
+def holm_correction(p_values: list[float]) -> list[float]:
+    """Holm-Bonferroni法による多重比較補正。
+
+    Args:
+        p_values: 補正前p値のリスト（長さm）
+
+    Returns:
+        補正後p値のリスト（元の順序を保持）
+
+    Raises:
+        ValueError: p値が [0, 1] 範囲外の場合
+    """
+    import math
+
+    m = len(p_values)
+    if m == 0:
+        return []
+
+    # NaN以外のp値を検証: [0, 1] 範囲外ならValueError
+    for i, p in enumerate(p_values):
+        if math.isnan(p):
+            continue
+        if p < 0.0 or p > 1.0:
+            raise ValueError(
+                f"p_values[{i}] = {p} is outside [0, 1]"
+            )
+
+    # 非NaN値のみ補正対象とする
+    non_nan = [(i, p) for i, p in enumerate(p_values) if not math.isnan(p)]
+
+    corrected = [float("nan")] * m
+
+    if not non_nan:
+        return corrected
+
+    # 非NaN p値を昇順にソート（インデックスを保持）
+    m_eff = len(non_nan)
+    indexed = sorted(non_nan, key=lambda x: x[1])
+
+    cummax = 0.0
+    for rank, (orig_idx, p) in enumerate(indexed):
+        adjusted = p * (m_eff - rank)
+        # 累積最大値を取る（単調性保証）
+        cummax = max(cummax, adjusted)
+        # 1.0でクリップ
+        corrected[orig_idx] = min(cummax, 1.0)
+
+    return corrected
+
+
 # ── Main ─────────────────────────────────────────────────────────────
 def main():
     ap = argparse.ArgumentParser(
@@ -136,9 +210,9 @@ def main():
     feat_df = pd.read_parquet(args.features_parquet)
     feat_df = feat_df.replace([np.inf, -np.inf], np.nan)
 
-    # Columns to exclude from features
-    excl = set(c.strip() for c in args.exclude_cols.split(",") if c.strip())
-    excl |= {"conversation_id", "speaker_id"}
+    # Columns to exclude from features: default controls + CLI extras
+    excl = set(DEFAULT_EXCLUDE)
+    excl |= set(c.strip() for c in args.exclude_cols.split(",") if c.strip())
 
     summary_rows = []
 
@@ -207,14 +281,90 @@ def main():
 
         summary_rows.append({"trait": trait, "r_obs": round(r_obs, 3), "p_value": round(p_val, 4)})
 
-    # 7. Write ensemble_summary.tsv
+    # 7. Build summary_df and apply Holm correction
     out_dir = Path(args.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     summary_df = pd.DataFrame(summary_rows)
+
+    # Apply Holm-Bonferroni correction across 5 traits
+    p_corrected = holm_correction(summary_df["p_value"].tolist())
+    summary_df["p_corrected"] = [round(pc, 4) for pc in p_corrected]
+
     summary_path = out_dir / "ensemble_summary.tsv"
     summary_df.to_csv(summary_path, sep="\t", index=False)
     print(f"\nWrote {summary_path}")
     print(summary_df.to_string(index=False))
+
+    # 8. Per-teacher permutation tests with Holm correction
+    print(f"\n{'='*60}")
+    print("  Per-teacher permutation tests")
+    print(f"{'='*60}")
+
+    for teacher in TEACHERS:
+        print(f"\n--- Teacher: {teacher} ---")
+        teacher_rows: list[dict] = []
+
+        for trait in TRAITS:
+            # Load single-teacher trait scores
+            dir_name = f"dataset=cejc_home2_hq1_v1__items={trait}24__teacher={teacher}"
+            merged_dir = Path(args.items_dir) / dir_name / "teacher_merged"
+            parquet_path = merged_dir / f"trait_scores_{trait}_merged.parquet"
+
+            if not parquet_path.exists():
+                warnings.warn(
+                    f"Missing parquet for teacher={teacher}, trait={trait}: {parquet_path}"
+                )
+                teacher_rows.append({
+                    "trait": trait, "r_obs": float("nan"),
+                    "p_value": float("nan"), "p_corrected": float("nan"),
+                })
+                continue
+
+            scores_df = pd.read_parquet(parquet_path)
+            scores_df = scores_df[["conversation_id", "speaker_id", "trait_score"]].copy()
+
+            merged = scores_df.merge(feat_df, on=["conversation_id", "speaker_id"], how="inner")
+            y = merged["trait_score"].astype(float).to_numpy()
+            feat_cols = [c for c in merged.columns if c not in excl and c != "trait_score"]
+            X = merged[feat_cols].apply(pd.to_numeric, errors="coerce").to_numpy(dtype=float)
+
+            ok = ~np.isnan(y)
+            X, y = X[ok], y[ok]
+
+            r_obs = cv_ridge_r(X, y, args.cv_folds, args.seed, args.alpha)
+
+            rng = np.random.default_rng(args.seed)
+            r_perm = np.empty(args.n_perm, float)
+            for i in range(args.n_perm):
+                yp = rng.permutation(y)
+                r_perm[i] = cv_ridge_r(X, yp, args.cv_folds, args.seed, args.alpha)
+
+            p_val = (np.sum(np.abs(r_perm) >= abs(r_obs)) + 1.0) / (args.n_perm + 1.0)
+            print(f"  {trait}: r_obs={r_obs:.3f}, p={p_val:.4f}")
+
+            # Write per-teacher permutation.log
+            teacher_trait_dir = Path(args.out_dir) / f"{teacher}_{trait}"
+            teacher_trait_dir.mkdir(parents=True, exist_ok=True)
+            log_path = teacher_trait_dir / "permutation.log"
+            with open(log_path, "w") as f:
+                f.write(f"teacher={teacher}\n")
+                f.write(f"alpha={args.alpha}\n")
+                f.write(f"r_obs={r_obs:.3f}\n")
+                f.write(f"p(|r|)={p_val:.4f}  (n_perm={args.n_perm})\n")
+
+            teacher_rows.append({
+                "trait": trait, "r_obs": round(r_obs, 3), "p_value": round(p_val, 4),
+            })
+
+        # Apply Holm correction per teacher (across 5 traits)
+        teacher_df = pd.DataFrame(teacher_rows)
+        p_corr = holm_correction(teacher_df["p_value"].tolist())
+        teacher_df["p_corrected"] = [round(pc, 4) for pc in p_corr]
+
+        teacher_summary_path = out_dir / f"teacher_{teacher}_summary.tsv"
+        teacher_df.to_csv(teacher_summary_path, sep="\t", index=False)
+        print(f"  Wrote {teacher_summary_path}")
+        print(teacher_df.to_string(index=False))
 
 
 if __name__ == "__main__":

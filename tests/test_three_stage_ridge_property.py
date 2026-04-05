@@ -8,8 +8,8 @@ Validates: Requirements 3.1, 3.2
 
 任意の有効なXYデータとメタデータの組み合わせに対して、three_stage_ridge.pyの出力は以下を満たす:
 (a) Stage 1は正確に2個の人口統計変数のみを使用する
-(b) Stage 2は正確に11個（人口統計2 + Classical 9）の変数を使用する
-(c) Stage 3は正確に20個（人口統計2 + Classical 9 + Novel 9）の変数を使用する
+(b) Stage 2は正確に12個（人口統計2 + Classical 10）の変数を使用する
+(c) Stage 3は正確に21個（人口統計2 + Classical 10 + Novel 9）の変数を使用する
 (d) delta_r_from_prev（Stage 2）== r_obs(Stage 2) - r_obs(Stage 1)が浮動小数点精度の範囲内で成り立つ
 (e) delta_r_from_prev（Stage 3）== r_obs(Stage 3) - r_obs(Stage 2)が同様に成り立つ
 """
@@ -73,8 +73,8 @@ def test_three_stage_feature_set_correctness_and_delta_r_arithmetic(
 
     # (a-c) Feature set sizes
     assert s1["n_features"] == 2
-    assert s2["n_features"] == 11
-    assert s3["n_features"] == 20
+    assert s2["n_features"] == 12
+    assert s3["n_features"] == 21
 
     # (d-e) Δr arithmetic
     assert np.isclose(s2["delta_r_from_prev"], s2["r_obs"] - s1["r_obs"], atol=1e-3)

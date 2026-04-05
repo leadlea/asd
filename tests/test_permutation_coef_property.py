@@ -6,7 +6,7 @@
 
 Validates: Requirements 4.1
 
-任意の有効なXYデータに対して、permutation_coef_test.pyの出力TSVは18特徴量すべてについて
+任意の有効なXYデータに対して、permutation_coef_test.pyの出力TSVは19特徴量すべてについて
 coef_obsとp_valueを含み、各p_valueは0以上1以下の範囲にある。
 """
 from __future__ import annotations
@@ -61,10 +61,10 @@ def test_permutation_coef_output_completeness(df: pd.DataFrame) -> None:
         seed=42,
     )
 
-    # Output should contain exactly 18 rows (one per feature)
-    assert len(result) == 18, f"Expected 18 rows, got {len(result)}"
+    # Output should contain exactly 19 rows (one per feature)
+    assert len(result) == 19, f"Expected 19 rows, got {len(result)}"
 
-    # All 18 features must be present
+    # All 19 features must be present
     assert set(result["feature"].tolist()) == set(ALL_FEATURES)
 
     # Required columns must exist

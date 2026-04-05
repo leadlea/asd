@@ -4,8 +4,8 @@
 
 Compare Ridge regression performance across three stages:
   - Stage 1: Demographics only (gender + age = 2 variables)
-  - Stage 2: Demographics + Classical features (2 + 9 = 11 variables)
-  - Stage 3: Demographics + Classical + Novel features (2 + 9 + 9 = 20 variables)
+  - Stage 2: Demographics + Classical features (2 + 10 = 12 variables)
+  - Stage 3: Demographics + Classical + Novel features (2 + 10 + 9 = 21 variables)
 
 Each stage uses Ridge (α=100) + 5-fold subject-wise CV + Permutation test.
 Δr between adjacent stages is computed.
@@ -44,9 +44,10 @@ CLASSICAL_FEATURES = [
     "PG_resp_gap_mean",
     "PG_resp_gap_p50",
     "PG_resp_gap_p90",
+    "PG_overlap_rate",       # 追加（CTRL→Classical復帰）
     "FILL_has_any",
     "FILL_rate_per_100chars",
-]  # 9
+]  # 10
 
 NOVEL_FEATURES = [
     "IX_oirmarker_rate",
@@ -54,11 +55,14 @@ NOVEL_FEATURES = [
     "IX_yesno_rate",
     "IX_yesno_after_question_rate",
     "IX_lex_overlap_mean",
-    "IX_topic_drift_mean",
+    # IX_topic_drift_mean 削除（IX_lex_overlap_meanとの完全共線性）
     "RESP_NE_AIZUCHI_RATE",
     "RESP_NE_ENTROPY",
     "RESP_YO_ENTROPY",
+    "PG_pause_variability",  # 追加（新規特徴量）
 ]  # 9
+
+ALL_FEATURES = CLASSICAL_FEATURES + NOVEL_FEATURES  # 19
 
 
 # ── Core functions (reused from confound_analysis.py / baseline_vs_extended.py) ──

@@ -42,12 +42,15 @@ TEACHER_DISPLAY = {
 FEATURE_COLUMNS = [
     "PG_speech_ratio", "PG_pause_mean", "PG_pause_p50", "PG_pause_p90",
     "PG_resp_gap_mean", "PG_resp_gap_p50", "PG_resp_gap_p90",
+    "PG_overlap_rate",       # 追加
     "FILL_has_any", "FILL_rate_per_100chars",
     "IX_oirmarker_rate", "IX_oirmarker_after_question_rate",
     "IX_yesno_rate", "IX_yesno_after_question_rate",
-    "IX_lex_overlap_mean", "IX_topic_drift_mean",
+    "IX_lex_overlap_mean",
+    # IX_topic_drift_mean 削除
     "RESP_NE_AIZUCHI_RATE", "RESP_NE_ENTROPY", "RESP_YO_ENTROPY",
-]
+    "PG_pause_variability",  # 追加
+]  # 19
 
 
 # ---------------------------------------------------------------------------
@@ -531,8 +534,8 @@ def gen_fig_baseline_vs_extended(results_dir: Path, out_dir: Path) -> None:
         → +Novel).  Kept for backward compatibility until Task 7.5 is complete.
 
     Reads all ``baseline_vs_extended_*.tsv`` files from *results_dir* and
-    draws a grouped bar chart comparing r_baseline (Classical 9 features)
-    vs r_extended (all 18 features) for each Big Five trait (O, C, E, A, N).
+    draws a grouped bar chart comparing r_baseline (Classical 10 features)
+    vs r_extended (all 19 features) for each Big Five trait (O, C, E, A, N).
     Δr is annotated above each pair.
 
     If multiple teachers exist for the same trait, values are averaged
@@ -591,12 +594,12 @@ def gen_fig_baseline_vs_extended(results_dir: Path, out_dir: Path) -> None:
     fig, ax = plt.subplots(figsize=(7, 4.5))
     bars_base = ax.bar(
         x - width / 2, r_base, width,
-        label="Baseline (Classical 9)",
+        label="Baseline (Classical 10)",
         color="#92c5de", edgecolor="white", linewidth=0.8,
     )
     bars_ext = ax.bar(
         x + width / 2, r_ext, width,
-        label="Extended (All 18)",
+        label="Extended (All 19)",
         color="#2166ac", edgecolor="white", linewidth=0.8,
     )
 
@@ -615,7 +618,7 @@ def gen_fig_baseline_vs_extended(results_dir: Path, out_dir: Path) -> None:
     ax.set_xticklabels(traits, fontsize=12)
     ax.set_ylabel("Observed correlation ($r_{obs}$)", fontsize=12)
     ax.set_title(
-        "Baseline (Classical 9) vs Extended (All 18) Model Comparison",
+        "Baseline (Classical 10) vs Extended (All 19) Model Comparison",
         fontsize=13, pad=10,
     )
     y_max = max(max(r_base), max(r_ext)) if traits else 0.5
@@ -882,7 +885,7 @@ def gen_fig_teacher_corr_matrix(results_dir: Path, out_dir: Path) -> None:
 def gen_tab_descriptive_stats(features_parquet: Path, out_dir: Path) -> None:
     """Generate descriptive statistics LaTeX table. [Task 1.6]
 
-    Computes N, mean, SD, p50, p90 for each of the 18 FEATURE_COLUMNS
+    Computes N, mean, SD, p50, p90 for each of the 19 FEATURE_COLUMNS
     and writes a booktabs-style LaTeX tabular to tab_descriptive_stats.tex.
 
     Parameters
@@ -930,13 +933,13 @@ def gen_descriptive_stats_full_table(features_df: pd.DataFrame, out_dir: Path) -
     """Generate extended descriptive statistics LaTeX table. [Task 10.3]
 
     Computes 8 statistics (N, mean, SD, min, p25, p50, p75, max)
-    for each of the 18 FEATURE_COLUMNS and writes a booktabs-style
+    for each of the 19 FEATURE_COLUMNS and writes a booktabs-style
     LaTeX tabular to tab_descriptive_stats_full.tex.
 
     Parameters
     ----------
     features_df : pd.DataFrame
-        DataFrame containing the 18 feature columns.
+        DataFrame containing the 19 feature columns.
     out_dir : Path
         Directory where tab_descriptive_stats_full.tex will be saved.
 
@@ -993,7 +996,7 @@ def gen_descriptive_stats_full_table(features_df: pd.DataFrame, out_dir: Path) -
 
 
 def gen_feature_distribution(features_df: pd.DataFrame, out_dir: Path) -> None:
-    """Generate violin plot of 18 feature distributions grouped by category.
+    """Generate violin plot of 19 feature distributions grouped by category.
 
     Creates a multi-panel figure (one panel per category: PG/FILL/IX/RESP)
     showing the distribution of each feature as a violin plot.
@@ -1001,7 +1004,7 @@ def gen_feature_distribution(features_df: pd.DataFrame, out_dir: Path) -> None:
     Parameters
     ----------
     features_df : pd.DataFrame
-        DataFrame containing the 18 feature columns.
+        DataFrame containing the 19 feature columns.
     out_dir : Path
         Directory where fig_feature_distribution.png will be saved.
     """
@@ -1009,7 +1012,7 @@ def gen_feature_distribution(features_df: pd.DataFrame, out_dir: Path) -> None:
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
 
-    # Group the 18 FEATURE_COLUMNS by category prefix (PG/FILL/IX/RESP)
+    # Group the 19 FEATURE_COLUMNS by category prefix (PG/FILL/IX/RESP)
     categories = ["PG", "FILL", "IX", "RESP"]
     cat_feats: dict[str, list[str]] = {c: [] for c in categories}
     cat_summaries: dict[str, list[str]] = {c: [] for c in categories}
@@ -1079,7 +1082,7 @@ def gen_feature_distribution(features_df: pd.DataFrame, out_dir: Path) -> None:
         ax.spines["right"].set_visible(False)
         ax.tick_params(axis="y", labelsize=9)
 
-    fig.suptitle("Distribution of 18 Interaction Features by Category",
+    fig.suptitle("Distribution of 19 Interaction Features by Category",
                  fontsize=13, fontweight="bold", y=1.02)
     fig.tight_layout()
     out_path = out_dir / "fig_feature_distribution.png"
@@ -1090,7 +1093,7 @@ def gen_feature_distribution(features_df: pd.DataFrame, out_dir: Path) -> None:
 def gen_corr_heatmap_block(features_df: pd.DataFrame, out_dir: Path) -> None:
     """Generate correlation heatmap with category block structure. [Task 10.4]
 
-    Computes the Pearson correlation matrix for the 18 FEATURE_COLUMNS,
+    Computes the Pearson correlation matrix for the 19 FEATURE_COLUMNS,
     orders them by category (PG → FILL → IX → RESP), draws a heatmap
     with category boundary lines, and saves both the PNG figure and a
     LaTeX tabular of the full correlation matrix.
@@ -1098,7 +1101,7 @@ def gen_corr_heatmap_block(features_df: pd.DataFrame, out_dir: Path) -> None:
     Parameters
     ----------
     features_df : pd.DataFrame
-        DataFrame containing the 18 feature columns.
+        DataFrame containing the 19 feature columns.
     out_dir : Path
         Directory where fig_corr_heatmap_block.png and tab_corr_matrix.tex
         will be saved.
@@ -1207,9 +1210,9 @@ def gen_corr_heatmap_block(features_df: pd.DataFrame, out_dir: Path) -> None:
 def _gen_tab_corr_matrix(
     corr: pd.DataFrame, ordered_cols: list[str], out_dir: Path
 ) -> None:
-    """Write the full 18×18 correlation matrix as a LaTeX tabular.
+    """Write the full 19×19 correlation matrix as a LaTeX tabular.
 
-    Uses small font and landscape-friendly formatting since 18×18 is large.
+    Uses small font and landscape-friendly formatting since 19×19 is large.
     Correlations are rounded to 2 decimal places.
 
     Parameters
@@ -1293,13 +1296,13 @@ def gen_metadata_gender(
 ) -> None:
     """Generate gender × feature violin plots with Mann-Whitney U tests. [Task 10.5]
 
-    For each of the 18 features, draws side-by-side violin plots for M vs F
+    For each of the 19 features, draws side-by-side violin plots for M vs F
     and annotates each subplot with the Mann-Whitney U statistic and p-value.
 
     Parameters
     ----------
     features_df : pd.DataFrame
-        DataFrame containing the 18 feature columns and ``speaker_id``.
+        DataFrame containing the 19 feature columns and ``speaker_id``.
     metadata_df : pd.DataFrame
         DataFrame containing at least ``speaker_id`` and ``gender`` columns.
     out_dir : Path
@@ -1415,13 +1418,13 @@ def gen_metadata_age(
 ) -> None:
     """Generate age × feature scatter plots with correlation annotations. [Task 10.5]
 
-    For each of the 18 features, draws a scatter plot of age vs feature value,
+    For each of the 19 features, draws a scatter plot of age vs feature value,
     overlays a regression line, and annotates with Pearson r and Spearman rho.
 
     Parameters
     ----------
     features_df : pd.DataFrame
-        DataFrame containing the 18 feature columns and ``speaker_id``.
+        DataFrame containing the 19 feature columns and ``speaker_id``.
     metadata_df : pd.DataFrame
         DataFrame containing at least ``speaker_id`` and ``age`` columns.
     out_dir : Path
@@ -1531,7 +1534,7 @@ def gen_tab_metadata_tests(
     Parameters
     ----------
     features_df : pd.DataFrame
-        DataFrame containing the 18 feature columns and ``speaker_id``.
+        DataFrame containing the 19 feature columns and ``speaker_id``.
     metadata_df : pd.DataFrame
         DataFrame containing at least ``speaker_id`` and optionally
         ``gender`` and ``age`` columns.
@@ -1824,7 +1827,7 @@ def gen_tab_baseline_vs_extended(results_dir: Path, out_dir: Path) -> None:
 def gen_tab_feature_definitions(out_dir: Path) -> None:
     """Generate feature definitions LaTeX table with Classification column.
 
-    Outputs a booktabs-style LaTeX longtable with 18 rows (explanatory
+    Outputs a booktabs-style LaTeX longtable with 19 rows (explanatory
     features only), each containing: Name, Cat., Class., Summary, Algorithm.
 
     The feature data is sourced from ``feature_definitions.py`` via
@@ -2092,7 +2095,7 @@ def gen_fig_bootstrap_variance(results_dir: Path, out_dir: Path) -> None:
     """Generate forest plot of bootstrap coefficient stability (coef_mean ± 95% CI).
 
     Reads ``bootstrap_variance_*.tsv`` files and draws a horizontal forest
-    plot: each of the 18 features is a row, with a point at coef_mean and
+    plot: each of the 19 features is a row, with a point at coef_mean and
     a horizontal bar spanning [ci_lower, ci_upper].  A vertical reference
     line at x=0 is drawn.  Features where ci_excludes_zero is True are
     highlighted with a distinct colour and bold label.

@@ -3,8 +3,8 @@
 """Baseline vs Extended model comparison.
 
 Compare Ridge regression performance between:
-  - Baseline: Classical features only (PG 7 + FILL 2 = 9 features)
-  - Extended: All 18 features (Classical 9 + Novel 9)
+  - Baseline: Classical features only (PG 8 + FILL 2 = 10 features)
+  - Extended: All 19 features (Classical 10 + Novel 9)
 
 Both models use Ridge (α=100) + 5-fold subject-wise CV + Permutation test.
 
@@ -36,9 +36,10 @@ CLASSICAL_FEATURES = [
     "PG_resp_gap_mean",
     "PG_resp_gap_p50",
     "PG_resp_gap_p90",
+    "PG_overlap_rate",       # 追加（CTRL→Classical復帰）
     "FILL_has_any",
     "FILL_rate_per_100chars",
-]  # 9
+]  # 10
 
 NOVEL_FEATURES = [
     "IX_oirmarker_rate",
@@ -46,13 +47,14 @@ NOVEL_FEATURES = [
     "IX_yesno_rate",
     "IX_yesno_after_question_rate",
     "IX_lex_overlap_mean",
-    "IX_topic_drift_mean",
+    # IX_topic_drift_mean 削除（IX_lex_overlap_meanとの完全共線性）
     "RESP_NE_AIZUCHI_RATE",
     "RESP_NE_ENTROPY",
     "RESP_YO_ENTROPY",
+    "PG_pause_variability",  # 追加（新規特徴量）
 ]  # 9
 
-ALL_FEATURES = CLASSICAL_FEATURES + NOVEL_FEATURES  # 18
+ALL_FEATURES = CLASSICAL_FEATURES + NOVEL_FEATURES  # 19
 
 
 # ── Core functions (same logic as permutation_test_ridge_fixedalpha.py) ──
@@ -108,7 +110,7 @@ def run_permutation_test(X, y, folds, seed, alpha, n_perm):
 # ── Main ─────────────────────────────────────────────────────────────
 def main():
     ap = argparse.ArgumentParser(
-        description="Baseline (Classical 9) vs Extended (all 18) Ridge comparison"
+        description="Baseline (Classical 10) vs Extended (all 19) Ridge comparison"
     )
     ap.add_argument("--xy_parquet", required=True, help="XY dataset parquet path")
     ap.add_argument("--y_col", required=True, help="Target column name (e.g. Y_C)")

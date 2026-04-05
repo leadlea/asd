@@ -3,8 +3,8 @@
 """Confound variable control analysis.
 
 Compare Ridge regression performance between:
-  - Model A: 18 features only (same as existing)
-  - Model B: 18 features + gender + age (20 explanatory variables)
+  - Model A: 19 features only (Classical 10 + Novel 9)
+  - Model B: 19 features + gender + age (21 explanatory variables)
 
 Both models use Ridge (α=100) + 5-fold subject-wise CV + Permutation test.
 
@@ -37,9 +37,10 @@ CLASSICAL_FEATURES = [
     "PG_resp_gap_mean",
     "PG_resp_gap_p50",
     "PG_resp_gap_p90",
+    "PG_overlap_rate",
     "FILL_has_any",
     "FILL_rate_per_100chars",
-]  # 9
+]  # 10
 
 NOVEL_FEATURES = [
     "IX_oirmarker_rate",
@@ -47,13 +48,13 @@ NOVEL_FEATURES = [
     "IX_yesno_rate",
     "IX_yesno_after_question_rate",
     "IX_lex_overlap_mean",
-    "IX_topic_drift_mean",
     "RESP_NE_AIZUCHI_RATE",
     "RESP_NE_ENTROPY",
     "RESP_YO_ENTROPY",
+    "PG_pause_variability",
 ]  # 9
 
-ALL_FEATURES = CLASSICAL_FEATURES + NOVEL_FEATURES  # 18
+ALL_FEATURES = CLASSICAL_FEATURES + NOVEL_FEATURES  # 19
 
 
 # ── Core functions (same logic as permutation_test_ridge_fixedalpha.py) ──
@@ -199,7 +200,7 @@ def load_and_join_metadata(
 def main():
     ap = argparse.ArgumentParser(
         description="Confound variable control analysis: "
-        "18 features only vs 18 features + gender + age"
+        "19 features only vs 19 features + gender + age"
     )
     ap.add_argument("--xy_parquet", required=True, help="XY dataset parquet path")
     ap.add_argument("--y_col", required=True, help="Target column name (e.g. Y_C)")
@@ -245,7 +246,7 @@ def main():
     if missing_features:
         raise KeyError(f"Missing feature columns: {missing_features}")
 
-    # ── Model A: 18 features only ────────────────────────────────────
+    # ── Model A: 19 features only ────────────────────────────────────
     print(f"\n{'='*60}")
     print(f"  Model A: {len(ALL_FEATURES)} features only")
     print(f"  y_col={args.y_col}, N={len(y)}")
@@ -261,7 +262,7 @@ def main():
     )
     print(f"  r_features_only = {r_features:.3f}, p = {p_features:.4f}")
 
-    # ── Model B: 18 features + confounds ─────────────────────────────
+    # ── Model B: 19 features + confounds ─────────────────────────────
     r_with_confounds = float("nan")
     p_with_confounds = float("nan")
     delta_r = float("nan")

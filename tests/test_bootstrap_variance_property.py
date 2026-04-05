@@ -7,7 +7,7 @@
 Validates: Requirements 4.2, 4.3, 4.4
 
 任意の有効なXYデータに対して、bootstrap_variance.pyの出力は以下を満たす:
-(a) 18特徴量すべてについてcoef_mean, coef_sd, ci_lower, ci_upperが含まれる
+(a) 19特徴量すべてについてcoef_mean, coef_sd, ci_lower, ci_upperが含まれる
 (b) ci_lower <= coef_mean <= ci_upperが成り立つ
 (c) ci_excludes_zeroがTrueであるのは、ci_lower > 0 または ci_upper < 0 の場合に限る
 """
@@ -63,8 +63,8 @@ def test_bootstrap_variance_ci_correctness(df: pd.DataFrame) -> None:
         seed=42,
     )
 
-    # (a) 18特徴量すべてについてcoef_mean, coef_sd, ci_lower, ci_upperが含まれる
-    assert len(result) == 18, f"Expected 18 rows, got {len(result)}"
+    # (a) 19特徴量すべてについてcoef_mean, coef_sd, ci_lower, ci_upperが含まれる
+    assert len(result) == 19, f"Expected 19 rows, got {len(result)}"
     assert set(result["feature"].tolist()) == set(ALL_FEATURES)
 
     for col in ("coef_mean", "coef_sd", "ci_lower", "ci_upper", "ci_excludes_zero"):

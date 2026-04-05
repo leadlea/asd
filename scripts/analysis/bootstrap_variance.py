@@ -2,13 +2,13 @@
 # -*- coding: utf-8 -*-
 """Bootstrap variance analysis for Ridge regression coefficients.
 
-For each of the 18 features, compute the mean, SD, and 95% CI of Ridge
-regression coefficients across 500 bootstrap resamples (sampling N rows
-WITH replacement from the dataset).
+For each of the 19 features (Classical 10 + Novel 9), compute the mean,
+SD, and 95% CI of Ridge regression coefficients across 500 bootstrap
+resamples (sampling N rows WITH replacement from the dataset).
 
 For each bootstrap sample, fit Ridge(alpha=100) on the FULL bootstrap
 sample (no CV needed), using SimpleImputer(median) + StandardScaler
-before Ridge fit.  Record the 18 coefficients for each iteration.
+before Ridge fit.  Record the 19 coefficients for each iteration.
 
 After all iterations: compute mean, SD, 2.5th percentile, 97.5th
 percentile for each feature.  ci_excludes_zero = True if ci_lower > 0
@@ -41,9 +41,10 @@ CLASSICAL_FEATURES = [
     "PG_resp_gap_mean",
     "PG_resp_gap_p50",
     "PG_resp_gap_p90",
+    "PG_overlap_rate",       # 追加（CTRL→Classical復帰）
     "FILL_has_any",
     "FILL_rate_per_100chars",
-]  # 9
+]  # 10
 
 NOVEL_FEATURES = [
     "IX_oirmarker_rate",
@@ -51,13 +52,14 @@ NOVEL_FEATURES = [
     "IX_yesno_rate",
     "IX_yesno_after_question_rate",
     "IX_lex_overlap_mean",
-    "IX_topic_drift_mean",
+    # IX_topic_drift_mean 削除（IX_lex_overlap_meanとの完全共線性）
     "RESP_NE_AIZUCHI_RATE",
     "RESP_NE_ENTROPY",
     "RESP_YO_ENTROPY",
+    "PG_pause_variability",  # 追加（新規特徴量）
 ]  # 9
 
-ALL_FEATURES = CLASSICAL_FEATURES + NOVEL_FEATURES  # 18
+ALL_FEATURES = CLASSICAL_FEATURES + NOVEL_FEATURES  # 19
 
 
 # ── Core testable function ───────────────────────────────────────────
@@ -73,7 +75,7 @@ def run_bootstrap_variance(
 
     For each bootstrap iteration, sample N rows WITH replacement from the
     dataset, fit Ridge(alpha) on the full bootstrap sample (with
-    SimpleImputer + StandardScaler), and record the 18 coefficients.
+    SimpleImputer + StandardScaler), and record the 19 coefficients.
 
     After all iterations: compute mean, SD, 2.5th/97.5th percentiles
     (95% CI) for each feature.
@@ -193,7 +195,7 @@ def run_bootstrap_variance(
 def main():
     ap = argparse.ArgumentParser(
         description="Bootstrap variance analysis on Ridge regression "
-        "coefficients (18 features, full-data fit per resample)"
+        "coefficients (19 features, full-data fit per resample)"
     )
     ap.add_argument("--xy_parquet", required=True, help="XY dataset parquet path")
     ap.add_argument("--y_col", required=True, help="Target column name (e.g. Y_C)")

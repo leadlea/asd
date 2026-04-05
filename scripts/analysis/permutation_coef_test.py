@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """Permutation coefficient test for Ridge regression.
 
-For each of the 18 features, test whether the observed Ridge regression
+For each of the 19 features, test whether the observed Ridge regression
 coefficient is significantly different from zero using a permutation test.
 
 Unlike the CV-based permutation test (permutation_test_ridge_fixedalpha.py),
@@ -39,9 +39,10 @@ CLASSICAL_FEATURES = [
     "PG_resp_gap_mean",
     "PG_resp_gap_p50",
     "PG_resp_gap_p90",
+    "PG_overlap_rate",       # 追加（CTRL→Classical復帰）
     "FILL_has_any",
     "FILL_rate_per_100chars",
-]  # 9
+]  # 10
 
 NOVEL_FEATURES = [
     "IX_oirmarker_rate",
@@ -49,13 +50,14 @@ NOVEL_FEATURES = [
     "IX_yesno_rate",
     "IX_yesno_after_question_rate",
     "IX_lex_overlap_mean",
-    "IX_topic_drift_mean",
+    # IX_topic_drift_mean 削除（IX_lex_overlap_meanとの完全共線性）
     "RESP_NE_AIZUCHI_RATE",
     "RESP_NE_ENTROPY",
     "RESP_YO_ENTROPY",
+    "PG_pause_variability",  # 追加（新規特徴量）
 ]  # 9
 
-ALL_FEATURES = CLASSICAL_FEATURES + NOVEL_FEATURES  # 18
+ALL_FEATURES = CLASSICAL_FEATURES + NOVEL_FEATURES  # 19
 
 
 # ── Core testable function ───────────────────────────────────────────
@@ -150,7 +152,7 @@ def run_permutation_coef_test(
 def main():
     ap = argparse.ArgumentParser(
         description="Permutation test on Ridge regression coefficients "
-        "(18 features, full-data fit)"
+        "(19 features, full-data fit)"
     )
     ap.add_argument("--xy_parquet", required=True, help="XY dataset parquet path")
     ap.add_argument("--y_col", required=True, help="Target column name (e.g. Y_C)")

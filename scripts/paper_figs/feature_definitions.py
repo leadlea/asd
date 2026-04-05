@@ -1,4 +1,4 @@
-"""18 interaction feature definitions + EXCL3 control variables.
+"""19 interaction feature definitions + EXCL3 control variables.
 
 Derived from ``scripts/analysis/extract_interaction_features_min.py``.
 Each entry documents name, category, summary, algorithm, and whether
@@ -33,7 +33,8 @@ class FeatureDefinition:
 
 
 # ------------------------------------------------------------------
-# 18 explanatory features (is_control=False)
+# 19 explanatory features (is_control=False)
+# Classical: 10 (PG 8 + FILL 2), Novel: 9 (IX 5 + RESP 3 + PG_pause_variability)
 # ------------------------------------------------------------------
 _EXPLANATORY: List[FeatureDefinition] = [
     FeatureDefinition(
@@ -136,6 +137,14 @@ _EXPLANATORY: List[FeatureDefinition] = [
         classification="Classical",
     ),
     FeatureDefinition(
+        name="PG_overlap_rate",
+        category="PG",
+        summary="Overlap rate",
+        algorithm="Proportion of turn-taking gaps < -gap_tol (overlaps).",
+        is_control=False,
+        classification="Classical",
+    ),
+    FeatureDefinition(
         name="IX_oirmarker_rate",
         category="IX",
         summary="OIR marker rate",
@@ -192,17 +201,6 @@ _EXPLANATORY: List[FeatureDefinition] = [
         classification="Novel",
     ),
     FeatureDefinition(
-        name="IX_topic_drift_mean",
-        category="IX",
-        summary="Topic drift",
-        algorithm=(
-            "1 - IX_lex_overlap_mean. Collinear with "
-            "IX_lex_overlap_mean by construction."
-        ),
-        is_control=False,
-        classification="Novel",
-    ),
-    FeatureDefinition(
         name="RESP_NE_AIZUCHI_RATE",
         category="RESP",
         summary="Post-NE aizuchi rate",
@@ -236,12 +234,36 @@ _EXPLANATORY: List[FeatureDefinition] = [
         is_control=False,
         classification="Novel",
     ),
+    FeatureDefinition(
+        name="PG_pause_variability",
+        category="PG",
+        summary="Pause duration CV",
+        algorithm=(
+            "Coefficient of variation (std / mean) of intra-speaker "
+            "pause durations. NaN if fewer than 2 pauses or mean is 0."
+        ),
+        is_control=False,
+        classification="Novel",
+    ),
 ]
 
 # ------------------------------------------------------------------
 # EXCL3 control variables (is_control=True)
+# 13 controls: IX_topic_drift_mean (collinear) + 12 original controls
+# (PG_overlap_rate moved to explanatory)
 # ------------------------------------------------------------------
 _CONTROLS: List[FeatureDefinition] = [
+    FeatureDefinition(
+        name="IX_topic_drift_mean",
+        category="IX",
+        summary="Topic drift",
+        algorithm=(
+            "1 - IX_lex_overlap_mean. Collinear with "
+            "IX_lex_overlap_mean by construction."
+        ),
+        is_control=True,
+        classification="Control",
+    ),
     FeatureDefinition(
         name="n_pairs_total",
         category="CTRL",
@@ -287,14 +309,6 @@ _CONTROLS: List[FeatureDefinition] = [
         category="CTRL",
         summary="Total conversation time",
         algorithm="end_time.max() - start_time.min() for the conversation.",
-        is_control=True,
-        classification="Control",
-    ),
-    FeatureDefinition(
-        name="PG_overlap_rate",
-        category="CTRL",
-        summary="Overlap rate",
-        algorithm="Proportion of turn-taking gaps < -gap_tol (overlaps).",
         is_control=True,
         classification="Control",
     ),
@@ -353,19 +367,19 @@ _CONTROLS: List[FeatureDefinition] = [
 # ------------------------------------------------------------------
 
 FEATURE_DEFINITIONS: List[FeatureDefinition] = _EXPLANATORY + _CONTROLS
-"""All feature definitions (18 explanatory + 13 controls)."""
+"""All feature definitions (19 explanatory + 13 controls)."""
 
 
 def get_explanatory_features() -> List[FeatureDefinition]:
-    """Return only the 18 explanatory features (is_control=False)."""
+    """Return only the 19 explanatory features (is_control=False)."""
     return [f for f in FEATURE_DEFINITIONS if not f.is_control]
 
 
 def get_classical_features() -> List[FeatureDefinition]:
-    """Return Classical features (PG + FILL, 9 features)."""
+    """Return Classical features (PG + FILL, 10 features)."""
     return [f for f in FEATURE_DEFINITIONS if f.classification == "Classical"]
 
 
 def get_novel_features() -> List[FeatureDefinition]:
-    """Return Novel features (IX + RESP, 9 features)."""
+    """Return Novel features (IX + RESP + PG_pause_variability, 9 features)."""
     return [f for f in FEATURE_DEFINITIONS if f.classification == "Novel"]
