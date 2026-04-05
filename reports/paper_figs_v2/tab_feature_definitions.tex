@@ -13,15 +13,16 @@ PG\_resp\_gap\_p50 & PG & Classical & Median response gap & 50th percentile of t
 PG\_resp\_gap\_p90 & PG & Classical & 90th percentile response gap & 90th percentile of turn-taking gaps. NaN if no qualifying gaps. \\
 FILL\_has\_any & FILL & Classical & Filler utterance rate & Proportion of speaker's utterances containing $\geq$1 filler (etto/ee/ano). NaN if speaker has no utterances. \\
 FILL\_rate\_per\_100chars & FILL & Classical & Filler rate per 100 chars & Total filler count / (text character count / 100). NaN if text\_len is 0. \\
+PG\_overlap\_rate & PG & Classical & Overlap rate & Proportion of turn-taking gaps < -gap\_tol (overlaps). \\
 IX\_oirmarker\_rate & IX & Novel & OIR marker rate & Proportion of responses starting with OIR markers (e?/eQ/nani? etc). Computed over all adjacent pairs where speaker is responder. \\
 IX\_oirmarker\_after\_question\_rate & IX & Novel & Post-question OIR rate & OIR marker rate when previous utterance is a question. NaN if no question-preceded pairs. \\
 IX\_yesno\_rate & IX & Novel & Yes/No response rate & Proportion of responses starting with yes/no prefixes (hai/un/ee/iie etc). \\
 IX\_yesno\_after\_question\_rate & IX & Novel & Post-question Yes/No rate & Yes/No rate when previous utterance is a question. NaN if no question-preceded pairs. \\
 IX\_lex\_overlap\_mean & IX & Novel & Lexical overlap & Mean character-bigram Jaccard coefficient between previous utterance and response. \\
-IX\_topic\_drift\_mean & IX & Novel & Topic drift & 1 - IX\_lex\_overlap\_mean. Collinear with IX\_lex\_overlap\_mean by construction. \\
 RESP\_NE\_AIZUCHI\_RATE & RESP & Novel & Post-NE aizuchi rate & Proportion of responses that start with aizuchi prefixes when previous utterance ends with NE particle. NaN if n\_pairs\_after\_NE is 0. \\
 RESP\_NE\_ENTROPY & RESP & Novel & Post-NE response entropy & Shannon entropy of response-initial tokens after NE sentence-final particle. NaN if n\_pairs\_after\_NE is 0. \\
 RESP\_YO\_ENTROPY & RESP & Novel & Post-YO response entropy & Shannon entropy of response-initial tokens after YO sentence-final particle. NaN if n\_pairs\_after\_YO is 0. \\
+PG\_pause\_variability & PG & Novel & Pause duration CV & Coefficient of variation (std / mean) of intra-speaker pause durations. NaN if fewer than 2 pauses or mean is 0. \\
 \bottomrule
 \end{longtable}
 }
