@@ -1726,27 +1726,47 @@ def gen_tab_ensemble_permutation(results_dir: Path, out_dir: Path) -> None:
     df = df.set_index("trait").loc[trait_order].reset_index()
 
     rows: list[str] = []
+    has_corrected = "p_corrected" in df.columns
     for _, row in df.iterrows():
         trait = row["trait"]
         r_obs = row["r_obs"]
         p_val = row["p_value"]
+        p_corr = row["p_corrected"] if has_corrected else None
         r_str = f"{r_obs:.3f}"
         p_str = f"{p_val:.4f}"
-        if p_val < 0.05:
+        pc_str = f"{p_corr:.4f}" if p_corr is not None else "---"
+        # Bold based on corrected p if available, else uncorrected
+        is_sig = (p_corr < 0.05) if p_corr is not None else (p_val < 0.05)
+        if is_sig:
             r_str = f"\\textbf{{{r_str}}}"
             p_str = f"\\textbf{{{p_str}}}"
-        rows.append(f"{trait} & {r_str} & {p_str} \\\\")
+            pc_str = f"\\textbf{{{pc_str}}}"
+        if has_corrected:
+            rows.append(f"{trait} & {r_str} & {p_str} & {pc_str} \\\\")
+        else:
+            rows.append(f"{trait} & {r_str} & {p_str} \\\\")
 
     body = "\n".join(rows)
-    latex = (
-        "\\begin{tabular}{lcc}\n"
-        "\\toprule\n"
-        "Trait & $r_{obs}$ & $p$-value \\\\\n"
-        "\\midrule\n"
-        f"{body}\n"
-        "\\bottomrule\n"
-        "\\end{tabular}\n"
-    )
+    if has_corrected:
+        latex = (
+            "\\begin{tabular}{lccc}\n"
+            "\\toprule\n"
+            "Trait & $r_{obs}$ & $p$-value & $p_{corrected}$ \\\\\n"
+            "\\midrule\n"
+            f"{body}\n"
+            "\\bottomrule\n"
+            "\\end{tabular}\n"
+        )
+    else:
+        latex = (
+            "\\begin{tabular}{lcc}\n"
+            "\\toprule\n"
+            "Trait & $r_{obs}$ & $p$-value \\\\\n"
+            "\\midrule\n"
+            f"{body}\n"
+            "\\bottomrule\n"
+            "\\end{tabular}\n"
+        )
 
     out_path = out_dir / "tab_ensemble_permutation.tex"
     out_path.parent.mkdir(parents=True, exist_ok=True)
