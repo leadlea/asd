@@ -1,6 +1,6 @@
 # 日本語会話における相互行為特徴量の定量化指標
 
-日本語日常会話コーパス（CEJC）から抽出した **18の相互行為特徴量** を体系化し、
+日本語日常会話コーパス（CEJC）から抽出した **19の相互行為特徴量** を体系化し、
 LLM仮想教師によるBig Five性格スコアとの関連を通じて指標の妥当性を検証する研究リポジトリ。
 
 - 研究者: 福原玄（Lead lea）、山下祐一（NCNP）、宗田卓史（NCNP）
@@ -9,32 +9,71 @@ LLM仮想教師によるBig Five性格スコアとの関連を通じて指標の
 
 ---
 
+## 対応状況（2026-04-07 更新）
+
+| 項目 | 状態 | 備考 |
+|------|------|------|
+| IX\_topic\_drift\_mean除外 | ✅ 完了 | 統制変数に移動、完全共線性（r=-1.00）の理由をMethod節に明記 |
+| 多重比較補正（Holm-Bonferroni） | ✅ 完了 | 補正後もO/C/A/Nの4次元が有意維持 |
+| Novel特徴量の先行研究整理 | ✅ 完了 | Kendrick 2015, Meylan & Gahl 2014, Kita & Ide 2007, Dindar et al. 2022等追加 |
+| 新規特徴量追加 | ✅ 完了 | PG\_overlap\_rate復帰（Levitan et al. 2012）、PG\_pause\_variability追加 → 計19特徴量 |
+| 感度分析 | ✅ 完了 | gap\_tol 6条件、YES/NOリスト 2条件、NE/YOマッチング 3条件 |
+| LLMベースライン検証（パイプライン） | ✅ 完了 | 3条件比較スクリプト・論文骨格（Method/Results/Discussion）実装済み |
+| LLMベースライン検証（LLM採点） | 🔄 実行中 | 4教師×5trait×2条件=40回を8並列でBedrock実行中（明朝完了見込み） |
+| LLMベースライン検証（ensemble + 比較テーブル） | ⏳ 待ち | LLM採点完了後に実行 → 論文の数値更新 |
+
+---
+
 ## 研究概要
 
-1. CEJC home2サブセット（N=120）から **4カテゴリ18特徴量** を再現可能に計測
-   - **Classical（既存研究ベース 9個）**: PG（タイミング7変数）+ FILL（フィラー2変数）
-   - **Novel（新規提案 9個）**: IX（相互行為6変数）+ RESP（応答型3変数）
+1. CEJC home2サブセット（N=120）から **4カテゴリ19特徴量** を再現可能に計測
+   - **Classical（既存研究ベース 10個）**: PG（タイミング8変数）+ FILL（フィラー2変数）
+   - **Novel（新規提案 9個）**: IX（相互行為5変数）+ RESP（応答型3変数）+ PG\_pause\_variability
 2. 4つのLLM（Sonnet4, Qwen3-235B, DeepSeek-V3, GPT-OSS-120B）で Big Five を仮想教師として採点
-3. **アンサンブルBig5**（4教師item-level平均）を主結果として報告 → **5次元中4次元（O, C, A, N）で有意**
+3. **アンサンブルBig5**（4教師item-level平均）を主結果として報告 → **Holm補正後も5次元中4次元（O, C, A, N）で有意**
 4. Ridge回帰 + permutation test（5000回）+ bootstrap（500回）で頑健性を検証
 5. **3段階Ridge回帰比較**（人口統計のみ → +Classical → +Novel）で段階的な追加効果を定量化
 6. **Permutation回帰係数検定** + **Bootstrap分散分析**（SD/CIベース）の2本立てで寄与特徴量を同定
 7. 交絡統制（性別・年齢）後も **Cの有意性が維持**（3/4教師、平均Δr=+0.026）
 8. **話者重複の定量報告**: 74名ユニーク話者/25名重複（59.2%）、subject-wise splitで対処
+9. **感度分析**: gap\_tol / YES/NOリスト / NE/YOマッチングの3軸でCの頑健性を確認
+10. **LLMベースライン検証**: 3条件比較（テキストあり / 要約のみ / ランダムテキスト）でLLMの内容依存性を検証（実行中）
 
 ---
 
 ## 主要結果
 
-### アンサンブルBig5 Permutation Test
+### アンサンブルBig5 Permutation Test（19特徴量、Holm補正後）
 
-| Trait | r_obs | p値 | 有意? |
-|-------|-------|-----|-------|
-| O（開放性） | 0.360 | 0.0048 | ✅ |
-| **C（誠実性）** | **0.447** | **0.0004** | ✅ |
-| E（外向性） | 0.217 | 0.0902 | ❌ |
-| A（協調性） | 0.465 | 0.0004 | ✅ |
-| N（神経症傾向） | 0.309 | 0.0152 | ✅ |
+| Trait | r_obs | p値 | p値(補正後) | 有意? |
+|-------|-------|-----|------------|-------|
+| O（開放性） | 0.410 | 0.0014 | 0.0042 | ✅ |
+| **C（誠実性）** | **0.432** | **0.0006** | **0.0024** | ✅ |
+| E（外向性） | 0.234 | 0.0658 | 0.0658 | ❌ |
+| A（協調性） | 0.449 | 0.0004 | 0.0020 | ✅ |
+| N（神経症傾向） | 0.317 | 0.0122 | 0.0244 | ✅ |
+
+> v3→v4でOが0.360→0.410に改善。PG\_overlap\_rate復帰の効果が大きい。
+
+### 感度分析（Cの頑健性）
+
+| パラメータ | 条件数 | Cのr\_obs範囲 | 結果 |
+|-----------|--------|-------------|------|
+| gap\_tol | 6条件 (0.01〜1.0) | 0.426〜0.432 | 全条件 p≤0.001、閾値選択に対して頑健 |
+| YES/NOリスト | 2条件 (narrow/broad) | 0.424〜0.432 | 差はわずか |
+| NE/YOマッチング | 3条件 | 0.432〜0.434 | ほぼ同一 |
+
+### LLMベースライン検証（3条件比較）🔄 結果待ち
+
+LLMが会話テキストの**内容**に基づいて性格推定しているか、**表層的統計量**のみに依存しているかを検証。
+
+| 条件 | 内容 | 状態 |
+|------|------|------|
+| 条件1（テキストあり） | 会話テキスト全文を提示（既存結果を再利用） | ✅ |
+| 条件2（要約のみ） | 発話数・平均発話長・会話長・フィラー数の4統計量のみ | 🔄 LLM採点実行中 |
+| 条件3（ランダムテキスト） | 別話者のテキストを割当（derangement, seed=42） | 🔄 LLM採点実行中 |
+
+期待パターン: 条件1 >> 条件2 ≈ 条件3 → LLMは会話内容を利用していると解釈
 
 ### 個別教師結果（C: 誠実性）
 - Sonnet4: r=0.434, p=0.0008 ✅
@@ -118,7 +157,8 @@ LLM仮想教師によるBig Five性格スコアとの関連を通じて指標の
 ├── paper1_ja.tex              # 論文本体（LaTeX）
 ├── paper1_ja.pdf              # コンパイル済みPDF
 ├── scripts/
-│   ├── analysis/              # 統計分析（Ridge回帰・permutation・bootstrap・交絡統制）
+│   ├── analysis/              # 統計分析（Ridge回帰・permutation・bootstrap・交絡統制・感度分析）
+│   ├── baseline/              # LLMベースライン検証（3条件比較パイプライン）
 │   ├── paper_figs/            # 論文用図表生成スクリプト
 │   ├── big5/                  # LLMによるBig5採点（Bedrock経由）
 │   ├── cejc/                  # CEJCコーパス前処理（話者メタデータビルド含む）
@@ -126,7 +166,8 @@ LLM仮想教師によるBig Five性格スコアとの関連を通じて指標の
 ├── artifacts/
 │   ├── analysis/datasets/     # 分析用データセット（parquet）
 │   ├── analysis/features_min/ # 抽出済み特徴量
-│   └── analysis/results/      # 回帰・検定・アンサンブル・ベースライン比較・交絡統制結果
+│   ├── analysis/results/      # 回帰・検定・アンサンブル・ベースライン比較・交絡統制結果
+│   └── baseline/              # ベースライン検証中間成果物（monologues_summary/random, shuffle_mapping）
 ├── docs/
 │   ├── homework/              # 分析メモ・レビュー資料
 │   └── minutes/               # 議事メモ
@@ -157,7 +198,20 @@ LLM仮想教師によるBig Five性格スコアとの関連を通じて指標の
 | `three_stage_ridge.py` | 3段階Ridge回帰比較（人口統計→+Classical→+Novel） |
 | `permutation_coef_test.py` | Permutation回帰係数検定（個別特徴量の有意性） |
 | `bootstrap_variance.py` | Bootstrap分散分析（SD/CIベースの係数安定性） |
+| `sensitivity_analysis.py` | 感度分析（gap\_tol / YES/NOリスト / NE/YOマッチング） |
 | `verify_reproducibility.py` | 再現性検証（11項目チェック） |
+
+### ベースライン検証（`scripts/baseline/`）
+
+| スクリプト | 用途 |
+|-----------|------|
+| `gen_summary_monologues.py` | 条件2: 統計情報テキストのみのmonologues生成 |
+| `gen_random_monologues.py` | 条件3: テキストシャッフル（derangement）によるmonologues生成 |
+| `compare_conditions.py` | 3条件のr\_obs比較テーブル生成 |
+| `prepare_ensemble_dirs.py` | 条件別LLMスコアをensemble\_permutation.py互換ディレクトリに配置 |
+| `run_scoring_summary.sh` | 条件2のLLM採点実行スクリプト（4教師×5trait） |
+| `run_scoring_random.sh` | 条件3のLLM採点実行スクリプト（4教師×5trait） |
+| `run_ensemble_conditions.sh` | 条件2・3のensemble + permutation test実行 |
 
 ### 図表生成（`scripts/paper_figs/`）
 
@@ -242,6 +296,13 @@ python scripts/analysis/verify_reproducibility.py
 
 # LaTeX コンパイル
 uplatex paper1_ja.tex && dvipdfmx paper1_ja.dvi
+
+# ベースライン検証（データ準備のみ、LLM採点は手動）
+make baseline-prep        # 条件2・3のmonologues生成
+# → 手動: bash scripts/baseline/run_scoring_summary.sh  (条件2 LLM採点)
+# → 手動: bash scripts/baseline/run_scoring_random.sh   (条件3 LLM採点)
+# → 手動: bash scripts/baseline/run_ensemble_conditions.sh (ensemble + permutation)
+make baseline-compare     # 3条件比較テーブル生成
 ```
 
 > **注**: コーパス本文（CEJC発話テキスト）はライセンスの関係でリポジトリに含まれていません。
@@ -250,6 +311,17 @@ uplatex paper1_ja.tex && dvipdfmx paper1_ja.dvi
 ---
 
 ## フィードバック対応ログ
+
+### 山下先生 v4フィードバック対応（2026-04-06〜07）
+
+| 指摘事項 | 対応 |
+|---------|------|
+| IX\_topic\_drift\_mean削除 | 統制変数に移動、完全共線性の理由をMethod節に明記 |
+| 多重比較補正 | Holm-Bonferroni法実装、補正後もO/C/A/Nの4次元が有意維持 |
+| Novel特徴量の先行研究整理 | Kendrick 2015, Meylan & Gahl 2014, Kita & Ide 2007, Dindar et al. 2022等追加。「測定手法の新規性」vs「応用の新規性」を区別 |
+| 新規特徴量追加 | PG\_overlap\_rate復帰（Levitan et al. 2012）、PG\_pause\_variability追加 → 計19特徴量 |
+| パラメータ感度分析 | gap\_tol 6条件、YES/NOリスト 2条件、NE/YOマッチング 3条件で実施。Cは全条件で頑健 |
+| LLMテキストなしベースライン | 3条件比較パイプライン実装済み、LLM採点8並列で実行中（明朝完了見込み） |
 
 ### 宗田さんフィードバック対応（2026-04-02）
 → [docs/worklog_2026-04-02_soda_feedback_v1.md](docs/worklog_2026-04-02_soda_feedback_v1.md)
