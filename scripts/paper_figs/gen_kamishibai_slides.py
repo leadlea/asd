@@ -90,7 +90,7 @@ SLIDES: list[Slide] = [
             "<li><b>コーパス:</b> CEJC（日本語日常会話コーパス）home2サブセット</li>"
             "<li><b>品質フィルタ:</b> HQ1（高品質フィルタ適用済み）</li>"
             "<li><b>サンプルサイズ:</b> N = 120（conversation × speaker）</li>"
-            "<li><b>特徴量:</b> 18説明変数（Classical 9 + Novel 9）</li>"
+            "<li><b>特徴量:</b> 19説明変数（Classical 10 + Novel 9）</li>"
             "</ul>"
             "<h3>手法</h3>"
             "<ul>"
@@ -108,7 +108,7 @@ SLIDES: list[Slide] = [
         title="特徴量の分類",
         images=[],
         conclusion=(
-            "既存研究ベースのClassical 9特徴量と、"
+            "既存研究ベースのClassical 10特徴量と、"
             "会話分析・相互行為論に基づくNovel 9特徴量の2群で構成される。"
         ),
         html_content=_build_feature_classification_table(),
@@ -119,10 +119,10 @@ SLIDES: list[Slide] = [
         title="提案特徴量の分布",
         images=["fig_feature_distribution.png"],
         conclusion=(
-            "18特徴量は適度なばらつきを持ち、"
+            "19特徴量は適度なばらつきを持ち、"
             "個人差を捉える指標として有用である。"
         ),
-        methods_note="CEJC home2 HQ1（N=120）から抽出した18特徴量（Classical 9 + Novel 9）のバイオリンプロット。",
+        methods_note="CEJC home2 HQ1（N=120）から抽出した19特徴量（Classical 10 + Novel 9）のバイオリンプロット。",
     ),
     Slide(
         number=4,
@@ -172,6 +172,55 @@ SLIDES: list[Slide] = [
             "SD/CIベースで係数の安定性を評価する。"
         ),
         methods_note="Bootstrap 500回リサンプリング（N=120復元抽出）。各特徴量の回帰係数の平均・SD・95%CIを算出。",
+    ),
+    Slide(
+        number=9,
+        title="ベースライン検証（3条件比較）",
+        images=[],
+        conclusion=(
+            "条件3（ランダム）で予測力が消失 → LLMはテキスト内容を利用している。"
+            "条件2（要約のみ）でもr_obsが高いが、Cronbach's αは崩壊（平均0.04〜0.30）"
+            " → 一貫した性格像は構成できていない。"
+        ),
+        methods_note=(
+            "条件1: テキスト全文（既存結果）。条件2: 4統計量のみ（発話数・平均発話長・会話長・フィラー数）。"
+            "条件3: 別話者テキスト（derangement, seed=42）。各条件で4教師アンサンブル → Ridge + Permutation test（5,000回）。"
+        ),
+        html_content=(
+            '<div class="methods-text">'
+            "<h3>3条件比較: r<sub>obs</sub>（Holm補正後）</h3>"
+            '<table class="feature-table">'
+            "<thead><tr>"
+            "<th>Trait</th><th>条件1<br/>テキスト</th><th>条件2<br/>要約のみ</th><th>条件3<br/>ランダム</th>"
+            "</tr></thead>"
+            "<tbody>"
+            '<tr><td>O</td><td><b>0.410</b> *</td><td><b>0.528</b> *</td><td>0.161</td></tr>'
+            '<tr><td>C</td><td><b>0.432</b> *</td><td><b>0.640</b> *</td><td>−0.080</td></tr>'
+            '<tr><td>E</td><td>0.234</td><td><b>0.302</b> *</td><td>−0.072</td></tr>'
+            '<tr><td>A</td><td><b>0.449</b> *</td><td><b>0.374</b> *</td><td>0.071</td></tr>'
+            '<tr><td>N</td><td><b>0.317</b> *</td><td><b>0.711</b> *</td><td>−0.280</td></tr>'
+            "</tbody></table>"
+            "<h3>Cronbach's α（条件2 vs 条件1）</h3>"
+            '<table class="feature-table">'
+            "<thead><tr>"
+            "<th>Trait</th><th>条件1 α</th><th>条件2 α<br/>（4教師平均）</th><th>判定</th>"
+            "</tr></thead>"
+            "<tbody>"
+            "<tr><td>O</td><td>≥ 0.78</td><td>0.063</td><td>崩壊</td></tr>"
+            "<tr><td>C</td><td>≥ 0.78</td><td>0.176</td><td>崩壊</td></tr>"
+            "<tr><td>E</td><td>≥ 0.78</td><td>0.041</td><td>崩壊</td></tr>"
+            "<tr><td>A</td><td>≥ 0.78</td><td>0.194</td><td>崩壊</td></tr>"
+            "<tr><td>N</td><td>≥ 0.78</td><td>0.298</td><td>崩壊</td></tr>"
+            "</tbody></table>"
+            "<h3>解釈</h3>"
+            "<ul>"
+            "<li>条件3の崩壊 → LLMはテキスト内容を読んで性格推定している</li>"
+            "<li>条件2のα崩壊 → 統計量だけでは一貫した性格像を構成できない</li>"
+            "<li>条件2のr_obs高値 → 19特徴量の一部（PG系・FILL系）が表層統計量と相関するため交絡経路で相関が生じる</li>"
+            "<li>→ 特徴量によるハーネス（検証レイヤー）の必要性を裏付ける</li>"
+            "</ul>"
+            "</div>"
+        ),
     ),
 ]
 
@@ -363,7 +412,7 @@ def _image_html(filename: str, out_dir: Path) -> str:
 
 
 def generate_slides_html(out_dir: Path) -> str:
-    """8枚のスライド（Methods 2枚 + Results 6枚）を含む自己完結型HTMLを生成する"""
+    """9枚のスライド（Methods 2枚 + Results 7枚）を含む自己完結型HTMLを生成する"""
     total = len(SLIDES)
     slide_blocks: list[str] = []
 
