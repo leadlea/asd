@@ -1,27 +1,27 @@
 {\small
-\begin{tabular}{lrrrrrr}
+\begin{tabular}{lrrrr}
 \toprule
-Feature & $U$ & $p_{\text{gender}}$ & $r_{\text{Pearson}}$ & $p_{\text{Pearson}}$ & $\rho_{\text{Spearman}}$ & $p_{\text{Spearman}}$ \\
+Feature & $U$ & $p_{\text{gender}}$ & $\rho_{\text{Spearman}}$ & $p_{\text{Spearman}}$ \\
 \midrule
-PG\_speech\_ratio & \textbf{950} & \textbf{0.0000*} & \textbf{0.455} & \textbf{0.0000*} & \textbf{0.447} & \textbf{0.0000*} \\
-PG\_pause\_mean & \textbf{2645} & \textbf{0.0000*} & \textbf{-0.332} & \textbf{0.0002*} & \textbf{-0.389} & \textbf{0.0000*} \\
-PG\_pause\_p50 & \textbf{2740} & \textbf{0.0000*} & \textbf{-0.436} & \textbf{0.0000*} & \textbf{-0.449} & \textbf{0.0000*} \\
-PG\_pause\_p90 & \textbf{2647} & \textbf{0.0000*} & \textbf{-0.275} & \textbf{0.0024*} & \textbf{-0.343} & \textbf{0.0001*} \\
-PG\_resp\_gap\_mean & 1814 & 0.8680 & \textbf{-0.238} & \textbf{0.0087*} & \textbf{-0.241} & \textbf{0.0080*} \\
-PG\_resp\_gap\_p50 & 1758 & 0.9034 & \textbf{-0.289} & \textbf{0.0013*} & \textbf{-0.256} & \textbf{0.0047*} \\
-PG\_resp\_gap\_p90 & 1812 & 0.8763 & \textbf{-0.212} & \textbf{0.0204*} & \textbf{-0.200} & \textbf{0.0285*} \\
-PG\_overlap\_rate & 1518 & 0.1653 & \textbf{0.509} & \textbf{0.0000*} & \textbf{0.500} & \textbf{0.0000*} \\
-FILL\_has\_any & \textbf{1406} & \textbf{0.0476*} & \textbf{0.445} & \textbf{0.0000*} & \textbf{0.442} & \textbf{0.0000*} \\
-FILL\_rate\_per\_100chars & 1435 & 0.0676 & \textbf{0.415} & \textbf{0.0000*} & \textbf{0.391} & \textbf{0.0000*} \\
-IX\_oirmarker\_rate & 1650 & 0.4436 & -0.104 & 0.2592 & -0.105 & 0.2549 \\
-IX\_oirmarker\_after\_question\_rate & 1952 & 0.2091 & -0.076 & 0.4093 & -0.102 & 0.2699 \\
-IX\_yesno\_rate & 1860 & 0.6846 & \textbf{0.252} & \textbf{0.0055*} & \textbf{0.249} & \textbf{0.0060*} \\
-IX\_yesno\_after\_question\_rate & 1716 & 0.7317 & \textbf{0.296} & \textbf{0.0010*} & \textbf{0.279} & \textbf{0.0020*} \\
-IX\_lex\_overlap\_mean & \textbf{1109} & \textbf{0.0004*} & -0.115 & 0.2116 & -0.126 & 0.1706 \\
-RESP\_NE\_AIZUCHI\_RATE & 1643 & 0.9528 & \textbf{0.272} & \textbf{0.0033*} & \textbf{0.289} & \textbf{0.0017*} \\
-RESP\_NE\_ENTROPY & 1546 & 0.6321 & 0.030 & 0.7542 & 0.059 & 0.5286 \\
-RESP\_YO\_ENTROPY & 1839 & 0.5495 & -0.087 & 0.3482 & -0.027 & 0.7685 \\
-PG\_pause\_variability & 1736 & 0.8103 & -0.023 & 0.8007 & -0.039 & 0.6712 \\
+PG\_speech\_ratio & \textbf{950} & \textbf{0.0000*} & \textbf{0.447} & \textbf{0.0000*} \\
+PG\_pause\_mean & \textbf{2645} & \textbf{0.0000*} & \textbf{-0.389} & \textbf{0.0000*} \\
+PG\_pause\_p50 & \textbf{2740} & \textbf{0.0000*} & \textbf{-0.449} & \textbf{0.0000*} \\
+PG\_pause\_p90 & \textbf{2647} & \textbf{0.0000*} & \textbf{-0.343} & \textbf{0.0001*} \\
+PG\_resp\_gap\_mean & 1814 & 0.8680 & \textbf{-0.241} & \textbf{0.0080*} \\
+PG\_resp\_gap\_p50 & 1758 & 0.9034 & \textbf{-0.256} & \textbf{0.0047*} \\
+PG\_resp\_gap\_p90 & 1812 & 0.8763 & \textbf{-0.200} & \textbf{0.0285*} \\
+PG\_overlap\_rate & 1518 & 0.1653 & \textbf{0.500} & \textbf{0.0000*} \\
+FILL\_has\_any & \textbf{1406} & \textbf{0.0476*} & \textbf{0.442} & \textbf{0.0000*} \\
+FILL\_rate\_per\_100chars & 1435 & 0.0676 & \textbf{0.391} & \textbf{0.0000*} \\
+IX\_oirmarker\_rate & 1650 & 0.4436 & -0.105 & 0.2549 \\
+IX\_oirmarker\_after\_question\_rate & 1952 & 0.2091 & -0.102 & 0.2699 \\
+IX\_yesno\_rate & 1860 & 0.6846 & \textbf{0.249} & \textbf{0.0060*} \\
+IX\_yesno\_after\_question\_rate & 1716 & 0.7317 & \textbf{0.279} & \textbf{0.0020*} \\
+IX\_lex\_overlap\_mean & \textbf{1109} & \textbf{0.0004*} & -0.126 & 0.1706 \\
+RESP\_NE\_AIZUCHI\_RATE & 1643 & 0.9528 & \textbf{0.289} & \textbf{0.0017*} \\
+RESP\_NE\_ENTROPY & 1546 & 0.6321 & 0.059 & 0.5286 \\
+RESP\_YO\_ENTROPY & 1839 & 0.5495 & -0.027 & 0.7685 \\
+PG\_pause\_variability & 1736 & 0.8103 & -0.039 & 0.6712 \\
 \bottomrule
 \end{tabular}
 }

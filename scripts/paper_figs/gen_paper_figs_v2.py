@@ -1619,16 +1619,15 @@ def gen_tab_metadata_tests(
             rp_str, pp_str, rs_str, ps_str = "---", "---", "---", "---"
 
         rows.append(
-            f"{feat_tex} & {u_str} & {gp_str} & {rp_str} & {pp_str} & {rs_str} & {ps_str} \\\\"
+            f"{feat_tex} & {u_str} & {gp_str} & {rs_str} & {ps_str} \\\\"
         )
 
     body = "\n".join(rows)
     latex = (
         "{\\small\n"
-        "\\begin{tabular}{lrrrrrr}\n"
+        "\\begin{tabular}{lrrrr}\n"
         "\\toprule\n"
         "Feature & $U$ & $p_{\\text{gender}}$ "
-        "& $r_{\\text{Pearson}}$ & $p_{\\text{Pearson}}$ "
         "& $\\rho_{\\text{Spearman}}$ & $p_{\\text{Spearman}}$ \\\\\n"
         "\\midrule\n"
         f"{body}\n"
