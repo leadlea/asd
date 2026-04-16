@@ -15,6 +15,7 @@ from __future__ import annotations
 import argparse
 import re
 import sys
+from dataclasses import dataclass
 from pathlib import Path
 from typing import NamedTuple
 
@@ -1697,14 +1698,19 @@ def gen_tab_ensemble_permutation(results_dir: Path, out_dir: Path) -> None:
     """Generate ensemble permutation results LaTeX table (tab_ensemble_permutation.tex).
 
     Reads ensemble_summary.tsv and produces a booktabs-style LaTeX table
-    with rows for each trait (O, C, E, A, N) and columns: Trait, r_obs, p-value.
-    Significant results (p < 0.05) are bolded.
+    with rows for each trait (O, C, E, A, N) and columns:
+    Trait, r_obs, p_corrected, Sig.
+
+    - ``p_value`` (uncorrected) column is omitted; only Holm-Bonferroni
+      corrected p-values are reported.
+    - ``Sig.`` column shows ``*`` when p_corrected < 0.05, otherwise ``n.s.``
+    - Significant rows are bolded.
 
     Parameters
     ----------
     results_dir : Path
         Directory containing ``ensemble_summary.tsv``
-        (columns: trait, r_obs, p_value).
+        (columns: trait, r_obs, p_value, p_corrected).
     out_dir : Path
         Directory where tab_ensemble_permutation.tex will be saved.
 
@@ -1717,7 +1723,7 @@ def gen_tab_ensemble_permutation(results_dir: Path, out_dir: Path) -> None:
     if not summary_path.exists():
         raise FileNotFoundError(
             f"ensemble_summary.tsv not found: {summary_path}\n"
-            f"Expected columns: trait, r_obs, p_value"
+            f"Expected columns: trait, r_obs, p_value, p_corrected"
         )
 
     df = pd.read_csv(summary_path, sep="\t")
@@ -1730,43 +1736,31 @@ def gen_tab_ensemble_permutation(results_dir: Path, out_dir: Path) -> None:
     for _, row in df.iterrows():
         trait = row["trait"]
         r_obs = row["r_obs"]
-        p_val = row["p_value"]
-        p_corr = row["p_corrected"] if has_corrected else None
+        p_corr = row["p_corrected"] if has_corrected else row["p_value"]
+
+        is_sig = p_corr < 0.05
+        sig_str = "*" if is_sig else "n.s."
+
         r_str = f"{r_obs:.3f}"
-        p_str = f"{p_val:.4f}"
-        pc_str = f"{p_corr:.4f}" if p_corr is not None else "---"
-        # Bold based on corrected p if available, else uncorrected
-        is_sig = (p_corr < 0.05) if p_corr is not None else (p_val < 0.05)
+        pc_str = f"{p_corr:.4f}"
+
         if is_sig:
             r_str = f"\\textbf{{{r_str}}}"
-            p_str = f"\\textbf{{{p_str}}}"
             pc_str = f"\\textbf{{{pc_str}}}"
-        if has_corrected:
-            rows.append(f"{trait} & {r_str} & {p_str} & {pc_str} \\\\")
-        else:
-            rows.append(f"{trait} & {r_str} & {p_str} \\\\")
+            sig_str = f"\\textbf{{{sig_str}}}"
+
+        rows.append(f"{trait} & {r_str} & {pc_str} & {sig_str} \\\\")
 
     body = "\n".join(rows)
-    if has_corrected:
-        latex = (
-            "\\begin{tabular}{lccc}\n"
-            "\\toprule\n"
-            "Trait & $r_{obs}$ & $p$-value & $p_{corrected}$ \\\\\n"
-            "\\midrule\n"
-            f"{body}\n"
-            "\\bottomrule\n"
-            "\\end{tabular}\n"
-        )
-    else:
-        latex = (
-            "\\begin{tabular}{lcc}\n"
-            "\\toprule\n"
-            "Trait & $r_{obs}$ & $p$-value \\\\\n"
-            "\\midrule\n"
-            f"{body}\n"
-            "\\bottomrule\n"
-            "\\end{tabular}\n"
-        )
+    latex = (
+        "\\begin{tabular}{lccc}\n"
+        "\\toprule\n"
+        "Trait & $r_{obs}$ & $p_{corrected}$ & Sig. \\\\\n"
+        "\\midrule\n"
+        f"{body}\n"
+        "\\bottomrule\n"
+        "\\end{tabular}\n"
+    )
 
     out_path = out_dir / "tab_ensemble_permutation.tex"
     out_path.parent.mkdir(parents=True, exist_ok=True)
@@ -1898,6 +1892,290 @@ def gen_tab_feature_definitions(out_dir: Path) -> None:
 
 
 # ---------------------------------------------------------------------------
+# Predicted vs Observed scatter plot (Task 3.1 — paper-finalization)
+# ---------------------------------------------------------------------------
+def collect_oof_predictions(
+    X: np.ndarray,
+    y: np.ndarray,
+    folds: int = 5,
+    seed: int = 42,
+    alpha: float = 100.0,
+) -> tuple[np.ndarray, np.ndarray]:
+    """Collect out-of-fold predictions via K-fold CV.
+
+    Returns (y_true, y_pred) arrays where y_pred[i] is predicted
+    by a model trained WITHOUT sample i.
+
+    Parameters
+    ----------
+    X : np.ndarray
+        Feature matrix (N × p).
+    y : np.ndarray
+        Target vector (N,).
+    folds : int
+        Number of CV folds.
+    seed : int
+        Random state for reproducibility.
+    alpha : float
+        Ridge regularisation parameter.
+
+    Returns
+    -------
+    tuple[np.ndarray, np.ndarray]
+        (y_true, y_pred) — both of shape (N,).
+    """
+    from sklearn.impute import SimpleImputer
+    from sklearn.linear_model import Ridge
+    from sklearn.model_selection import KFold
+    from sklearn.preprocessing import StandardScaler
+
+    kf = KFold(n_splits=folds, shuffle=True, random_state=seed)
+    y_pred = np.full_like(y, np.nan)
+    for tr, te in kf.split(X):
+        imp = SimpleImputer(strategy="median")
+        Xtr = imp.fit_transform(X[tr])
+        Xte = imp.transform(X[te])
+        sc = StandardScaler()
+        Xtr = sc.fit_transform(Xtr)
+        Xte = sc.transform(Xte)
+        m = Ridge(alpha=alpha, random_state=seed)
+        m.fit(Xtr, y[tr])
+        y_pred[te] = m.predict(Xte)
+    return y, y_pred
+
+
+def gen_fig_predicted_vs_observed(
+    results_dir: Path,
+    features_parquet: Path,
+    out_dir: Path,
+    alpha: float = 100.0,
+    cv_folds: int = 5,
+    seed: int = 42,
+) -> None:
+    """Generate predicted vs observed scatter plot for ensemble Big5.
+
+    For each of 5 Big Five traits:
+    1. Load ensemble scores (4-teacher average)
+    2. Merge with 19 interaction features
+    3. Run Ridge (α=100) 5-fold subject-wise CV
+    4. Collect out-of-fold predictions
+    5. Plot observed (x) vs predicted (y) scatter with regression line
+    6. Annotate Pearson r and p-value
+
+    Output: fig_predicted_vs_observed.png (2×3 subplot grid, 5 traits + legend)
+
+    Parameters
+    ----------
+    results_dir : Path
+        Root results directory (parent of ``ensemble_summary.tsv`` and
+        ``../datasets/`` containing XY parquet files).
+    features_parquet : Path
+        Path to the features parquet file (used to resolve the datasets
+        directory).
+    out_dir : Path
+        Directory where ``fig_predicted_vs_observed.png`` will be saved.
+    alpha : float
+        Ridge regularisation parameter.
+    cv_folds : int
+        Number of CV folds.
+    seed : int
+        Random state for reproducibility.
+
+    Raises
+    ------
+    FileNotFoundError
+        If ensemble XY parquet files are not found.
+
+    Notes
+    -----
+    **Validates: Requirements 2.1, 2.2, 2.3, 2.4, 2.6**
+    """
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    from scipy.stats import pearsonr
+
+    # Read ensemble_summary.tsv to determine significance
+    summary_path = results_dir / "ensemble_summary.tsv"
+    if not summary_path.exists():
+        raise FileNotFoundError(
+            f"ensemble_summary.tsv not found: {summary_path}\n"
+            f"Required for determining trait significance."
+        )
+    summary_df = pd.read_csv(summary_path, sep="\t")
+    sig_map: dict[str, bool] = {}
+    for _, row in summary_df.iterrows():
+        p_col = "p_corrected" if "p_corrected" in summary_df.columns else "p_value"
+        sig_map[row["trait"]] = row[p_col] < 0.05
+
+    # Datasets directory (sibling of results_dir)
+    datasets_dir = results_dir.parent / "datasets"
+
+    trait_order = ["O", "C", "E", "A", "N"]
+    trait_labels = {
+        "O": "Openness (O)",
+        "C": "Conscientiousness (C)",
+        "E": "Extraversion (E)",
+        "A": "Agreeableness (A)",
+        "N": "Neuroticism (N)",
+    }
+
+    fig, axes = plt.subplots(2, 3, figsize=(14, 9))
+    axes_flat = axes.flatten()
+
+    for idx, trait in enumerate(trait_order):
+        ax = axes_flat[idx]
+
+        # Load ensemble XY parquet
+        xy_path = datasets_dir / f"cejc_home2_hq1_XY_{trait}only_ensemble.parquet"
+        if not xy_path.exists():
+            ax.text(
+                0.5, 0.5, f"Data not found:\n{xy_path.name}",
+                ha="center", va="center", transform=ax.transAxes,
+                fontsize=9, color="red",
+            )
+            ax.set_title(trait_labels[trait], fontsize=12)
+            continue
+
+        df = pd.read_parquet(xy_path)
+        y_col = f"Y_{trait}"
+        if y_col not in df.columns:
+            ax.text(
+                0.5, 0.5, f"Column {y_col} not found",
+                ha="center", va="center", transform=ax.transAxes,
+                fontsize=9, color="red",
+            )
+            ax.set_title(trait_labels[trait], fontsize=12)
+            continue
+
+        # Extract X (19 features) and y
+        available_feats = [c for c in FEATURE_COLUMNS if c in df.columns]
+        X = df[available_feats].values
+        y = df[y_col].values
+
+        # Drop rows where y is NaN
+        valid_mask = ~np.isnan(y)
+        X = X[valid_mask]
+        y = y[valid_mask]
+
+        if len(y) < cv_folds:
+            ax.text(
+                0.5, 0.5, f"N={len(y)} < {cv_folds} folds",
+                ha="center", va="center", transform=ax.transAxes,
+                fontsize=9, color="red",
+            )
+            ax.set_title(trait_labels[trait], fontsize=12)
+            continue
+
+        # Collect out-of-fold predictions
+        y_true, y_pred = collect_oof_predictions(
+            X, y, folds=cv_folds, seed=seed, alpha=alpha,
+        )
+
+        # Remove any NaN predictions (shouldn't happen, but safety)
+        pred_valid = ~np.isnan(y_pred)
+        y_true = y_true[pred_valid]
+        y_pred = y_pred[pred_valid]
+
+        # Pearson r and p-value
+        r_val, p_val = pearsonr(y_true, y_pred)
+
+        # Determine colour based on significance
+        is_sig = sig_map.get(trait, False)
+        marker_color = "#2166ac" if is_sig else "#999999"
+        line_style = "-" if is_sig else "--"
+
+        # Scatter plot
+        ax.scatter(
+            y_true, y_pred,
+            s=30, alpha=0.6,
+            color=marker_color, edgecolors="white", linewidths=0.3,
+            zorder=3,
+        )
+
+        # Regression line
+        z = np.polyfit(y_true, y_pred, 1)
+        p_line = np.poly1d(z)
+        x_range = np.linspace(y_true.min(), y_true.max(), 100)
+        ax.plot(
+            x_range, p_line(x_range),
+            color=marker_color, linewidth=1.8, linestyle=line_style,
+            zorder=4,
+        )
+
+        # Diagonal y=x reference line
+        all_vals = np.concatenate([y_true, y_pred])
+        diag_min, diag_max = all_vals.min(), all_vals.max()
+        margin = (diag_max - diag_min) * 0.05
+        ax.plot(
+            [diag_min - margin, diag_max + margin],
+            [diag_min - margin, diag_max + margin],
+            color="#cccccc", linewidth=1.0, linestyle=":",
+            zorder=2, label="y = x",
+        )
+
+        # Annotate r and p
+        sig_star = " *" if is_sig else ""
+        ax.text(
+            0.05, 0.95,
+            f"r = {r_val:.3f}, p = {p_val:.4f}{sig_star}",
+            transform=ax.transAxes,
+            fontsize=10, va="top", ha="left",
+            fontweight="bold" if is_sig else "normal",
+            color=marker_color,
+            bbox=dict(boxstyle="round,pad=0.3", facecolor="white",
+                      edgecolor="#dddddd", alpha=0.8),
+        )
+
+        ax.set_xlabel("Observed", fontsize=11)
+        ax.set_ylabel("Predicted", fontsize=11)
+        ax.set_title(trait_labels[trait], fontsize=12, fontweight="bold")
+        ax.spines["top"].set_visible(False)
+        ax.spines["right"].set_visible(False)
+
+    # 6th panel: legend / info
+    ax_legend = axes_flat[5]
+    ax_legend.axis("off")
+
+    from matplotlib.lines import Line2D
+    from matplotlib.patches import Patch
+    legend_handles = [
+        Line2D([0], [0], marker="o", color="w", markerfacecolor="#2166ac",
+               markeredgecolor="white", markersize=8,
+               label="Significant (p < 0.05)"),
+        Line2D([0], [0], marker="o", color="w", markerfacecolor="#999999",
+               markeredgecolor="white", markersize=8,
+               label="Non-significant"),
+        Line2D([0], [0], color="#2166ac", linewidth=1.8, linestyle="-",
+               label="Regression (sig.)"),
+        Line2D([0], [0], color="#999999", linewidth=1.8, linestyle="--",
+               label="Regression (n.s.)"),
+        Line2D([0], [0], color="#cccccc", linewidth=1.0, linestyle=":",
+               label="y = x (ideal)"),
+    ]
+    ax_legend.legend(
+        handles=legend_handles, loc="center", fontsize=11,
+        frameon=True, framealpha=0.9, edgecolor="#dddddd",
+        title="Legend", title_fontsize=12,
+    )
+    ax_legend.text(
+        0.5, 0.15,
+        f"Ridge α={alpha}, {cv_folds}-fold CV\nOut-of-fold predictions",
+        ha="center", va="center", transform=ax_legend.transAxes,
+        fontsize=10, color="#666666",
+    )
+
+    fig.suptitle(
+        "Predicted vs Observed: Ensemble Big Five (Ridge Regression)",
+        fontsize=14, fontweight="bold", y=1.01,
+    )
+    fig.tight_layout()
+    out_path = out_dir / "fig_predicted_vs_observed.png"
+    fig.savefig(out_path, dpi=300, bbox_inches="tight")
+    plt.close(fig)
+
+
+# ---------------------------------------------------------------------------
 # Three-stage Ridge comparison (Task 7.5)
 # ---------------------------------------------------------------------------
 def _read_three_stage_tsvs(results_dir: Path) -> pd.DataFrame:
@@ -1934,12 +2212,18 @@ def gen_fig_three_stage_comparison(results_dir: Path, out_dir: Path) -> None:
     """Generate 3-stage Ridge comparison grouped bar chart.
 
     For each Big5 trait, shows 3 grouped bars (Stage 1, 2, 3) with r_obs
-    values.  Δr between stages is annotated above each group.  Significant
+    values.  Δr between stages is annotated with arrows.  Significant
     stages (p < 0.05) use filled bars; non-significant stages use hatched
-    bars.
+    bars.  r_obs values are displayed directly on top of each bar.
 
     If multiple teachers exist for the same trait × stage, values are
     averaged across teachers.
+
+    Visual specifications (Requirements 3.1, 3.2):
+    - Font sizes: title 14pt, axis labels 12pt, annotations 10pt
+    - Color palette: Stage 1 #d4e6f1, Stage 2 #5dade2, Stage 3 #2166ac
+    - Δr annotations with arrows between stages
+    - r_obs values displayed on top of bars
 
     Parameters
     ----------
@@ -1950,7 +2234,7 @@ def gen_fig_three_stage_comparison(results_dir: Path, out_dir: Path) -> None:
 
     Notes
     -----
-    **Validates: Requirements 3.3, 3.4**
+    **Validates: Requirements 3.1, 3.2**
     """
     import matplotlib
     matplotlib.use("Agg")
@@ -1972,20 +2256,22 @@ def gen_fig_three_stage_comparison(results_dir: Path, out_dir: Path) -> None:
         .reset_index()
     )
 
-    # Stage colours and labels
-    stage_colors = {1: "#92c5de", 2: "#4393c3", 3: "#2166ac"}
+    # Stage colours (Req 3.1: unified blue palette) and labels
+    stage_colors = {1: "#d4e6f1", 2: "#5dade2", 3: "#2166ac"}
     stage_labels = {
         1: "Stage 1: Demographics",
         2: "Stage 2: +Classical",
         3: "Stage 3: +Novel",
     }
     stages = [1, 2, 3]
-    n_stages = len(stages)
 
     x = np.arange(len(trait_order))
     width = 0.24
 
-    fig, ax = plt.subplots(figsize=(9, 5))
+    fig, ax = plt.subplots(figsize=(9, 5.5))
+
+    # Store bar positions and heights for Δr arrow annotations
+    bar_info: dict[tuple[str, int], tuple[float, float]] = {}  # (trait, stage) -> (x_center, r_obs)
 
     for si, stage in enumerate(stages):
         r_vals = []
@@ -2012,30 +2298,42 @@ def gen_fig_three_stage_comparison(results_dir: Path, out_dir: Path) -> None:
                 hatch="" if is_sig else "///",
                 label=stage_labels[stage] if i == 0 else "",
             )
+            # Store bar info for annotations
+            bar_info[(trait_order[i], stage)] = (positions[i], r_vals[i])
 
-    # Annotate Δr between stages above each trait group
+            # r_obs value on top of each bar (Req 3.2)
+            ax.text(
+                positions[i], r_vals[i] + 0.008,
+                f"{r_vals[i]:.3f}",
+                ha="center", va="bottom", fontsize=10,
+                fontweight="medium", color="#333333",
+            )
+
+    # Annotate Δr between stages with arrows (Req 3.2)
     for i, trait in enumerate(trait_order):
-        group_vals = []
-        for stage in stages:
-            row = agg[(agg["trait"] == trait) & (agg["stage"] == stage)]
-            if len(row) > 0:
-                group_vals.append(row["r_obs"].values[0])
-            else:
-                group_vals.append(0.0)
-
-        group_max = max(group_vals) if group_vals else 0.0
-
         # Δr Stage 1→2
         dr12_rows = agg[(agg["trait"] == trait) & (agg["stage"] == 2)]
         if len(dr12_rows) > 0:
             dr12 = dr12_rows["delta_r_from_prev"].values[0]
             if not np.isnan(dr12):
                 sign12 = "+" if dr12 >= 0 else ""
+                x1, y1 = bar_info[(trait, 1)]
+                x2, y2 = bar_info[(trait, 2)]
+                # Arrow from top of Stage 1 bar to top of Stage 2 bar
+                y_arrow = max(y1, y2) + 0.04
+                ax.annotate(
+                    "",
+                    xy=(x2, y_arrow), xytext=(x1, y_arrow),
+                    arrowprops=dict(
+                        arrowstyle="->", color="#5dade2",
+                        lw=1.5, connectionstyle="arc3,rad=0.15",
+                    ),
+                )
                 ax.text(
-                    x[i] - width * 0.5, group_max + 0.025,
-                    f"Δ₁₂={sign12}{dr12:.3f}",
-                    ha="center", va="bottom", fontsize=7.5,
-                    fontstyle="italic", color="#4393c3",
+                    (x1 + x2) / 2, y_arrow + 0.015,
+                    f"Δr={sign12}{dr12:.3f}",
+                    ha="center", va="bottom", fontsize=10,
+                    fontstyle="italic", color="#5dade2",
                 )
 
         # Δr Stage 2→3
@@ -2044,10 +2342,22 @@ def gen_fig_three_stage_comparison(results_dir: Path, out_dir: Path) -> None:
             dr23 = dr23_rows["delta_r_from_prev"].values[0]
             if not np.isnan(dr23):
                 sign23 = "+" if dr23 >= 0 else ""
+                x2, y2 = bar_info[(trait, 2)]
+                x3, y3 = bar_info[(trait, 3)]
+                # Arrow from top of Stage 2 bar to top of Stage 3 bar
+                y_arrow = max(y2, y3) + 0.08
+                ax.annotate(
+                    "",
+                    xy=(x3, y_arrow), xytext=(x2, y_arrow),
+                    arrowprops=dict(
+                        arrowstyle="->", color="#2166ac",
+                        lw=1.5, connectionstyle="arc3,rad=0.15",
+                    ),
+                )
                 ax.text(
-                    x[i] + width * 0.5, group_max + 0.055,
-                    f"Δ₂₃={sign23}{dr23:.3f}",
-                    ha="center", va="bottom", fontsize=7.5,
+                    (x2 + x3) / 2, y_arrow + 0.015,
+                    f"Δr={sign23}{dr23:.3f}",
+                    ha="center", va="bottom", fontsize=10,
                     fontstyle="italic", color="#2166ac",
                 )
 
@@ -2056,18 +2366,18 @@ def gen_fig_three_stage_comparison(results_dir: Path, out_dir: Path) -> None:
     ax.set_ylabel("Observed correlation ($r_{obs}$)", fontsize=12)
     ax.set_title(
         "Three-Stage Ridge Comparison: Demographics → +Classical → +Novel",
-        fontsize=12, pad=10,
+        fontsize=14, pad=12,
     )
     y_max = agg["r_obs"].max() if len(agg) > 0 else 0.5
-    ax.set_ylim(0, y_max * 1.45)
-    ax.legend(loc="upper right", fontsize=9, framealpha=0.9)
+    ax.set_ylim(0, y_max * 1.55)
+    ax.legend(loc="upper right", fontsize=10, framealpha=0.9)
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
 
     # Add note about hatched bars
     ax.text(
         0.01, 0.97, "Filled = p < 0.05, Hatched = p ≥ 0.05",
-        transform=ax.transAxes, fontsize=8, va="top", color="#666666",
+        transform=ax.transAxes, fontsize=10, va="top", color="#666666",
     )
 
     fig.tight_layout()
@@ -2531,6 +2841,313 @@ def gen_tab_three_stage(results_dir: Path, out_dir: Path) -> None:
 
 
 # ---------------------------------------------------------------------------
+# PipelineStage dataclass (CONSORT flowchart)
+# ---------------------------------------------------------------------------
+@dataclass
+class PipelineStage:
+    """Single stage in the preprocessing pipeline."""
+
+    name: str  # e.g., "CEJC全体"
+    count: int  # レコード数
+    excluded: int  # 除外数（前段階からの差分）
+    exclusion_reason: str  # 除外理由
+    is_placeholder: bool  # 件数が未確認の場合True
+
+
+def _build_pipeline_stages(
+    metadata_tsv: Path | None,
+) -> list[PipelineStage]:
+    """Build the list of pipeline stages from metadata or defaults.
+
+    Derives counts from the metadata TSV where possible.
+    Uses confirmed counts from CEJC convlist analysis.
+
+    Parameters
+    ----------
+    metadata_tsv : Path or None
+        Path to the speaker metadata TSV.  If *None* or the file does not
+        exist, all counts except the final N=120 use placeholders.
+
+    Returns
+    -------
+    list[PipelineStage]
+        Ordered list of pipeline stages from CEJC全体 to 分析対象.
+    """
+    # Confirmed counts (from CEJC convlist + utterances analysis, 2026-04-16)
+    cejc_total = 577          # CEJC全体の会話数
+    home2_conversations = 140  # 場所=「自宅」の会話数
+    home2_pairs = 378          # home2の会話×話者ペア数（HQ1フィルタ前）
+    n_final = 120              # HQ1フィルタ後の分析対象
+    n_conversations_final = 66
+
+    if metadata_tsv is not None:
+        p = Path(metadata_tsv)
+        if p.exists():
+            try:
+                df = pd.read_csv(p, sep="\t", encoding="utf-8")
+                n_final = len(df)
+                n_conversations_final = df["conversation_id"].nunique()
+            except Exception:
+                pass
+
+    # Build stages
+    stages: list[PipelineStage] = []
+
+    # Stage 1: CEJC全体
+    stages.append(
+        PipelineStage(
+            name="CEJC全体（会話数）",
+            count=cejc_total,
+            excluded=0,
+            exclusion_reason="",
+            is_placeholder=False,
+        )
+    )
+
+    # Stage 2: home2サブセット
+    excluded_non_home2 = cejc_total - home2_conversations
+    stages.append(
+        PipelineStage(
+            name="home2サブセット（会話数）",
+            count=home2_conversations,
+            excluded=excluded_non_home2,
+            exclusion_reason="非home2会話を除外\n（場所≠自宅 or 話者数≠2）",
+            is_placeholder=False,
+        )
+    )
+
+    # Stage 3: 会話×話者ペア展開
+    stages.append(
+        PipelineStage(
+            name="会話×話者ペア（展開後）",
+            count=home2_pairs,
+            excluded=0,
+            exclusion_reason="各会話の各話者を\n個別レコードとして展開",
+            is_placeholder=False,
+        )
+    )
+
+    # Stage 4: HQ1フィルタ適用後
+    excluded_hq1 = home2_pairs - n_final
+    stages.append(
+        PipelineStage(
+            name=f"分析対象（N={n_final}）",
+            count=n_final,
+            excluded=excluded_hq1,
+            exclusion_reason="HQ1品質フィルタ未達\n（ペア数<80 or 文字数<2000\nor 質問直後ペア<10）",
+            is_placeholder=False,
+        )
+    )
+
+    return stages
+
+
+def gen_fig_consort_flowchart(
+    metadata_tsv: Path | None,
+    out_dir: Path,
+    pipeline_stats: list[PipelineStage] | None = None,
+) -> None:
+    """Generate CONSORT-style preprocessing pipeline flowchart (landscape).
+
+    Uses matplotlib patches and arrows to create a horizontal (left-to-right)
+    flowchart showing the data selection pipeline from CEJC corpus to the
+    final N=120 analysis dataset.  Landscape layout fits journal column width.
+
+    Parameters
+    ----------
+    metadata_tsv : Path or None
+        Path to the speaker metadata TSV.  Used to derive confirmed counts.
+    out_dir : Path
+        Directory where fig_consort_flowchart.png will be saved.
+    pipeline_stats : list[PipelineStage] or None
+        If provided, use these stages instead of deriving from metadata.
+    """
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    from matplotlib.patches import FancyBboxPatch, FancyArrowPatch
+
+    # --- Configure Japanese font ---
+    _jp_font_candidates = [
+        "Hiragino Sans",
+        "Hiragino Kaku Gothic ProN",
+        "Hiragino Kaku Gothic Pro",
+        "Noto Sans CJK JP",
+        "Yu Gothic",
+        "Meiryo",
+    ]
+    _chosen_font = None
+    import matplotlib.font_manager as _fm
+    _available = {f.name for f in _fm.fontManager.ttflist}
+    for _cand in _jp_font_candidates:
+        if _cand in _available:
+            _chosen_font = _cand
+            break
+    if _chosen_font:
+        plt.rcParams["font.family"] = _chosen_font
+    plt.rcParams["axes.unicode_minus"] = False
+
+    if pipeline_stats is not None:
+        stages = pipeline_stats
+    else:
+        stages = _build_pipeline_stages(metadata_tsv)
+
+    # --- Landscape layout parameters ---
+    fig_width, fig_height = 16, 7
+    fig, ax = plt.subplots(figsize=(fig_width, fig_height))
+    ax.set_xlim(0, 20)
+    ax.set_ylim(0, 8.5)
+    ax.axis("off")
+
+    # Box dimensions
+    box_w = 3.6
+    box_h = 1.4
+    main_y = 4.5  # vertical center for main flow boxes
+
+    # Exclusion / process box dimensions
+    exc_box_w = 3.4
+    exc_box_h = 1.2
+
+    # Horizontal positions (left to right)
+    x_positions = [0.5, 5.3, 10.1, 14.9]
+    arrow_gap = 0.15
+
+    # Colors
+    main_color = "#2166ac"
+    main_bg = "#d4e6f1"
+    exc_color = "#b2182b"
+    exc_bg = "#fde0dd"
+    final_color = "#1a5276"
+    final_bg = "#a9dfbf"
+    process_color = "#5dade2"
+
+    def _count_str(stage: PipelineStage, field: str = "count") -> str:
+        val = getattr(stage, field)
+        if stage.is_placeholder and val < 0:
+            return "[要確認]"
+        return f"{val:,}"
+
+    def _draw_box(
+        x: float, y: float, w: float, h: float,
+        text: str, facecolor: str, edgecolor: str,
+        fontsize: float = 10, fontweight: str = "bold",
+        text_color: str = "black",
+    ) -> None:
+        box = FancyBboxPatch(
+            (x, y), w, h,
+            boxstyle="round,pad=0.1",
+            facecolor=facecolor,
+            edgecolor=edgecolor,
+            linewidth=1.5,
+        )
+        ax.add_patch(box)
+        ax.text(
+            x + w / 2, y + h / 2, text,
+            ha="center", va="center",
+            fontsize=fontsize, fontweight=fontweight,
+            color=text_color,
+            linespacing=1.4,
+        )
+
+    def _draw_arrow(
+        x_start: float, y_start: float,
+        x_end: float, y_end: float,
+        color: str = "#333333",
+        style: str = "-|>",
+    ) -> None:
+        arrow = FancyArrowPatch(
+            (x_start, y_start), (x_end, y_end),
+            arrowstyle=style,
+            color=color,
+            linewidth=1.5,
+            mutation_scale=15,
+        )
+        ax.add_patch(arrow)
+
+    # --- Draw stages (left to right) ---
+    for i, stage in enumerate(stages):
+        x = x_positions[i]
+
+        # Box style
+        if i == len(stages) - 1:
+            bg, edge, fc = final_bg, final_color, final_color
+        else:
+            bg, edge, fc = main_bg, main_color, "black"
+
+        # Main box text
+        count_str = _count_str(stage)
+        if i == len(stages) - 1:
+            main_text = f"{stage.name}\n{stage.count}件\n（66会話 × 話者）"
+        else:
+            main_text = f"{stage.name}\nN = {count_str}"
+
+        _draw_box(x, main_y, box_w, box_h, main_text, bg, edge, text_color=fc)
+
+        # Arrow to next stage
+        if i < len(stages) - 1:
+            next_x = x_positions[i + 1]
+            next_stage = stages[i + 1]
+            mid_x = (x + box_w + next_x) / 2
+
+            # Horizontal arrow (main flow)
+            _draw_arrow(
+                x + box_w + arrow_gap, main_y + box_h / 2,
+                next_x - arrow_gap, main_y + box_h / 2,
+                color=main_color,
+            )
+
+            # Exclusion box (below) or process annotation (above)
+            if next_stage.exclusion_reason and next_stage.excluded != 0:
+                exc_x = mid_x - exc_box_w / 2
+                exc_y = main_y - 2.0 - exc_box_h
+
+                exc_count = _count_str(next_stage, "excluded")
+                exc_text = f"除外 (N={exc_count})\n{next_stage.exclusion_reason}"
+
+                _draw_box(
+                    exc_x, exc_y, exc_box_w, exc_box_h,
+                    exc_text, exc_bg, exc_color,
+                    fontsize=8, fontweight="normal",
+                    text_color=exc_color,
+                )
+
+                # Vertical arrow down from main flow to exclusion box
+                _draw_arrow(
+                    mid_x, main_y - arrow_gap,
+                    mid_x, exc_y + exc_box_h + arrow_gap,
+                    color=exc_color,
+                )
+            elif next_stage.exclusion_reason and next_stage.excluded == 0:
+                # Process annotation (above the arrow) — larger box & font
+                proc_x = mid_x - 2.0
+                proc_y = main_y + box_h + 0.3
+                proc_w = 4.0
+                proc_h = 0.9
+                _draw_box(
+                    proc_x, proc_y, proc_w, proc_h,
+                    next_stage.exclusion_reason,
+                    "#eaf2f8", process_color,
+                    fontsize=10, fontweight="normal",
+                    text_color=process_color,
+                )
+
+    # --- Title ---
+    ax.text(
+        10.0, 8.0,
+        "データ選定フローチャート",
+        ha="center", va="center",
+        fontsize=14, fontweight="bold",
+        color="#1a1a1a",
+    )
+
+    fig.tight_layout()
+    out_path = out_dir / "fig_consort_flowchart.png"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    fig.savefig(out_path, dpi=300, bbox_inches="tight")
+    plt.close(fig)
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 def main(argv: list[str] | None = None) -> None:
@@ -2601,6 +3218,8 @@ def main(argv: list[str] | None = None) -> None:
         ("fig_baseline_vs_extended.png", gen_fig_baseline_vs_extended, [results_dir, out_dir]),
         ("tab_ensemble_permutation.tex", gen_tab_ensemble_permutation, [results_dir, out_dir]),
         ("tab_baseline_vs_extended.tex", gen_tab_baseline_vs_extended, [results_dir, out_dir]),
+        # --- Predicted vs Observed scatter plot ---
+        ("fig_predicted_vs_observed.png", gen_fig_predicted_vs_observed, [results_dir, features_parquet, out_dir]),
         # --- 3-stage Ridge, Bootstrap variance, Permutation coef, Teacher corr ---
         ("fig_three_stage_comparison.png", gen_fig_three_stage_comparison, [results_dir, out_dir]),
         ("tab_three_stage.tex", gen_tab_three_stage, [results_dir, out_dir]),
@@ -2621,6 +3240,12 @@ def main(argv: list[str] | None = None) -> None:
         generators.append(
             ("tab_metadata_tests.tex", gen_tab_metadata_tests, [features_df, metadata_df, out_dir])
         )
+
+    # --- CONSORT flowchart (uses metadata_tsv path, works with or without it) ---
+    metadata_tsv_path = Path(args.metadata_tsv) if args.metadata_tsv else None
+    generators.append(
+        ("fig_consort_flowchart.png", gen_fig_consort_flowchart, [metadata_tsv_path, out_dir])
+    )
 
     for name, func, func_args in generators:
         try:
