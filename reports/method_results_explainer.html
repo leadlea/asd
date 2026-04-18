@@ -1,0 +1,871 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>やさしく解説 — 会話の「くせ」から性格を読み取れるか？</title>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <style>
+/* ===== Reset & Base ===== */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Meiryo", sans-serif;
+  background: linear-gradient(135deg, #f0f4ff 0%, #e8ecf8 100%);
+  color: #333;
+  line-height: 1.7;
+}
+
+/* ===== Slide Container ===== */
+.slide {
+  width: 960px;
+  min-height: 680px;
+  margin: 48px auto;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+  padding: 48px 56px 40px;
+  display: flex;
+  flex-direction: column;
+  page-break-after: always;
+  position: relative;
+  overflow: hidden;
+}
+.slide::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 6px;
+  border-radius: 16px 16px 0 0;
+}
+.slide.accent-blue::before   { background: linear-gradient(90deg, #2166ac, #4a9ede); }
+.slide.accent-green::before  { background: linear-gradient(90deg, #27ae60, #6dd5a0); }
+.slide.accent-orange::before { background: linear-gradient(90deg, #e67e22, #f5b041); }
+.slide.accent-purple::before { background: linear-gradient(90deg, #8e44ad, #bb8fce); }
+.slide.accent-red::before    { background: linear-gradient(90deg, #c0392b, #e74c3c); }
+.slide.accent-teal::before   { background: linear-gradient(90deg, #0097a7, #4dd0e1); }
+
+/* ===== Slide Number ===== */
+.slide-num {
+  position: absolute;
+  top: 18px; right: 24px;
+  font-size: 13px;
+  color: #aaa;
+  font-weight: 500;
+}
+
+/* ===== Section Label ===== */
+.section-label {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 3px 12px;
+  border-radius: 20px;
+  margin-bottom: 12px;
+}
+.section-label.method  { background: #e8f4fd; color: #2166ac; }
+.section-label.result  { background: #eafaf1; color: #1e8449; }
+.section-label.summary { background: #fef5e7; color: #b7791f; }
+
+/* ===== Title ===== */
+.slide-title {
+  font-size: 30px;
+  font-weight: 800;
+  color: #1a1a2e;
+  margin-bottom: 20px;
+  line-height: 1.4;
+}
+.slide-title .highlight {
+  background: linear-gradient(transparent 60%, #ffeaa7 60%);
+  padding: 0 4px;
+}
+
+/* ===== Body Text ===== */
+.body-text {
+  font-size: 17px;
+  line-height: 1.85;
+  color: #444;
+  flex: 1;
+}
+.body-text p { margin-bottom: 14px; }
+.body-text ul { margin: 8px 0 14px 24px; }
+.body-text li { margin-bottom: 6px; }
+
+/* ===== Emoji Icon ===== */
+.emoji-icon {
+  font-size: 40px;
+  margin-bottom: 12px;
+  display: block;
+}
+
+/* ===== Callout Box ===== */
+.callout {
+  background: #f8f9ff;
+  border-left: 4px solid #2166ac;
+  border-radius: 0 8px 8px 0;
+  padding: 16px 20px;
+  margin: 16px 0;
+  font-size: 16px;
+}
+.callout.green {
+  background: #f0faf4;
+  border-left-color: #27ae60;
+}
+.callout.orange {
+  background: #fef9f0;
+  border-left-color: #e67e22;
+}
+
+/* ===== Two Column ===== */
+.two-col {
+  display: flex;
+  gap: 32px;
+  flex: 1;
+  align-items: flex-start;
+}
+.two-col > div { flex: 1; }
+
+/* ===== Three Column ===== */
+.three-col {
+  display: flex;
+  gap: 20px;
+  flex: 1;
+  align-items: stretch;
+}
+.three-col > div { flex: 1; }
+
+/* ===== Card ===== */
+.card {
+  background: #f8f9ff;
+  border-radius: 12px;
+  padding: 20px;
+  border: 1px solid #e0e4f0;
+}
+.card h4 {
+  font-size: 16px;
+  font-weight: 700;
+  color: #2166ac;
+  margin-bottom: 8px;
+}
+.card.green { background: #f0faf4; border-color: #c8e6c9; }
+.card.green h4 { color: #1e8449; }
+.card.orange { background: #fef9f0; border-color: #fde8c8; }
+.card.orange h4 { color: #b7791f; }
+.card.purple { background: #f5f0ff; border-color: #d7c4f0; }
+.card.purple h4 { color: #6c3483; }
+
+/* ===== Table ===== */
+.result-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 15px;
+  margin: 12px 0;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #ddd;
+}
+.result-table th {
+  background: #2c3e50;
+  color: #fff;
+  padding: 10px 14px;
+  font-weight: 600;
+  text-align: center;
+  font-size: 14px;
+}
+.result-table td {
+  padding: 9px 14px;
+  text-align: center;
+  border-bottom: 1px solid #eee;
+}
+.result-table tbody tr:nth-child(even) { background: #f9fafb; }
+.result-table tbody tr:hover { background: #eef3ff; }
+.sig { color: #c0392b; font-weight: 700; }
+.ns  { color: #999; }
+.badge-sig {
+  display: inline-block;
+  background: #e74c3c;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+.badge-ns {
+  display: inline-block;
+  background: #bdc3c7;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+/* ===== Bar Chart (CSS) ===== */
+.bar-chart { margin: 12px 0; }
+.bar-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8px;
+}
+.bar-label {
+  width: 120px;
+  font-size: 15px;
+  font-weight: 600;
+  text-align: right;
+  padding-right: 12px;
+  color: #555;
+}
+.bar-track {
+  flex: 1;
+  height: 28px;
+  background: #f0f0f0;
+  border-radius: 14px;
+  position: relative;
+  overflow: hidden;
+}
+.bar-fill {
+  height: 100%;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 10px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+  transition: width 0.6s ease;
+}
+.bar-fill.blue   { background: linear-gradient(90deg, #2166ac, #4a9ede); }
+.bar-fill.green  { background: linear-gradient(90deg, #27ae60, #6dd5a0); }
+.bar-fill.orange { background: linear-gradient(90deg, #e67e22, #f5b041); }
+.bar-fill.red    { background: linear-gradient(90deg, #c0392b, #e74c3c); }
+.bar-fill.purple { background: linear-gradient(90deg, #8e44ad, #bb8fce); }
+.bar-value {
+  width: 60px;
+  font-size: 14px;
+  font-weight: 600;
+  padding-left: 8px;
+  color: #555;
+}
+
+/* ===== Mermaid ===== */
+.mermaid-wrap {
+  display: flex;
+  justify-content: center;
+  margin: 20px 0;
+  width: 100%;
+}
+.mermaid-wrap .mermaid {
+  font-size: 16px;
+  width: 100%;
+  min-height: 180px;
+}
+.mermaid-wrap .mermaid svg {
+  max-width: 100% !important;
+  height: auto !important;
+}
+
+/* ===== Takeaway ===== */
+.takeaway {
+  background: linear-gradient(135deg, #f0f4ff, #e8f0fe);
+  border-radius: 12px;
+  padding: 16px 24px;
+  margin-top: auto;
+  font-size: 17px;
+  font-weight: 600;
+  color: #2c3e50;
+  text-align: center;
+  line-height: 1.6;
+}
+.takeaway .icon { font-size: 20px; margin-right: 6px; }
+
+/* ===== Navigation ===== */
+.nav {
+  text-align: center;
+  font-size: 13px;
+  color: #999;
+  margin: 4px 0 40px;
+}
+.nav a {
+  color: #2166ac;
+  text-decoration: none;
+  font-weight: 500;
+}
+.nav a:hover { text-decoration: underline; }
+
+/* ===== Analogy Box ===== */
+.analogy {
+  background: #fffbf0;
+  border: 2px dashed #f0c040;
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin: 14px 0;
+  font-size: 16px;
+}
+.analogy .label {
+  font-weight: 700;
+  color: #b7791f;
+  margin-bottom: 4px;
+}
+
+/* ===== Footer ===== */
+.footer {
+  text-align: center;
+  font-size: 12px;
+  color: #bbb;
+  padding: 24px 0 48px;
+}
+
+/* ===== Keyboard nav hint ===== */
+.kbd-hint {
+  text-align: center;
+  font-size: 12px;
+  color: #aaa;
+  margin-top: 8px;
+}
+.kbd-hint kbd {
+  display: inline-block;
+  background: #eee;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-size: 11px;
+  font-family: inherit;
+}
+  </style>
+</head>
+<body>
+
+<!-- ============================================================ -->
+<!-- SLIDE 1: タイトル -->
+<!-- ============================================================ -->
+<div class="slide accent-blue" id="slide-1">
+  <div class="slide-num">1 / 10</div>
+  <div style="flex:1; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center;">
+    <div style="font-size:56px; margin-bottom:16px;">🗣️ → 📊 → 🧠</div>
+    <div class="slide-title" style="font-size:36px; margin-bottom:16px;">
+      会話の<span class="highlight">「くせ」</span>から<br>性格を読み取れるか？
+    </div>
+    <p style="font-size:18px; color:#666; margin-bottom:24px;">
+      日本語の日常会話を数値化し、AIの「多数決」で性格を推定する研究
+    </p>
+    <div style="font-size:14px; color:#999; margin-top:24px;">
+      方法と結果のやさしい解説<br>
+      福原玄・山下祐一・宗田卓史
+    </div>
+  </div>
+</div>
+<div class="nav">
+  1 / 10 &nbsp;|&nbsp; <a href="#slide-2">next →</a>
+</div>
+
+<!-- ============================================================ -->
+<!-- SLIDE 2: この研究がやりたいこと -->
+<!-- ============================================================ -->
+<div class="slide accent-blue" id="slide-2">
+  <div class="slide-num">2 / 10</div>
+  <span class="section-label method">方法</span>
+  <div class="slide-title">この研究が<span class="highlight">やりたいこと</span></div>
+  <div class="body-text">
+    <div class="analogy">
+      <div class="label">💡 たとえ話</div>
+      人の話し方には「くせ」があります。<br>
+      たとえば、相手の話にすぐ「うんうん」と返す人、少し間を置いてから答える人、「えーと」が多い人…。<br>
+      <b>こうした「会話のくせ」を数値にして、その人の性格傾向と関係があるかを調べました。</b>
+    </div>
+    <div class="two-col" style="margin-top:20px;">
+      <div class="card">
+        <h4>🎯 研究の問い</h4>
+        <p>日常会話の「間の取り方」「相槌の打ち方」「聞き返しの頻度」などから、<b>性格の傾向</b>を予測できるか？</p>
+      </div>
+      <div class="card green">
+        <h4>🔬 なぜ重要？</h4>
+        <p>将来的に、会話の特徴から<b>発達特性</b>（ASDなど）の早期スクリーニングに応用できる可能性があります。</p>
+      </div>
+    </div>
+  </div>
+  <div class="takeaway">
+    <span class="icon">📌</span> 会話の「くせ」を数値化 → 性格との関連を統計的に検証する研究です
+  </div>
+</div>
+<div class="nav">
+  <a href="#slide-1">← prev</a> &nbsp;|&nbsp; 2 / 10 &nbsp;|&nbsp; <a href="#slide-3">next →</a>
+</div>
+
+<!-- ============================================================ -->
+<!-- SLIDE 3: 全体の流れ（パイプライン） -->
+<!-- ============================================================ -->
+<div class="slide accent-blue" id="slide-3">
+  <div class="slide-num">3 / 10</div>
+  <span class="section-label method">方法</span>
+  <div class="slide-title">研究の<span class="highlight">全体の流れ</span></div>
+  <div class="body-text">
+    <p>大きく3つのステップで進めました。</p>
+  </div>
+  <div class="mermaid-wrap">
+    <div class="mermaid">
+flowchart LR
+  A["🗣️ <b>日常会話</b><br/>（120人分）"] -->|文字起こし済み| B["📐 <b>会話のくせを数値化</b><br/>（19指標）"]
+  B --> C["🤖 <b>4つのAIが</b><br/><b>性格テストに回答</b><br/>（120問）"]
+  C --> D["📊 <b>数値と性格の</b><br/><b>関連を統計分析</b>"]
+  style A fill:#e8f4fd,stroke:#2166ac,color:#333
+  style B fill:#eafaf1,stroke:#27ae60,color:#333
+  style C fill:#fef5e7,stroke:#e67e22,color:#333
+  style D fill:#f5f0ff,stroke:#8e44ad,color:#333
+    </div>
+  </div>
+  <div class="three-col" style="margin-top:16px;">
+    <div class="card">
+      <h4>Step 1: データ</h4>
+      <p>国立国語研究所の<b>日常会話コーパス（CEJC）</b>から、自宅での少人数会話 <b>120人分</b>を使用</p>
+    </div>
+    <div class="card green">
+      <h4>Step 2: 数値化</h4>
+      <p>会話の「間」「フィラー」「相槌」「聞き返し」など<b>19種類の指標</b>を自動計測</p>
+    </div>
+    <div class="card orange">
+      <h4>Step 3: 性格推定</h4>
+      <p><b>4つのAI</b>が会話を読み、性格テスト（Big Five）に「本人として」回答</p>
+    </div>
+  </div>
+  <div class="takeaway">
+    <span class="icon">📌</span> 会話 → 数値化 → AI採点 → 統計分析、の4段階パイプライン
+  </div>
+</div>
+<div class="nav">
+  <a href="#slide-2">← prev</a> &nbsp;|&nbsp; 3 / 10 &nbsp;|&nbsp; <a href="#slide-4">next →</a>
+</div>
+
+<!-- ============================================================ -->
+<!-- SLIDE 4: 19の「会話のくせ」指標 -->
+<!-- ============================================================ -->
+<div class="slide accent-green" id="slide-4">
+  <div class="slide-num">4 / 10</div>
+  <span class="section-label method">方法</span>
+  <div class="slide-title">19の<span class="highlight">「会話のくせ」</span>指標</div>
+  <div class="body-text">
+    <p>会話から自動で測れる19の数値を、4つのカテゴリに分けました。</p>
+  </div>
+  <div class="two-col">
+    <div>
+      <div class="card" style="margin-bottom:16px;">
+        <h4>⏱️ テンポ・間（PG系: 8指標）</h4>
+        <ul style="font-size:15px; margin:8px 0 0 20px;">
+          <li><b>発話率</b> — どれだけ話しているか</li>
+          <li><b>沈黙の長さ</b>（平均・中央値・長め）</li>
+          <li><b>応答の遅れ</b>（平均・中央値・長め）</li>
+          <li><b>重なり率</b> — 同時に話す頻度</li>
+          <li><b>沈黙のばらつき</b> — 間の取り方の一貫性</li>
+        </ul>
+      </div>
+      <div class="card green">
+        <h4>💬 フィラー（FILL系: 2指標）</h4>
+        <ul style="font-size:15px; margin:8px 0 0 20px;">
+          <li><b>「えーと」「あのー」の出現率</b></li>
+          <li><b>100文字あたりのフィラー数</b></li>
+        </ul>
+      </div>
+    </div>
+    <div>
+      <div class="card purple" style="margin-bottom:16px;">
+        <h4>🔄 やりとりの型（IX系: 5指標）</h4>
+        <ul style="font-size:15px; margin:8px 0 0 20px;">
+          <li><b>聞き返し率</b>（「え？」「なに？」）</li>
+          <li><b>質問後の聞き返し率</b></li>
+          <li><b>Yes/No応答率</b></li>
+          <li><b>語彙のつながり</b></li>
+          <li><b>話題の逸脱度</b></li>
+        </ul>
+      </div>
+      <div class="card orange">
+        <h4>🎵 相槌・反応（RESP系: 3指標）</h4>
+        <ul style="font-size:15px; margin:8px 0 0 20px;">
+          <li><b>「〜ね」の後の相槌率</b></li>
+          <li><b>「〜ね」の後の反応の多様性</b></li>
+          <li><b>「〜よ」の後の反応の多様性</b></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="takeaway">
+    <span class="icon">📌</span> 「何を話したか」ではなく「どう話したか」を測る指標です
+  </div>
+</div>
+<div class="nav">
+  <a href="#slide-3">← prev</a> &nbsp;|&nbsp; 4 / 10 &nbsp;|&nbsp; <a href="#slide-5">next →</a>
+</div>
+
+<!-- ============================================================ -->
+<!-- SLIDE 5: AIによる性格採点のしくみ -->
+<!-- ============================================================ -->
+<div class="slide accent-orange" id="slide-5">
+  <div class="slide-num">5 / 10</div>
+  <span class="section-label method">方法</span>
+  <div class="slide-title">AIによる<span class="highlight">性格採点</span>のしくみ</div>
+  <div class="body-text">
+    <div class="analogy">
+      <div class="label">💡 たとえ話</div>
+      4人の「読み手」（AI）が、ある人の会話を読んで「この人ならこう答えるだろう」と性格テスト120問に回答します。<br>
+      <b>4人の回答を平均して「多数決」にすることで、1人の偏りを減らします。</b>
+    </div>
+  </div>
+  <div class="mermaid-wrap">
+    <div class="mermaid">
+flowchart TD
+  T["📝 <b></b>会話テキスト</b><br/>（1人分）"] --> AI1["🤖 <b>Claude</b><br/>Sonnet 4"]
+  T --> AI2["🤖 <b>Qwen3</b><br/>235B"]
+  T --> AI3["🤖 <b>DeepSeek</b><br/>V3"]
+  T --> AI4["🤖 <b>GPT-OSS</b><br/>120B"]
+  AI1 --> E["📊 <b>4つの回答を</b><br/><b>平均（アンサンブル）</b>"]
+  AI2 --> E
+  AI3 --> E
+  AI4 --> E
+  E --> B5["🧠 <b>Big Five</b><br/><b>性格スコア</b>"]
+  style T fill:#fef5e7,stroke:#e67e22,color:#333
+  style E fill:#eafaf1,stroke:#27ae60,color:#333
+  style B5 fill:#f5f0ff,stroke:#8e44ad,color:#333
+    </div>
+  </div>
+  <div class="callout">
+    <b>Big Five（ビッグファイブ）とは？</b><br>
+    心理学で広く使われる性格の5つの軸です：<br>
+    <b>O</b>（開放性）・<b>C</b>（誠実性）・<b>E</b>（外向性）・<b>A</b>（協調性）・<b>N</b>（神経症傾向）
+  </div>
+  <div class="takeaway">
+    <span class="icon">📌</span> 4つのAIの「多数決」で、1つのAIの偏りを打ち消す設計
+  </div>
+</div>
+<div class="nav">
+  <a href="#slide-4">← prev</a> &nbsp;|&nbsp; 5 / 10 &nbsp;|&nbsp; <a href="#slide-6">next →</a>
+</div>
+
+<!-- ============================================================ -->
+<!-- SLIDE 6: 分析の方法（統計手法） -->
+<!-- ============================================================ -->
+<div class="slide accent-purple" id="slide-6">
+  <div class="slide-num">6 / 10</div>
+  <span class="section-label method">方法</span>
+  <div class="slide-title">「本当に関係がある」と<span class="highlight">言えるか？</span></div>
+  <div class="body-text">
+    <p>「会話のくせ」と「性格スコア」の関連が<b>偶然ではない</b>ことを確かめるため、3つの検証を行いました。</p>
+  </div>
+  <div class="three-col">
+    <div class="card">
+      <h4>🎯 Ridge回帰</h4>
+      <p style="font-size:14px;">19の指標から性格スコアを予測する数式を作ります。</p>
+      <div class="analogy" style="font-size:13px; margin:8px 0 0;">
+        <div class="label">たとえ</div>
+        「応答が速い人ほど外向性が高い」のような関係式を見つける作業
+      </div>
+    </div>
+    <div class="card green">
+      <h4>🔀 置換検定</h4>
+      <p style="font-size:14px;">性格スコアをランダムにシャッフルして5,000回やり直し、「偶然でもこの精度が出るか？」を検証。</p>
+      <div class="analogy" style="font-size:13px; margin:8px 0 0;">
+        <div class="label">たとえ</div>
+        名前と成績をバラバラに入れ替えても同じ結果が出るなら、それは偶然
+      </div>
+    </div>
+    <div class="card purple">
+      <h4>🔄 ブートストラップ</h4>
+      <p style="font-size:14px;">データから繰り返しサンプルを取り直し（500回）、結果が安定しているかを確認。</p>
+      <div class="analogy" style="font-size:13px; margin:8px 0 0;">
+        <div class="label">たとえ</div>
+        クラスの中から何度もランダムに選び直しても、同じ傾向が出るか確認
+      </div>
+    </div>
+  </div>
+  <div class="takeaway">
+    <span class="icon">📌</span> 「偶然ではない」「安定している」を3つの方法で多角的に検証
+  </div>
+</div>
+<div class="nav">
+  <a href="#slide-5">← prev</a> &nbsp;|&nbsp; 6 / 10 &nbsp;|&nbsp; <a href="#slide-7">next →</a>
+</div>
+
+<!-- ============================================================ -->
+<!-- SLIDE 7: 結果① — 誠実性（C）が頑健 -->
+<!-- ============================================================ -->
+<div class="slide accent-green" id="slide-7">
+  <div class="slide-num">7 / 10</div>
+  <span class="section-label result">結果</span>
+  <div class="slide-title">結果①：<span class="highlight">「誠実性」</span>が最も安定して予測できた</div>
+  <div class="body-text">
+    <p>5つの性格軸のうち、<b>C（誠実性：まじめさ・計画性）</b>が、4つのAIのうち3つで統計的に有意でした。</p>
+  </div>
+
+  <!-- 誠実性の結果テーブル -->
+  <table class="result-table">
+    <thead>
+      <tr>
+        <th>AI教師</th>
+        <th>予測精度（r）</th>
+        <th>偶然の確率（p値）</th>
+        <th>判定</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td style="text-align:left; font-weight:600;">Claude Sonnet 4</td>
+        <td class="sig">0.434</td>
+        <td class="sig">0.0008</td>
+        <td><span class="badge-sig">有意 ✓</span></td>
+      </tr>
+      <tr>
+        <td style="text-align:left; font-weight:600;">Qwen3-235B</td>
+        <td class="sig">0.390</td>
+        <td class="sig">0.001</td>
+        <td><span class="badge-sig">有意 ✓</span></td>
+      </tr>
+      <tr>
+        <td style="text-align:left; font-weight:600;">GPT-OSS-120B</td>
+        <td class="sig">0.447</td>
+        <td class="sig">0.0008</td>
+        <td><span class="badge-sig">有意 ✓</span></td>
+      </tr>
+      <tr>
+        <td style="text-align:left; font-weight:600;">DeepSeek-V3</td>
+        <td class="ns">0.205</td>
+        <td class="ns">0.113</td>
+        <td><span class="badge-ns">非有意</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="callout green">
+    <b>「有意」とは？</b> — 偶然では起きにくい結果（p &lt; 0.05）のこと。<br>
+    p = 0.001 なら「1,000回に1回しか偶然では起きない」という意味です。
+  </div>
+
+  <div class="takeaway">
+    <span class="icon">📌</span> 4つのAI中3つで有意 → 「誠実性は会話のくせから読み取りやすい」
+  </div>
+</div>
+<div class="nav">
+  <a href="#slide-6">← prev</a> &nbsp;|&nbsp; 7 / 10 &nbsp;|&nbsp; <a href="#slide-8">next →</a>
+</div>
+
+<!-- ============================================================ -->
+<!-- SLIDE 8: 結果② — AI間の一致度 -->
+<!-- ============================================================ -->
+<div class="slide accent-teal" id="slide-8">
+  <div class="slide-num">8 / 10</div>
+  <span class="section-label result">結果</span>
+  <div class="slide-title">結果②：AIの<span class="highlight">意見が揃う</span>性格軸ほど予測しやすい</div>
+  <div class="body-text">
+    <p>4つのAIが同じ人に対してどれだけ似た性格スコアをつけたか（一致度）を調べました。</p>
+  </div>
+
+  <!-- Bar chart -->
+  <div class="bar-chart">
+    <div class="bar-row">
+      <div class="bar-label">C（誠実性）</div>
+      <div class="bar-track">
+        <div class="bar-fill blue" style="width:87.4%;">0.70</div>
+      </div>
+      <div class="bar-value" style="color:#c0392b; font-weight:700;">← 最高</div>
+    </div>
+    <div class="bar-row">
+      <div class="bar-label">E（外向性）</div>
+      <div class="bar-track">
+        <div class="bar-fill green" style="width:80%;">0.64</div>
+      </div>
+      <div class="bar-value"></div>
+    </div>
+    <div class="bar-row">
+      <div class="bar-label">N（神経症）</div>
+      <div class="bar-track">
+        <div class="bar-fill purple" style="width:75.4%;">0.60</div>
+      </div>
+      <div class="bar-value"></div>
+    </div>
+    <div class="bar-row">
+      <div class="bar-label">O（開放性）</div>
+      <div class="bar-track">
+        <div class="bar-fill orange" style="width:69.9%;">0.56</div>
+      </div>
+      <div class="bar-value"></div>
+    </div>
+    <div class="bar-row">
+      <div class="bar-label">A（協調性）</div>
+      <div class="bar-track">
+        <div class="bar-fill red" style="width:54.4%;">0.44</div>
+      </div>
+      <div class="bar-value" style="color:#999;">← 最低</div>
+    </div>
+  </div>
+
+  <div class="callout">
+    <b>読み方：</b>バーが長いほど、4つのAIの「意見」が揃っています。<br>
+    C（誠実性）はAI間で最も一致 → だから予測も安定。<br>
+    A（協調性）はAIによって評価がバラバラ → 予測が不安定。
+  </div>
+
+  <div class="takeaway">
+    <span class="icon">📌</span> AIの「採点のブレ」が小さい性格軸ほど、会話特徴からの予測も安定する
+  </div>
+</div>
+<div class="nav">
+  <a href="#slide-7">← prev</a> &nbsp;|&nbsp; 8 / 10 &nbsp;|&nbsp; <a href="#slide-9">next →</a>
+</div>
+
+<!-- ============================================================ -->
+<!-- SLIDE 9: 結果③ — どの「くせ」が効いているか -->
+<!-- ============================================================ -->
+<div class="slide accent-orange" id="slide-9">
+  <div class="slide-num">9 / 10</div>
+  <span class="section-label result">結果</span>
+  <div class="slide-title">結果③：<span class="highlight">どの「くせ」</span>が誠実性と関係するか</div>
+  <div class="body-text">
+    <p>ブートストラップ分析で、<b>誠実性（C）の予測に安定して効いている指標</b>を特定しました。</p>
+  </div>
+
+  <div class="two-col">
+    <div>
+      <div class="card green" style="margin-bottom:14px;">
+        <h4>📈 誠実性が高い人の傾向</h4>
+        <table style="width:100%; font-size:14px; border-collapse:collapse; margin-top:8px;">
+          <tr style="border-bottom:1px solid #e0e0e0;">
+            <td style="padding:6px 0;">💬 フィラー（えーと）が多い</td>
+            <td style="text-align:right; color:#27ae60; font-weight:700;">↑</td>
+          </tr>
+          <tr style="border-bottom:1px solid #e0e0e0;">
+            <td style="padding:6px 0;">❓ 質問後に聞き返す</td>
+            <td style="text-align:right; color:#27ae60; font-weight:700;">↑</td>
+          </tr>
+          <tr style="border-bottom:1px solid #e0e0e0;">
+            <td style="padding:6px 0;">🗣️ 発話率が高い</td>
+            <td style="text-align:right; color:#27ae60; font-weight:700;">↑</td>
+          </tr>
+          <tr>
+            <td style="padding:6px 0;">🎵 「ね」の後に相槌を打つ</td>
+            <td style="text-align:right; color:#27ae60; font-weight:700;">↑</td>
+          </tr>
+        </table>
+      </div>
+    </div>
+    <div>
+      <div class="card" style="margin-bottom:14px; background:#fff5f5; border-color:#f5c6cb;">
+        <h4 style="color:#c0392b;">📉 誠実性が低い人の傾向</h4>
+        <table style="width:100%; font-size:14px; border-collapse:collapse; margin-top:8px;">
+          <tr style="border-bottom:1px solid #e0e0e0;">
+            <td style="padding:6px 0;">⏳ 応答が遅い</td>
+            <td style="text-align:right; color:#c0392b; font-weight:700;">↓</td>
+          </tr>
+          <tr style="border-bottom:1px solid #e0e0e0;">
+            <td style="padding:6px 0;">🔗 相手の言葉を繰り返す</td>
+            <td style="text-align:right; color:#c0392b; font-weight:700;">↓</td>
+          </tr>
+          <tr>
+            <td style="padding:6px 0;">⏸️ 沈黙が長い</td>
+            <td style="text-align:right; color:#c0392b; font-weight:700;">↓</td>
+          </tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="callout orange">
+    <b>解釈のポイント：</b><br>
+    誠実性が高い人は「積極的に会話に参加し、確認を怠らない」傾向。<br>
+    フィラーが多いのは「考えながら丁寧に話す」ことの表れと解釈できます。<br>
+    <span style="font-size:14px; color:#888;">※ これは相関であり、因果関係ではありません。</span>
+  </div>
+
+  <div class="takeaway">
+    <span class="icon">📌</span> 「テンポよく応答し、確認を入れる」会話スタイルが誠実性と関連
+  </div>
+</div>
+<div class="nav">
+  <a href="#slide-8">← prev</a> &nbsp;|&nbsp; 9 / 10 &nbsp;|&nbsp; <a href="#slide-10">next →</a>
+</div>
+
+<!-- ============================================================ -->
+<!-- SLIDE 10: まとめ -->
+<!-- ============================================================ -->
+<div class="slide accent-purple" id="slide-10">
+  <div class="slide-num">10 / 10</div>
+  <span class="section-label summary">まとめ</span>
+  <div class="slide-title">この研究で<span class="highlight">わかったこと</span></div>
+  <div class="body-text">
+    <div class="three-col" style="margin-bottom:20px;">
+      <div class="card" style="text-align:center;">
+        <div style="font-size:36px; margin-bottom:8px;">✅</div>
+        <h4>発見 1</h4>
+        <p style="font-size:15px;">会話の「くせ」19指標から、<b>誠実性（C）</b>は4つのAI中3つで有意に予測できた</p>
+      </div>
+      <div class="card green" style="text-align:center;">
+        <div style="font-size:36px; margin-bottom:8px;">🤝</div>
+        <h4>発見 2</h4>
+        <p style="font-size:15px;">AIの「意見」が揃う性格軸ほど予測が安定。<b>C（一致度0.70）が最高</b></p>
+      </div>
+      <div class="card purple" style="text-align:center;">
+        <div style="font-size:36px; margin-bottom:8px;">🔍</div>
+        <h4>発見 3</h4>
+        <p style="font-size:15px;">「応答の速さ」「フィラー」「聞き返し」が誠実性の<b>主要な手がかり</b></p>
+      </div>
+    </div>
+
+    <div class="callout" style="margin-bottom:16px;">
+      <b>🔬 この研究の新しさ</b>
+      <ul style="margin:8px 0 0 20px; font-size:15px;">
+        <li>「何を話したか」ではなく<b>「どう話したか」</b>に注目した初の体系的検証</li>
+        <li>1つのAIに頼らず、<b>4つのAIの多数決</b>で偏りを減らした</li>
+        <li>5,000回のシャッフルテストで<b>「偶然ではない」</b>ことを厳密に確認</li>
+      </ul>
+    </div>
+
+    <div class="callout orange">
+      <b>⚠️ 限界と今後</b>
+      <ul style="margin:8px 0 0 20px; font-size:15px;">
+        <li>サンプルは120人 — より大きなデータでの追試が必要</li>
+        <li>AIの採点は「仮想教師」であり、本人の自己評価との比較は今後の課題</li>
+        <li>協調性（A）はAI間でブレが大きく、今後の改善が必要</li>
+      </ul>
+    </div>
+  </div>
+</div>
+<div class="nav">
+  <a href="#slide-9">← prev</a> &nbsp;|&nbsp; 10 / 10
+</div>
+
+<div class="footer">
+  会話の「くせ」から性格を読み取れるか？ — 方法と結果のやさしい解説<br>
+  福原玄・山下祐一・宗田卓史 | 2026
+</div>
+
+<div class="kbd-hint">
+  <kbd>←</kbd> <kbd>→</kbd> キーでスライド移動
+</div>
+
+<!-- ===== Scripts ===== -->
+<script>
+// Mermaid初期化
+mermaid.initialize({
+  startOnLoad: true,
+  theme: 'neutral',
+  flowchart: { curve: 'basis', useMaxWidth: true, nodeSpacing: 30, rankSpacing: 50 },
+  themeVariables: { fontSize: '16px' }
+});
+
+// キーボードナビゲーション
+document.addEventListener('keydown', e => {
+  const slides = document.querySelectorAll('.slide');
+  let current = 0;
+  slides.forEach((s, i) => {
+    const rect = s.getBoundingClientRect();
+    if (rect.top < window.innerHeight / 2 && rect.bottom > 0) current = i;
+  });
+  if (e.key === 'ArrowRight' && current < slides.length - 1) {
+    slides[current + 1].scrollIntoView({ behavior: 'smooth' });
+  } else if (e.key === 'ArrowLeft' && current > 0) {
+    slides[current - 1].scrollIntoView({ behavior: 'smooth' });
+  }
+});
+</script>
+
+</body>
+</html>

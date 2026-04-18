@@ -91,6 +91,7 @@ tmp/_inspect/
 
 # reports: 論文用図表（PNG + LaTeX tables）
 !reports/
+!reports/*.html
 !reports/paper_figs_v2/
 !reports/paper_figs_v2/*.png
 !reports/paper_figs_v2/*.tex
