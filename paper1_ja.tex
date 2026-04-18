@@ -1892,28 +1892,6 @@ gen\_fig\_teacher\_corr\_matrix関数により生成される
 \label{fig:teacher_corr_matrix_appendix}
 \end{figure}
 
-\section{Supplementary Material: コーパス基本情報との関連図}
-\label{sec:supplementary_metadata}
-
-本節では，Results 3.3節で報告したコーパス基本情報（性別・年齢）と
-19特徴量の関連分析について，詳細な可視化を提供する．
-
-\begin{figure}[p]
-\centering
-\includegraphics[width=0.95\linewidth]{fig_metadata_gender.png}
-\caption{図S1: 性別と特徴量の関連（バイオリンプロット + Mann-Whitney $U$検定結果）．
-M: 男性（$n=54$），F: 女性（$n=66$）．$*$は$p < 0.05$を示す．}
-\label{fig:metadata_gender}
-\end{figure}
-
-\begin{figure}[p]
-\centering
-\includegraphics[width=0.95\linewidth]{fig_metadata_age.png}
-\caption{図S2: 年齢と特徴量の関連（散布図 + 回帰直線）．
-各点は1話者を表す．Pearson $r$およびSpearman $\rho$（$p$値）を付記．}
-\label{fig:metadata_age}
-\end{figure}
-
 %% ============================================================
 %%  References
 %% ============================================================
@@ -2007,5 +1985,30 @@ Backchannels in conversations between autistic adults are less frequent and less
 \textit{Language and Cognition}, 14(4), 556--580.
 
 \end{thebibliography}
+
+%% ============================================================
+%%  Supplementary Material (参考文献の後に配置)
+%% ============================================================
+\section{Supplementary Material: コーパス基本情報との関連図}
+\label{sec:supplementary_metadata}
+
+本節では，Results 3.3節で報告したコーパス基本情報（性別・年齢）と
+19特徴量の関連分析について，詳細な可視化を提供する．
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.95\linewidth]{fig_metadata_gender.png}
+\caption{図S1: 性別と特徴量の関連（バイオリンプロット + Mann-Whitney $U$検定結果）．
+M: 男性（$n=54$），F: 女性（$n=66$）．$*$は$p < 0.05$を示す．}
+\label{fig:metadata_gender}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.95\linewidth]{fig_metadata_age.png}
+\caption{図S2: 年齢と特徴量の関連（散布図 + 回帰直線）．
+各点は1話者を表す．Pearson $r$およびSpearman $\rho$（$p$値）を付記．}
+\label{fig:metadata_age}
+\end{figure}
 
 \end{document}
