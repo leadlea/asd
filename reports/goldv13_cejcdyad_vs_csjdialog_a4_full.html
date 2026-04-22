@@ -1,0 +1,736 @@
+<!doctype html>
+<html lang="ja"><head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>ASD v13 CEJC dyad vs CSJ dialog</title>
+<style>
+  @page { size: A4; margin: 12mm; }
+  body { font-family: -apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Noto Sans JP","Yu Gothic",sans-serif; color:#111; background:#fff; }
+  h1 { font-size: 20px; margin: 0 0 6px; }
+  h2 { font-size: 16px; margin: 16px 0 8px; }
+  h3 { font-size: 14px; margin: 14px 0 6px; }
+  .muted { color:#666; font-size: 11px; }
+  .page { page-break-after: always; }
+  .page:last-child { page-break-after: auto; }
+  table { border-collapse: collapse; width: 100%; font-size: 11px; }
+  th, td { border: 1px solid #ddd; padding: 6px 8px; vertical-align: top; }
+  th { background:#f6f6f6; text-align: left; }
+  .k { width: 34%; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .card { border:1px solid #ddd; border-radius: 10px; padding: 8px; }
+  .meta { display:flex; flex-wrap: wrap; gap:6px; margin-bottom: 6px; }
+  .tag { background:#f1f1f1; padding:2px 6px; border-radius: 999px; font-size: 10px; }
+  .line { font-size: 11px; margin: 4px 0; }
+  .lab { color:#666; display:inline-block; min-width: 34px; }
+  .meta2 { color:#666; font-size: 10px; margin-top: 6px; }
+  .note { border:1px dashed #bbb; border-radius:10px; padding:10px; color:#666; font-size: 11px; }
+</style>
+</head><body>
+
+<section class="page">
+  <h1>gold v13 — CEJC dyad vs CSJ dialog（A4）</h1>
+  <div class="muted">生成: 2025-12-31 16:14 / 入力: summary_datasets + examples（NE→応答）</div>
+
+  <h2>1) 指標比較（summary）</h2>
+  <table>
+    <tr><th class="k">metric</th><th>cejc_dyad</th><th>csj_dialog</th><th>diff（cejc_dyad-csj_dialog）</th></tr>
+    <tr><td>n_conversations</td><td>224</td><td>18</td><td>206</td></tr><tr><td>segments_rows</td><td>160501</td><td>8315</td><td>152186</td></tr><tr><td>pairs_rows</td><td>89363</td><td>5142</td><td>84221</td></tr><tr><td>rate_question</td><td>0.073</td><td>0.103</td><td>-0.030</td></tr><tr><td>aizuchi_rate_in_pairs</td><td>0.504</td><td>0.383</td><td>0.121</td></tr><tr><td>RESP_NE_AIZUCHI_RATE</td><td>0.572</td><td>0.431</td><td>0.141</td></tr><tr><td>RESP_NE_ENTROPY</td><td>2.583</td><td>2.459</td><td>0.125</td></tr><tr><td>RESP_YO_ENTROPY</td><td>1.570</td><td>0.146</td><td>1.424</td></tr><tr><td>rate_NE_valid</td><td>0.073</td><td>0.052</td><td>0.020</td></tr><tr><td>rate_YO_valid</td><td>0.029</td><td>0.003</td><td>0.026</td></tr>
+  </table>
+
+  <div class="muted" style="margin-top:6px;">
+    ※rate_NE_valid / rate_YO_valid が空の場合、sfp_ratio_NE / sfp_ratio_YO を近似表示します。
+  </div>
+</section>
+
+<section class="page">
+  <h2>2) 代表例（CEJC dyad / top & bottom）</h2>
+  <h3>CEJC dyad — top（aizuchi寄り）</h3>
+<div class='grid'>
+
+              <div class="card">
+                <div class="meta">
+                  <span class="tag">T006_005</span>
+                  <span class="tag">spk=IC01</span>
+                  <span class="tag">NEpairs=39</span>
+                  <span class="tag">rate=1</span>
+                </div>
+                <div class="line"><span class="lab">前:</span> <span class="txt">もう なん それがでかすぎて:沖縄の思い出全てを(D ク)食っちゃってるよね。</span></div>
+                <div class="line"><span class="lab">SFP:</span> <span class="txt">NE</span></div>
+                <div class="line"><span class="lab">応答:</span> <span class="txt">うん。</span></div>
+                <div class="meta2">aizuchi=True</div>
+              </div>
+            
+
+              <div class="card">
+                <div class="meta">
+                  <span class="tag">T006_005</span>
+                  <span class="tag">spk=IC01</span>
+                  <span class="tag">NEpairs=39</span>
+                  <span class="tag">rate=1</span>
+                </div>
+                <div class="line"><span class="lab">前:</span> <span class="txt">もう(0.167)問答無用に溺れてたね。</span></div>
+                <div class="line"><span class="lab">SFP:</span> <span class="txt">NE</span></div>
+                <div class="line"><span class="lab">応答:</span> <span class="txt">うん。</span></div>
+                <div class="meta2">aizuchi=True</div>
+              </div>
+            
+
+              <div class="card">
+                <div class="meta">
+                  <span class="tag">T006_005</span>
+                  <span class="tag">spk=IC01</span>
+                  <span class="tag">NEpairs=39</span>
+                  <span class="tag">rate=1</span>
+                </div>
+                <div class="line"><span class="lab">前:</span> <span class="txt">だから今 (F その) デジタルになったって聞いて:(0.164)真っ先になんかそいつのことを思い出してしまったよね。</span></div>
+                <div class="line"><span class="lab">SFP:</span> <span class="txt">NE</span></div>
+                <div class="line"><span class="lab">応答:</span> <span class="txt">(L)</span></div>
+                <div class="meta2">aizuchi=True</div>
+              </div>
+            
+
+              <div class="card">
+                <div class="meta">
+                  <span class="tag">K010_004b</span>
+                  <span class="tag">spk=N10A</span>
+                  <span class="tag">NEpairs=31</span>
+                  <span class="tag">rate=0.903</span>
+                </div>
+                <div class="line"><span class="lab">前:</span> <span class="txt">なんかオプションで(0.473)なんか(U 格安だったり) (U ちょっと)よさげなんがあれば(U 僕も)チェックしてるんですけどね。</span></div>
+                <div class="line"><span class="lab">SFP:</span> <span class="txt">NE</span></div>
+                <div class="line"><span class="lab">応答:</span> <span class="txt">あ。</span></div>
+                <div class="meta2">aizuchi=True</div>
+              </div>
+            
+
+              <div class="card">
+                <div class="meta">
+                  <span class="tag">K010_004b</span>
+                  <span class="tag">spk=N10A</span>
+                  <span class="tag">NEpairs=31</span>
+                  <span class="tag">rate=0.903</span>
+                </div>
+                <div class="line"><span class="lab">前:</span> <span class="txt">そうですね。</span></div>
+                <div class="line"><span class="lab">SFP:</span> <span class="txt">NE</span></div>
+                <div class="line"><span class="lab">応答:</span> <span class="txt">ええ。</span></div>
+                <div class="meta2">aizuchi=True</div>
+              </div>
+            
+
+              <div class="card">
+                <div class="meta">
+                  <span class="tag">K010_004b</span>
+                  <span class="tag">spk=N10A</span>
+                  <span class="tag">NEpairs=31</span>
+                  <span class="tag">rate=0.903</span>
+                </div>
+                <div class="line"><span class="lab">前:</span> <span class="txt">そうですよね:。</span></div>
+                <div class="line"><span class="lab">SFP:</span> <span class="txt">NE</span></div>
+                <div class="line"><span class="lab">応答:</span> <span class="txt">ええ。</span></div>
+                <div class="meta2">aizuchi=True</div>
+              </div>
+            
+
+              <div class="card">
+                <div class="meta">
+                  <span class="tag">T007_009</span>
+                  <span class="tag">spk=IC02</span>
+                  <span class="tag">NEpairs=65</span>
+                  <span class="tag">rate=0.892</span>
+                </div>
+                <div class="line"><span class="lab">前:</span> <span class="txt">なるほどね。</span></div>
+                <div class="line"><span class="lab">SFP:</span> <span class="txt">NE</span></div>
+                <div class="line"><span class="lab">応答:</span> <span class="txt">はい。</span></div>
+                <div class="meta2">aizuchi=True</div>
+              </div>
+            
+
+              <div class="card">
+                <div class="meta">
+                  <span class="tag">T007_009</span>
+                  <span class="tag">spk=IC02</span>
+                  <span class="tag">NEpairs=65</span>
+                  <span class="tag">rate=0.892</span>
+                </div>
+                <div class="line"><span class="lab">前:</span> <span class="txt">そうね。</span></div>
+                <div class="line"><span class="lab">SFP:</span> <span class="txt">NE</span></div>
+                <div class="line"><span class="lab">応答:</span> <span class="txt">うん。</span></div>
+                <div class="meta2">aizuchi=True</div>
+              </div>
+            
+
+              <div class="card">
+                <div class="meta">
+                  <span class="tag">T007_009</span>
+                  <span class="tag">spk=IC02</span>
+                  <span class="tag">NEpairs=65</span>
+                  <span class="tag">rate=0.892</span>
+                </div>
+                <div class="line"><span class="lab">前:</span> <span class="txt">なるほどね。</span></div>
+                <div class="line"><span class="lab">SFP:</span> <span class="txt">NE</span></div>
+                <div class="line"><span class="lab">応答:</span> <span class="txt">ええ。</span></div>
+                <div class="meta2">aizuchi=True</div>
+              </div>
+            
+
+              <div class="card">
+                <div class="meta">
+                  <span class="tag">T004_006</span>
+                  <span class="tag">spk=IC02</span>
+                  <span class="tag">NEpairs=44</span>
+                  <span class="tag">rate=0.886</span>
+                </div>
+                <div class="line"><span class="lab">前:</span> <span class="txt">おっきいよね:。</span></div>
+                <div class="line"><span class="lab">SFP:</span> <span class="txt">NE</span></div>
+                <div class="line"><span class="lab">応答:</span> <span class="txt">うん。</span></div>
+                <div class="meta2">aizuchi=True</div>
+              </div>
+            
+
+              <div class="card">
+                <div class="meta">
+                  <span class="tag">T004_006</span>
+                  <span class="tag">spk=IC02</span>
+                  <span class="tag">NEpairs=44</span>
+                  <span class="tag">rate=0.886</span>
+                </div>
+                <div class="line"><span class="lab">前:</span> <span class="txt">火山とかね:(1.405)(T 桜島とかね:)。</span></div>
+                <div class="line"><span class="lab">SFP:</span> <span class="txt">NE_Q</span></div>
+                <div class="line"><span class="lab">応答:</span> <span class="txt">うん。</span></div>
+                <div class="meta2">aizuchi=True</div>
+              </div>
+            
+
+              <div class="card">
+                <div class="meta">
+                  <span class="tag">T004_006</span>
+                  <span class="tag">spk=IC02</span>
+                  <span class="tag">NEpairs=44</span>
+                  <span class="tag">rate=0.886</span>
+                </div>
+                <div class="line"><span class="lab">前:</span> <span class="txt">噴火したよね。</span></div>
+                <div class="line"><span class="lab">SFP:</span> <span class="txt">NE</span></div>
+                <div class="line"><span class="lab">応答:</span> <span class="txt">そう そう。</span></div>
+                <div class="meta2">aizuchi=True</div>
+              </div>
+            
+</div>
+  <h3>CEJC dyad — bottom（non-aizuchi寄り）</h3>
+<div class='grid'>
+
+              <div class="card">
+                <div class="meta">
+                  <span class="tag">K004_007</span>
+                  <span class="tag">spk=IC04</span>
+                  <span class="tag">NEpairs=37</span>
+                  <span class="tag">rate=0.162</span>
+                </div>
+                <div class="line"><span class="lab">前:</span> <span class="txt">まじでほんとに歩いてないからね。</span></div>
+                <div class="line"><span class="lab">SFP:</span> <span class="txt">NE</span></div>
+                <div class="line"><span class="lab">応答:</span> <span class="txt">そうなんだね。</span></div>
+                <div class="meta2">aizuchi=False</div>
+              </div>
+            
+
+              <div class="card">
+                <div class="meta">
+                  <span class="tag">K004_007</span>
+                  <span class="tag">spk=IC04</span>
+                  <span class="tag">NEpairs=37</span>
+                  <span class="tag">rate=0.162</span>
+                </div>
+                <div class="line"><span class="lab">前:</span> <span class="txt">これで横須賀高校出身だったら爆笑だけどね。</span></div>
+                <div class="line"><span class="lab">SFP:</span> <span class="txt">NE</span></div>
+                <div class="line"><span class="lab">応答:</span> <span class="txt">なんで?。</span></div>
+                <div class="meta2">aizuchi=False</div>
+              </div>
+            
+
+              <div class="card">
+                <div class="meta">
+                  <span class="tag">K004_007</span>
+                  <span class="tag">spk=IC04</span>
+                  <span class="tag">NEpairs=37</span>
+                  <span class="tag">rate=0.162</span>
+                </div>
+                <div class="line"><span class="lab">前:</span> <span class="txt">十八歳の発症の例ってのは滅多になくてね。</span></div>
+                <div class="line"><span class="lab">SFP:</span> <span class="txt">NE</span></div>
+                <div class="line"><span class="lab">応答:</span> <span class="txt">すごく心配だね:。</span></div>
+                <div class="meta2">aizuchi=False</div>
+              </div>
+            
+
+              <div class="card">
+                <div class="meta">
+                  <span class="tag">K004_011</span>
+                  <span class="tag">spk=IC02</span>
+                  <span class="tag">NEpairs=35</span>
+                  <span class="tag">rate=0.257</span>
+                </div>
+                <div class="line"><span class="lab">前:</span> <span class="txt">重さ的に百グラムないですね。</span></div>
+                <div class="line"><span class="lab">SFP:</span> <span class="txt">NE</span></div>
+                <div class="line"><span class="lab">応答:</span> <span class="txt">いや いや。</span></div>
+                <div class="meta2">aizuchi=False</div>
+              </div>
+            
+
+              <div class="card">
+                <div class="meta">
+                  <span class="tag">K004_011</span>
+                  <span class="tag">spk=IC02</span>
+                  <span class="tag">NEpairs=35</span>
+                  <span class="tag">rate=0.257</span>
+                </div>
+                <div class="line"><span class="lab">前:</span> <span class="txt">君だったのかね?。</span></div>
+                <div class="line"><span class="lab">SFP:</span> <span class="txt">NE_Q</span></div>
+                <div class="line"><span class="lab">応答:</span> <span class="txt">(K ア:ブ|危)ない。</span></div>
+                <div class="meta2">aizuchi=False</div>
+              </div>
+            
+
+              <div class="card">
+                <div class="meta">
+                  <span class="tag">K004_011</span>
+                  <span class="tag">spk=IC02</span>
+                  <span class="tag">NEpairs=35</span>
+                  <span class="tag">rate=0.257</span>
+                </div>
+                <div class="line"><span class="lab">前:</span> <span class="txt">多くね?。</span></div>
+                <div class="line"><span class="lab">SFP:</span> <span class="txt">NE</span></div>
+                <div class="line"><span class="lab">応答:</span> <span class="txt">やっぱり?。</span></div>
+                <div class="meta2">aizuchi=False</div>
+              </div>
+            
+
+              <div class="card">
+                <div class="meta">
+                  <span class="tag">K013_019</span>
+                  <span class="tag">spk=IC02</span>
+                  <span class="tag">NEpairs=55</span>
+                  <span class="tag">rate=0.273</span>
+                </div>
+                <div class="line"><span class="lab">前:</span> <span class="txt">いいね:。</span></div>
+                <div class="line"><span class="lab">SFP:</span> <span class="txt">NE</span></div>
+                <div class="line"><span class="lab">応答:</span> <span class="txt">かわいいでしょう:?。</span></div>
+                <div class="meta2">aizuchi=False</div>
+              </div>
+            
+
+              <div class="card">
+                <div class="meta">
+                  <span class="tag">K013_019</span>
+                  <span class="tag">spk=IC02</span>
+                  <span class="tag">NEpairs=55</span>
+                  <span class="tag">rate=0.273</span>
+                </div>
+                <div class="line"><span class="lab">前:</span> <span class="txt">ね:。</span></div>
+                <div class="line"><span class="lab">SFP:</span> <span class="txt">NE</span></div>
+                <div class="line"><span class="lab">応答:</span> <span class="txt">(U 上)(D ヌ)。</span></div>
+                <div class="meta2">aizuchi=False</div>
+              </div>
+            
+
+              <div class="card">
+                <div class="meta">
+                  <span class="tag">K013_019</span>
+                  <span class="tag">spk=IC02</span>
+                  <span class="tag">NEpairs=55</span>
+                  <span class="tag">rate=0.273</span>
+                </div>
+                <div class="line"><span class="lab">前:</span> <span class="txt">遠いんだよね:。</span></div>
+                <div class="line"><span class="lab">SFP:</span> <span class="txt">NE</span></div>
+                <div class="line"><span class="lab">応答:</span> <span class="txt">めちゃくちゃ遠かった。</span></div>
+                <div class="meta2">aizuchi=False</div>
+              </div>
+            
+
+              <div class="card">
+                <div class="meta">
+                  <span class="tag">T002_019</span>
+                  <span class="tag">spk=IC01</span>
+                  <span class="tag">NEpairs=21</span>
+                  <span class="tag">rate=0.286</span>
+                </div>
+                <div class="line"><span class="lab">前:</span> <span class="txt">まあ 確かにね。</span></div>
+                <div class="line"><span class="lab">SFP:</span> <span class="txt">NE</span></div>
+                <div class="line"><span class="lab">応答:</span> <span class="txt">まあ なんか 自分(W ミアキ|磨き)好きな人たちいるよね:?みたいなそうゆう感じんなっちゃうと:やっぱり(0.815)不思議な寄り集まりになってっ(0.419)ちゃうからさ:。</span></div>
+                <div class="meta2">aizuchi=False</div>
+              </div>
+            
+
+              <div class="card">
+                <div class="meta">
+                  <span class="tag">T002_019</span>
+                  <span class="tag">spk=IC01</span>
+                  <span class="tag">NEpairs=21</span>
+                  <span class="tag">rate=0.286</span>
+                </div>
+                <div class="line"><span class="lab">前:</span> <span class="txt">そうだね?。</span></div>
+                <div class="line"><span class="lab">SFP:</span> <span class="txt">NE</span></div>
+                <div class="line"><span class="lab">応答:</span> <span class="txt">いろいろとね。</span></div>
+                <div class="meta2">aizuchi=False</div>
+              </div>
+            
+
+              <div class="card">
+                <div class="meta">
+                  <span class="tag">T002_019</span>
+                  <span class="tag">spk=IC01</span>
+                  <span class="tag">NEpairs=21</span>
+                  <span class="tag">rate=0.286</span>
+                </div>
+                <div class="line"><span class="lab">前:</span> <span class="txt">アメリカだとさ: (F あの)(0.185)なんか そうゆう検定あるんだよね?。</span></div>
+                <div class="line"><span class="lab">SFP:</span> <span class="txt">NE</span></div>
+                <div class="line"><span class="lab">応答:</span> <span class="txt">(L わかる (W ワカ|わかる) わかる)。</span></div>
+                <div class="meta2">aizuchi=False</div>
+              </div>
+            
+</div>
+</section>
+
+<section class="page">
+  <h2>3) 代表例（CSJ dialog / top & bottom）</h2>
+  <h3>CSJ dialog — top（aizuchi寄り）</h3>
+<div class='grid'>
+
+              <div class="card">
+                <div class="meta">
+                  <span class="tag">D04M0052</span>
+                  <span class="tag">spk=L</span>
+                  <span class="tag">NEpairs=22</span>
+                  <span class="tag">rate=0.727</span>
+                </div>
+                <div class="line"><span class="lab">前:</span> <span class="txt">注目してるんですよね</span></div>
+                <div class="line"><span class="lab">SFP:</span> <span class="txt">NE</span></div>
+                <div class="line"><span class="lab">応答:</span> <span class="txt">(F はい)</span></div>
+                <div class="meta2">aizuchi=True</div>
+              </div>
+            
+
+              <div class="card">
+                <div class="meta">
+                  <span class="tag">D04M0052</span>
+                  <span class="tag">spk=L</span>
+                  <span class="tag">NEpairs=22</span>
+                  <span class="tag">rate=0.727</span>
+                </div>
+                <div class="line"><span class="lab">前:</span> <span class="txt">あると思うんですけ(? ど)そ(? れ)は間違いが起きないですよね<H>(0.164)(D ニ)</span></div>
+                <div class="line"><span class="lab">SFP:</span> <span class="txt">NE</span></div>
+                <div class="line"><span class="lab">応答:</span> <span class="txt">(F うーん)</span></div>
+                <div class="meta2">aizuchi=True</div>
+              </div>
+            
+
+              <div class="card">
+                <div class="meta">
+                  <span class="tag">D04M0052</span>
+                  <span class="tag">spk=L</span>
+                  <span class="tag">NEpairs=22</span>
+                  <span class="tag">rate=0.727</span>
+                </div>
+                <div class="line"><span class="lab">前:</span> <span class="txt">御老人とかにはね(.)いいんでしょうけどね</span></div>
+                <div class="line"><span class="lab">SFP:</span> <span class="txt">NE</span></div>
+                <div class="line"><span class="lab">応答:</span> <span class="txt">(F ええ)(F ええ)(F ええ)</span></div>
+                <div class="meta2">aizuchi=True</div>
+              </div>
+            
+
+              <div class="card">
+                <div class="meta">
+                  <span class="tag">D01F0023</span>
+                  <span class="tag">spk=L</span>
+                  <span class="tag">NEpairs=20</span>
+                  <span class="tag">rate=0.550</span>
+                </div>
+                <div class="line"><span class="lab">前:</span> <span class="txt">と思ってたん(.)(? で)すね</span></div>
+                <div class="line"><span class="lab">SFP:</span> <span class="txt">NE</span></div>
+                <div class="line"><span class="lab">応答:</span> <span class="txt">(F うーん)</span></div>
+                <div class="meta2">aizuchi=True</div>
+              </div>
+            
+
+              <div class="card">
+                <div class="meta">
+                  <span class="tag">D01F0023</span>
+                  <span class="tag">spk=L</span>
+                  <span class="tag">NEpairs=20</span>
+                  <span class="tag">rate=0.550</span>
+                </div>
+                <div class="line"><span class="lab">前:</span> <span class="txt">不思議ですね水洗なんですよね<H></span></div>
+                <div class="line"><span class="lab">SFP:</span> <span class="txt">NE</span></div>
+                <div class="line"><span class="lab">応答:</span> <span class="txt">そう</span></div>
+                <div class="meta2">aizuchi=True</div>
+              </div>
+            
+
+              <div class="card">
+                <div class="meta">
+                  <span class="tag">D01F0023</span>
+                  <span class="tag">spk=L</span>
+                  <span class="tag">NEpairs=20</span>
+                  <span class="tag">rate=0.550</span>
+                </div>
+                <div class="line"><span class="lab">前:</span> <span class="txt">そうですね<H></span></div>
+                <div class="line"><span class="lab">SFP:</span> <span class="txt">NE</span></div>
+                <div class="line"><span class="lab">応答:</span> <span class="txt">(F (W アーン;うーん))<FV></span></div>
+                <div class="meta2">aizuchi=True</div>
+              </div>
+            
+
+              <div class="card">
+                <div class="meta">
+                  <span class="tag">D01M0047</span>
+                  <span class="tag">spk=L</span>
+                  <span class="tag">NEpairs=33</span>
+                  <span class="tag">rate=0.364</span>
+                </div>
+                <div class="line"><span class="lab">前:</span> <span class="txt">きついですね<H></span></div>
+                <div class="line"><span class="lab">SFP:</span> <span class="txt">NE</span></div>
+                <div class="line"><span class="lab">応答:</span> <span class="txt">そうですね</span></div>
+                <div class="meta2">aizuchi=True</div>
+              </div>
+            
+
+              <div class="card">
+                <div class="meta">
+                  <span class="tag">D01M0047</span>
+                  <span class="tag">spk=L</span>
+                  <span class="tag">NEpairs=33</span>
+                  <span class="tag">rate=0.364</span>
+                </div>
+                <div class="line"><span class="lab">前:</span> <span class="txt">なるほどね<H></span></div>
+                <div class="line"><span class="lab">SFP:</span> <span class="txt">NE</span></div>
+                <div class="line"><span class="lab">応答:</span> <span class="txt">(F ええ)</span></div>
+                <div class="meta2">aizuchi=True</div>
+              </div>
+            
+
+              <div class="card">
+                <div class="meta">
+                  <span class="tag">D01M0047</span>
+                  <span class="tag">spk=L</span>
+                  <span class="tag">NEpairs=33</span>
+                  <span class="tag">rate=0.364</span>
+                </div>
+                <div class="line"><span class="lab">前:</span> <span class="txt">あるんですかね<H></span></div>
+                <div class="line"><span class="lab">SFP:</span> <span class="txt">NE_Q</span></div>
+                <div class="line"><span class="lab">応答:</span> <span class="txt">(F うーん)</span></div>
+                <div class="meta2">aizuchi=True</div>
+              </div>
+            
+
+              <div class="card">
+                <div class="meta">
+                  <span class="tag">D02F0031</span>
+                  <span class="tag">spk=L</span>
+                  <span class="tag">NEpairs=22</span>
+                  <span class="tag">rate=0.318</span>
+                </div>
+                <div class="line"><span class="lab">前:</span> <span class="txt">いないじゃパスですね</span></div>
+                <div class="line"><span class="lab">SFP:</span> <span class="txt">NE</span></div>
+                <div class="line"><span class="lab">応答:</span> <span class="txt">(F はい)</span></div>
+                <div class="meta2">aizuchi=True</div>
+              </div>
+            
+
+              <div class="card">
+                <div class="meta">
+                  <span class="tag">D02F0031</span>
+                  <span class="tag">spk=L</span>
+                  <span class="tag">NEpairs=22</span>
+                  <span class="tag">rate=0.318</span>
+                </div>
+                <div class="line"><span class="lab">前:</span> <span class="txt">次がですね<H></span></div>
+                <div class="line"><span class="lab">SFP:</span> <span class="txt">NE</span></div>
+                <div class="line"><span class="lab">応答:</span> <span class="txt">(F はい)</span></div>
+                <div class="meta2">aizuchi=True</div>
+              </div>
+            
+
+              <div class="card">
+                <div class="meta">
+                  <span class="tag">D02F0031</span>
+                  <span class="tag">spk=L</span>
+                  <span class="tag">NEpairs=22</span>
+                  <span class="tag">rate=0.318</span>
+                </div>
+                <div class="line"><span class="lab">前:</span> <span class="txt">そうですね</span></div>
+                <div class="line"><span class="lab">SFP:</span> <span class="txt">NE</span></div>
+                <div class="line"><span class="lab">応答:</span> <span class="txt">ね<H></span></div>
+                <div class="meta2">aizuchi=True</div>
+              </div>
+            
+</div>
+  <h3>CSJ dialog — bottom（non-aizuchi寄り）</h3>
+<div class='grid'>
+
+              <div class="card">
+                <div class="meta">
+                  <span class="tag">D02F0025</span>
+                  <span class="tag">spk=L</span>
+                  <span class="tag">NEpairs=20</span>
+                  <span class="tag">rate=0.100</span>
+                </div>
+                <div class="line"><span class="lab">前:</span> <span class="txt">年なんだね<H></span></div>
+                <div class="line"><span class="lab">SFP:</span> <span class="txt">NE</span></div>
+                <div class="line"><span class="lab">応答:</span> <span class="txt">(F うーん)(F まー)きっと植木等が<H>高いんじゃないですか<H></span></div>
+                <div class="meta2">aizuchi=False</div>
+              </div>
+            
+
+              <div class="card">
+                <div class="meta">
+                  <span class="tag">D02F0025</span>
+                  <span class="tag">spk=L</span>
+                  <span class="tag">NEpairs=20</span>
+                  <span class="tag">rate=0.100</span>
+                </div>
+                <div class="line"><span class="lab">前:</span> <span class="txt">そうだ(D イ)(0.126)(D ウ)(0.166)そうだよね<H></span></div>
+                <div class="line"><span class="lab">SFP:</span> <span class="txt">NE</span></div>
+                <div class="line"><span class="lab">応答:</span> <span class="txt">お爺さんだし<H></span></div>
+                <div class="meta2">aizuchi=False</div>
+              </div>
+            
+
+              <div class="card">
+                <div class="meta">
+                  <span class="tag">D02F0025</span>
+                  <span class="tag">spk=L</span>
+                  <span class="tag">NEpairs=20</span>
+                  <span class="tag">rate=0.100</span>
+                </div>
+                <div class="line"><span class="lab">前:</span> <span class="txt">掛布もでももう駄目だよね</span></div>
+                <div class="line"><span class="lab">SFP:</span> <span class="txt">NE</span></div>
+                <div class="line"><span class="lab">応答:</span> <span class="txt">掛布はどうだろうね<H>昔は</span></div>
+                <div class="meta2">aizuchi=False</div>
+              </div>
+            
+
+              <div class="card">
+                <div class="meta">
+                  <span class="tag">D02F0015</span>
+                  <span class="tag">spk=L</span>
+                  <span class="tag">NEpairs=20</span>
+                  <span class="tag">rate=0.300</span>
+                </div>
+                <div class="line"><span class="lab">前:</span> <span class="txt">じゃ<H>きっとこの人がいないんですね</span></div>
+                <div class="line"><span class="lab">SFP:</span> <span class="txt">NE</span></div>
+                <div class="line"><span class="lab">応答:</span> <span class="txt">いないんですね</span></div>
+                <div class="meta2">aizuchi=False</div>
+              </div>
+            
+
+              <div class="card">
+                <div class="meta">
+                  <span class="tag">D02F0015</span>
+                  <span class="tag">spk=L</span>
+                  <span class="tag">NEpairs=20</span>
+                  <span class="tag">rate=0.300</span>
+                </div>
+                <div class="line"><span class="lab">前:</span> <span class="txt">ギャラの高い順に並べるんですよね</span></div>
+                <div class="line"><span class="lab">SFP:</span> <span class="txt">NE</span></div>
+                <div class="line"><span class="lab">応答:</span> <span class="txt">そうですよね<H></span></div>
+                <div class="meta2">aizuchi=False</div>
+              </div>
+            
+
+              <div class="card">
+                <div class="meta">
+                  <span class="tag">D02F0015</span>
+                  <span class="tag">spk=L</span>
+                  <span class="tag">NEpairs=20</span>
+                  <span class="tag">rate=0.300</span>
+                </div>
+                <div class="line"><span class="lab">前:</span> <span class="txt">年順ですかね</span></div>
+                <div class="line"><span class="lab">SFP:</span> <span class="txt">NE_Q</span></div>
+                <div class="line"><span class="lab">応答:</span> <span class="txt">何か出てる回数では川合俊一が一番多いような気がする</span></div>
+                <div class="meta2">aizuchi=False</div>
+              </div>
+            
+
+              <div class="card">
+                <div class="meta">
+                  <span class="tag">D02F0031</span>
+                  <span class="tag">spk=L</span>
+                  <span class="tag">NEpairs=22</span>
+                  <span class="tag">rate=0.318</span>
+                </div>
+                <div class="line"><span class="lab">前:</span> <span class="txt">で次が(.)沢松ね</span></div>
+                <div class="line"><span class="lab">SFP:</span> <span class="txt">NE</span></div>
+                <div class="line"><span class="lab">応答:</span> <span class="txt">沢松(F (W ナイ;はい))</span></div>
+                <div class="meta2">aizuchi=False</div>
+              </div>
+            
+
+              <div class="card">
+                <div class="meta">
+                  <span class="tag">D02F0031</span>
+                  <span class="tag">spk=L</span>
+                  <span class="tag">NEpairs=22</span>
+                  <span class="tag">rate=0.318</span>
+                </div>
+                <div class="line"><span class="lab">前:</span> <span class="txt">大村崑ちゃん(? は)もうちょっとね<H>ですよね<H></span></div>
+                <div class="line"><span class="lab">SFP:</span> <span class="txt">NE</span></div>
+                <div class="line"><span class="lab">応答:</span> <span class="txt">ね<H>(W ッテュー;っていう)のでじゃ大村崑に</span></div>
+                <div class="meta2">aizuchi=False</div>
+              </div>
+            
+
+              <div class="card">
+                <div class="meta">
+                  <span class="tag">D02F0031</span>
+                  <span class="tag">spk=L</span>
+                  <span class="tag">NEpairs=22</span>
+                  <span class="tag">rate=0.318</span>
+                </div>
+                <div class="line"><span class="lab">前:</span> <span class="txt">さっぱりですよね</span></div>
+                <div class="line"><span class="lab">SFP:</span> <span class="txt">NE</span></div>
+                <div class="line"><span class="lab">応答:</span> <span class="txt">(F うん)(D ヤ)</span></div>
+                <div class="meta2">aizuchi=False</div>
+              </div>
+            
+
+              <div class="card">
+                <div class="meta">
+                  <span class="tag">D01M0047</span>
+                  <span class="tag">spk=L</span>
+                  <span class="tag">NEpairs=33</span>
+                  <span class="tag">rate=0.364</span>
+                </div>
+                <div class="line"><span class="lab">前:</span> <span class="txt">ね<H></span></div>
+                <div class="line"><span class="lab">SFP:</span> <span class="txt">NE</span></div>
+                <div class="line"><span class="lab">応答:</span> <span class="txt">(F あのー)最後のね</span></div>
+                <div class="meta2">aizuchi=False</div>
+              </div>
+            
+
+              <div class="card">
+                <div class="meta">
+                  <span class="tag">D01M0047</span>
+                  <span class="tag">spk=L</span>
+                  <span class="tag">NEpairs=33</span>
+                  <span class="tag">rate=0.364</span>
+                </div>
+                <div class="line"><span class="lab">前:</span> <span class="txt">なるほどね</span></div>
+                <div class="line"><span class="lab">SFP:</span> <span class="txt">NE</span></div>
+                <div class="line"><span class="lab">応答:</span> <span class="txt">やってましたね(.)それぞれ(0.108)工場によってまた</span></div>
+                <div class="meta2">aizuchi=False</div>
+              </div>
+            
+
+              <div class="card">
+                <div class="meta">
+                  <span class="tag">D01M0047</span>
+                  <span class="tag">spk=L</span>
+                  <span class="tag">NEpairs=33</span>
+                  <span class="tag">rate=0.364</span>
+                </div>
+                <div class="line"><span class="lab">前:</span> <span class="txt">持ってっちゃいけないんですね</span></div>
+                <div class="line"><span class="lab">SFP:</span> <span class="txt">NE</span></div>
+                <div class="line"><span class="lab">応答:</span> <span class="txt">いけないですね</span></div>
+                <div class="meta2">aizuchi=False</div>
+              </div>
+            
+</div>
+</section>
+
+</body></html>
