@@ -1,107 +1,112 @@
-# まず全部無視
-*
+# virtual env / caches
+.venv*/ 
+__pycache__/ 
+*.pyc
 
-# ---- ここから必要なものだけ再許可 ----
+# local / large outputs
+out/
+reports/
+tmp_*/ 
+*.xlsx
 
-# この .gitignore 自身
-!.gitignore
+# raw & processed data are NOT tracked (we keep just a placeholder)
+data/*
+!data/README.md
+!data/processed/.gitkeep
 
-# ルートの README と requirements
-!README.md
-!Makefile
-!requirements.txt
-
-# config: pragmatics 用インデックス
-!config/
-!config/pragmatics_index_catalog.csv
-
-# scripts: Nanami pragmatics 用のスクリプト
-!scripts/
-!scripts/*.py
-!scripts/paper_figs/
-!scripts/paper_figs/*.py
-!scripts/analysis/
-!scripts/analysis/*.py
-
-# tests: プロパティテスト・ユニットテスト
-!tests/
-!tests/*.py
-
-# scripts: CEJC前処理
-!scripts/cejc/
-!scripts/cejc/*.py
-
-# scripts: Dose-Response実験
-!scripts/dose_response/
-!scripts/dose_response/*.py
-!scripts/dose_response/*.sh
-
-# audio_mvp: 音声解析スクリプト
-!audio_mvp/
-!audio_mvp/*.py
-
-# docs: index.html だけ
-!docs/
-!docs/*.html
-!docs/*.md
-!docs/**/*.md
-# Nanami のアウトプット一式
-!out/
-!out/audio/
-!out/audio/Nanami/
-!out/audio/Nanami/**
-
-# macOS のゴミ
+# editor backups / macOS
+*~ 
 .DS_Store
 
+# accidental copies (日本語の「コピー」など)
+*コピー*
 
-# docs: report（PDF）を許可
-!docs/report/
-!docs/report/*.pdf
-# Phase3 pipeline
-!scripts/phase3/
-!scripts/phase3/**
+# JP pipeline
+MiiPro/
+out/
+*.bak
+__pycache__/
 
-!docs/report/*.html
-!docs/report/*.md
+# === Nanami outputs allowlist (keep reports & CSVs) ===
+out/
+!out/audio/
+out/audio/**
+!out/audio/Nanami/
+!out/audio/Nanami/*_gpu/
+out/audio/Nanami/*_gpu/**
+!out/audio/Nanami/*_gpu/report.html
+!out/audio/Nanami/*_gpu/turns.csv
+!out/audio/Nanami/*_gpu/prosody.csv
+!out/audio/Nanami/*_gpu/pragmatics.csv
+!out/audio/Nanami/*_gpu/echoes.csv
+!out/audio/Nanami/*_gpu/duplicates.csv
+!out/audio/Nanami/Nanami_summary.csv
+!out/audio/Nanami/Nanami_dashboard.html
 
+# === Nanami outputs allowlist (pushしたい成果物を明示的に許可) ===
+# まず out/ 以下は全部無視
+/out/**
 
-# ---- generated artifacts (local) ----
-docs/*
-!docs/*.md
-!docs/*.html
-!docs/homework/
-!docs/homework/**
-scripts/**/__pycache__/
-**/__pycache__/
-*.pyc
-artifacts/
+# そこから Nanami 配下だけ再許可（親ディレクトリから順に！）
+!/out/audio/
+!/out/audio/Nanami/
+!/out/audio/Nanami/*_gpu/
 
-# tmp/_inspect: 特徴量棚卸しドキュメント（許可）
-!tmp/
-!tmp/_inspect/
-!tmp/_inspect/**
+# 各 *_gpu セッションの主要CSV/HTMLを許可
+!/out/audio/Nanami/*_gpu/report.html
+!/out/audio/Nanami/*_gpu/turns.csv
+!/out/audio/Nanami/*_gpu/prosody.csv
+!/out/audio/Nanami/*_gpu/pragmatics.csv
+!/out/audio/Nanami/*_gpu/echoes.csv
+!/out/audio/Nanami/*_gpu/duplicates.csv
 
-# ---- local inspection outputs ----
-tmp/_inspect/
+# まとめのダッシュボードとサマリーを許可
+!/out/audio/Nanami/Nanami_dashboard.html
+!/out/audio/Nanami/Nanami_summary.csv
 
-# docs: minutes（議事録）を許可
-!docs/minutes/
-!docs/minutes/**
+# === CHILDES corpus data (large, not tracked) ===
+Brown/
+Flusberg/
+Nadig/
+Providence/
+Rollins/
+Sachs/
 
-# reports: 論文用図表（PNG + LaTeX tables）
-!reports/
-!reports/*.html
-!reports/paper_figs_v2/
-!reports/paper_figs_v2/*.png
-!reports/paper_figs_v2/*.tex
-!reports/paper_figs_v2/*.html
-
-# 論文本体（LaTeX + PDF）
-!paper1_ja.tex
-!paper1_ja.pdf
-
-# .kiro: specs / steering（ローカル専用、リモートにpushしない）
-# !.kiro/
-# !.kiro/**
+# === IDE / Kiro ===
 .kiro/
+.vscode/
+
+# === Audio data ===
+audio/
+
+# === Working CSVs (dyads, manifests, etc.) ===
+dyads*.csv
+manifest_bn2015*.csv
+bn2015_file_to_dyad*.csv
+
+# === One-off scripts & backups ===
+reproduce_bn2015*.py
+add_input_aliases.py
+augment_*.py
+build_dyads_from_chat.py
+ensure_columns.py
+extract_parent_from_excel*.py
+force_merge_parent_child*.py
+make_child_ndw_9min.py
+make_manifest_from_*.py
+make_parent_*.py
+merge_*.py
+patch_*.py
+strict_9min_*.py
+validate_bn2015_results.py
+nanami_one.sh
+publish_nanami_to_docs.sh
+config_filters_example.yaml
+
+# === Misc ===
+PATCH_NOTES.txt
+README_DYADS.md
+README_PATCH.md
+tmp_files.txt
+docs/cha_vs_audio_match.html
+docs/jp_miipro_Nanami.html
