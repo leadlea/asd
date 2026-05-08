@@ -156,7 +156,7 @@
 
 ---
 
-## 7. 付録：調査に用いた情報源
+## 6. 付録：調査に用いた情報源
 
 - Leaper & Ayres (2007) Meta-analytic review: https://leaper.sites.ucsc.edu/publications/ / https://journals.sagepub.com/doi/10.1177/1088868307302221
 - Laserna et al. (2014): https://journals.sagepub.com/doi/10.1177/0261927X14526993 / https://www.researchgate.net/publication/275005568 （Content was rephrased for compliance with licensing restrictions）
