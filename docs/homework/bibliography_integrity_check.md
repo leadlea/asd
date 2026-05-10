@@ -12,7 +12,7 @@
 |:---:|---:|:---|
 | ✅ 実在・正確 | 12 | 書誌情報に問題なし |
 | ⚠️ 軽微な修正が必要 | 5 | article number / subtitle / ページ番号等の誤記 |
-| 🚨 **幻覚の疑いあり** | 1 | 検索で一切ヒットせず、要精査（**Altozano 2026**） |
+| 🔄 **差し替えが必要** | 1 | **altozano2026 は幻覚引用だった可能性が濃厚。山下先生からのメール原典は別論文（Wright et al. 2026, Nature Human Behaviour）。** |
 | 🆕 追加候補（#867対応） | 5 | 性差・年齢関連で追加予定 |
 | 📝 存在未確認 | 1 | nakamura 2025（国内紀要、日本語）|
 | **合計** | **22** | |
@@ -21,9 +21,9 @@
 
 ## 1. 既存17件の詳細チェック
 
-### 🚨 重大な問題: 幻覚引用の疑い
+### 🔄 差し替えが必要: altozano2026 → Wright et al. 2026
 
-#### #2 altozano2026 ← **検索で一切ヒットしない**
+#### #2 altozano2026 ← 山下先生からのメール原典と一致せず
 
 現行記述:
 > Altozano, A., et al. (2026). Enhancing psychological assessments with open-ended questionnaires and large language models: An ASD case study. *IEEE Journal of Biomedical and Health Informatics*, 30(2), 1082-1093.
@@ -33,16 +33,28 @@
 - タイトル + 著者名での検索でも関連論文が見つからない
 - IEEE JBHI 2026 Vol.30 Issue 2 のページ範囲・著者とも一致する情報なし
 
-**考えられる原因**:
-1. LLM（本プロジェクトで利用）が生成した幻覚引用である可能性
-2. 論文が in press で未索引化の可能性（低い。2026 は既に発行中）
-3. 著者名または掲載誌の誤記の可能性
+**メール原典の確認結果**:
+- 山下先生のメールで紹介された論文は、実際には **Wright, A. G. C., Ringwald, W. R., Vize, C. E. et al. (2026). Assessing personality using zero-shot generative AI scoring of brief open-ended text. *Nature Human Behaviour*. https://doi.org/10.1038/s41562-025-02389-x** であった
+- 現行の altozano2026 書誌情報は、参照元論文と一致していない（著者名・掲載誌・タイトル・巻号すべて異なる）
+- したがって altozano2026 は **幻覚引用**と判断してよい（LLM等が生成した架空の書誌情報が bibliography に混入したもの）
+
+**さらに重要な点**: Wright et al. 2026 は本研究の**方法論的土台**に該当する論文である。
+- 複数LLMに性格尺度アイテムを Likert で答えさせる
+- 複数LLM平均（アンサンブル）が自己報告と最も一致
+- 自己報告との収束的妥当性 r ≈ .3〜.6
+- 外的妥当性（日常感情・対人行動・精神病理予測）を確認
+
+本研究の仮想教師プロトコル（4 LLM × IPIP-NEO-120 × アンサンブル平均）は、Wright et al. 2026 の方法論を日本語会話コーパスに適用・拡張したものとして位置づけるのが最も正確。
 
 **推奨アクション**:
-- 本引用の出所（どの段階で bibliography に追加されたか）を git log で遡及確認
-- 本当に参照した論文が別にあれば正しい書誌情報に差し替え
-- 該当論文が見つからない場合は**引用ごと削除**（投稿前に必須。幻覚引用は査読で即 reject 要因）
-- 論文本文（paper1_ja.tex L78, L1471）での参照箇所: Hu 2025 / Mun 2024 とセットで「LLM を用いた ASD 分類の先行研究」として引用されているため、**1つ削除しても主張は維持できる**
+1. `\bibitem{altozano2026}` を削除し、`\bibitem{wright2026}` を新規追加
+2. citation key `altozano2026` → `wright2026` に変更
+3. 論文本文 L78（Introduction）L1471（Discussion）での引用文脈を書き直す
+   - 現状は「ASD/TD 分類の先行研究」として誤った文脈で引用されている
+   - Wright et al. 2026 は「ゼロショット LLM Big5 推定の方法論的土台」なので、Introduction の (b) 段落または新規段落で**本研究の方法論的基盤**として紹介するのが正確
+4. Method 2.3（仮想教師プロトコル）でも Wright et al. 2026 を参照する1行を追加
+   - 「本研究の仮想教師プロトコルは Wright et al. (2026) の複数LLMアンサンブルアプローチを日本語会話コーパスに適用したものである」
+5. Discussion 4.6 で Wright et al. 2026 との比較を議論（r ≈ .3〜.6 vs 本研究の C: r ≈ .43 等）
 
 ### ⚠️ 軽微な誤記
 
@@ -155,12 +167,17 @@
 
 ## 3. 投稿前 クリーンアップ項目（優先順）
 
-### 🚨 最優先（必須）
+### 🔄 最優先（差し替え）
 
-1. **altozano2026 の実在確認 or 削除**
-   - 論文ドラフト（paper1_ja.tex L78, L1471）で2箇所参照されている
-   - 該当論文が見つからなければ、Hu 2025 / Mun 2024 / Nakamura 2025 のセットに留めて削除
-   - 削除後は論文本文の参照箇所も整理
+1. **altozano2026 を Wright et al. 2026 (Nature Human Behaviour) に差し替え**
+   - `\bibitem{altozano2026}` を削除
+   - `\bibitem{wright2026}` を新規追加（Nature Hum Behav, 2026, DOI: 10.1038/s41562-025-02389-x）
+   - 論文本文 L78, L1471 での引用文脈を書き直す（ASD分類の文脈 → ゼロショットLLM Big5推定の方法論的土台）
+   - Method 2.3 と Discussion 4.6 にも参照を追加し、本研究の方法論的基盤として位置づける
+
+2. **Hu 2025 の詳細言及を追加検討**
+   - 山下先生のメール2通目で、Hu 2025 が ASD 関連の言語特徴を10個抽出している点（エコラリア、代名詞誤用、非典型的語用論パターン等）を紹介いただいた
+   - 本研究の「相互行為特徴量を定量化する」アプローチとの対比として、Introduction または Discussion で引用内容を充実させられる
 
 ### ⚠️ 高優先
 
@@ -202,10 +219,10 @@
 - ResearchGate: Kita & Ide 2007, Laserna et al. 2014
 - SAGE Journals: Leaper & Ayres 2007, Bortfeld 2001
 - Project MUSE / Princeton catalog: Tanaka 2004
-- IEEE Xplore: altozano2026 で検索 → **ヒットなし**
+- IEEE Xplore: altozano2026 で検索 → ヒットなし（主要DBで未index化の可能性）
 - Google / Semantic Scholar: altozano2026 → ヒットなし
 
-> 本調査は Web 検索結果に基づくため、IEEE 購読誌のみのアクセス制限、in-press 掲載等で一部情報が取得できない可能性がある。altozano2026 については図書館経由（UTokyo OPAC 等）の追加確認が望ましい。
+> 本調査は Web 検索結果に基づくため、IEEE 購読誌のみのアクセス制限、in-press 掲載等で一部情報が取得できない可能性がある。altozano2026 については山下先生のメールからの原典情報再取得を予定。
 
 ---
 
@@ -214,6 +231,6 @@
 | 日付 | 状態 | 担当 |
 |:---:|:---|:---:|
 | 2026-05-08 | 既存17件 + 追加候補5件の書誌情報を一括検証 | 福原 |
-| 2026-05-08 | altozano2026 の幻覚引用疑いを発見、要フォローアップ | 福原 |
+| 2026-05-08 | altozano2026 が幻覚引用と判明。山下先生メール原典は Wright et al. 2026 (Nature Hum Behav) であり、本研究の方法論的土台であることが確認された | 福原 |
 | 未定 | 山下先生レビュー後、クリーンアップ項目を論文本文に反映 | 福原 |
 | 未定 | 英訳時に `.bib` ファイル化 + Reference 数拡充 | 福原 |
