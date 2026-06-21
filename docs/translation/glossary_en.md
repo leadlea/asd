@@ -468,7 +468,8 @@ Strict requirements:
    "backchannel (aizuchi)", "sentence-final particle").
 
 Glossary:
-[paste sections 1–15 of glossary_en.md here]
+[paste the entire glossary_en.md here — especially §16 (mistranslation patterns),
+ §19 (context-sensitive mappings), and §20 (claim-strength vocabulary)]
 
 Now translate the following section:
 [paste Japanese text]
@@ -476,8 +477,76 @@ Now translate the following section:
 
 ---
 
-## 18. 更新履歴
+## 19. 文脈依存マッピング（同一和語 → 文脈別英訳）★翻訳精度の核
+
+自動翻訳が最も外しやすいのは「1つの日本語が文脈で別の英単語になる」語。本研究で頻出する多義語を文脈別に固定する。
+
+| 日本語 | 文脈A → 英訳 | 文脈B → 英訳 | 判断ルール |
+|:--|:--|:--|:--|
+| 関連 | 統計的関連 → **association**（例: Big5との関連=association with Big5） | 概念的つながり → relationship | 変数間の統計関係は association で統一。relationship は乱用しない |
+| 関連分析 | → **association analysis** | — | 3.3節「コーパス基本情報との関連分析」 |
+| 検証 | 妥当性 → **validation**（baseline validation, validity の検証） | 確認・整合 → verification / check（再現性検証=reproducibility check） | 「妥当性検証」は validation、「再現性検証」は reproducibility check |
+| 評価 | 性能・精度 → **evaluation**（予測精度の評価） | LLM採点 → rating / scoring（5件法採点=rating on a 5-point scale） | モデル性能は evaluation、項目採点は rating/scoring |
+| 推定 | 統計・モデル → **estimation / prediction**（性格推定=personality estimation） | 推論 → inference | LLMがスコアを出す=estimate/predict。because-of 推論は inference |
+| 指標 | 提案概念 → **indicator**（定量化指標=quantitative indicator） | 評価尺度 → metric / measure（評価指標=evaluation metric） | 本研究の提案物は indicator で統一、性能尺度は metric |
+| 特性 | 性格 → **trait**（性格特性=personality trait） | 一般的性質 → characteristic / property | 性格は必ず trait |
+| 確認された | 観察 → **was observed / was found** | 立証 → was confirmed（強い） | 「傾向が確認された」は observed（過剰主張を避ける）。confirmed は確証時のみ |
+| 示す | 提示・実証 → **show / demonstrate / indicate** | — | 結果が直接支えるとき |
+| 示唆する | 弱い含意 → **suggest** | — | demonstrate と混同しない（主張強度・§20） |
+| 認められた | → **was observed / was found** | — | "was admitted/recognized" と誤訳しない |
+| 同定（された） | → **identify / was identified**（寄与特徴量の同定） | — | "specify" にしない |
+| 寄与 | → **contribution / contribute**（独自の寄与=unique contribution） | — | |
+| 影響 | 因果寄り → **effect / influence** | 副作用 → impact | Dose-Response 文脈は effect |
+| 操作 | 実験的 → **manipulation**（フィラー操作=filler manipulation） | — | "operation" にしない |
+| 傾向 | → **tendency**（〜する傾向=tend to） | データの趨勢 → trend | |
+| 整合する | → **consistent with / in line with** | — | §12 と統一 |
+| 捉える | → **capture**（個人差を捉える=capture individual differences） | — | |
+| 裏付ける／支持する | → **support / corroborate** | — | |
+| 一致（度） | 教師間 → **agreement**（inter-teacher agreement） | 値の合致 → concordance / match | |
+| 多様性 | 応答 → **diversity**（response diversity, entropy） | — | |
+| 連続的／二値的 | → **continuous / binary（dichotomous）** | — | OIR系は binary |
+| 構築（モデル） | → **build / construct**（性格推定モデルの構築=building a personality estimation model） | — | |
+| 反映する | → **reflect** | — | |
+| 頑健（性） | → **robust / robustness** | — | |
+| 安定（性） | → **stable / stability** | — | |
+| 妥当性 | → **validity**（face/construct/convergent/external） | — | §9 参照 |
+
+---
+
+## 20. 主張強度の語彙（hedging / strength）★査読耐性
+
+主張の強さを原文どおり保つための対応。過大主張（overclaim）を避ける。
+
+| 日本語 | English | 強度 |
+|:--|:--|:--|
+| 〜を示す／実証する | show / demonstrate | 強（結果が直接支持） |
+| 〜が認められた／観察された | was observed / was found | 中（事実記述） |
+| 〜と整合する | is consistent with | 中 |
+| 〜を示唆する | suggests | 弱 |
+| 〜の可能性がある | may / might / could | 弱 |
+| 〜と考えられる | is considered to / appears to | 弱〜中 |
+| 〜と解釈できる | can be interpreted as | 弱〜中 |
+| おそらく／と推察される | presumably / is presumed | 弱 |
+| 〜する傾向がある | tends to / shows a tendency to | 中 |
+
+ルール: Results は「observed/found」中心（事実）、Discussion で「suggests/may」へ。原文が「示唆」なら demonstrate に強めない、原文が「示す」なら suggest に弱めない。
+
+---
+
+## 21. 更新時の運用（このglossaryをハーネスとして使う）
+
+- JP→EN 翻訳の各セクション投入時、**必ず本glossary全文をシステム指示に前置**する（§17雛形）。
+- 新語・新しい多義語に遭遇したら §19/§20 に追記してから訳す（用語ブレ防止）。
+- 翻訳後、§16（誤訳パターン）と §19/§20 で後段チェック。
+- ステアリング `.kiro/steering/jp-en-translation.md` がこの運用を強制する。
+
+
+
+---
+
+## 22. 更新履歴
 
 | 日付 | 内容 | 担当 |
 |:---:|:--|:---:|
 | 2026-05-10 | 初版作成。feature_definitions.py を一次ソースに 19特徴量英訳を確定。会話分析・統計・Big5 用語を網羅 | 福原 |
+| 2026-06-21 | Big5表記統一を反映。§19 文脈依存マッピング・§20 主張強度の語彙・§21 ハーネス運用を追加（多義語の文脈別固定で英訳精度を強化） | 福原 |

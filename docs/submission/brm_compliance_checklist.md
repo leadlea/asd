@@ -35,7 +35,7 @@
 | B4 | Ethics approval / Consent | ⏳ | CEJC二次利用の倫理的位置づけ。山下先生と要相談 |
 | B5 | Competing interests | ⏳ | |
 | B6 | Funding statement | ⏳ | |
-| B7 | Author contributions（CRediT） | ⏳ | 福原=実装/分析/執筆、山下=監修、宗田さん=助言 |
+| B7 | Author contributions（CRediT） | ⏳ | 福原=実装/分析/執筆、宗田さん=助言、山下先生=監修。著者順は福原→宗田→山下（医学系の責任著者は末尾の慣習に倣う） |
 | B8 | 全著者 ORCID | ⏳ | |
 | B9 | Open Practices badges 申請可否 | ⏳ | Open Data / Open Materials / Preregistered の3種 |
 | B10 | **日本語要旨の併載**（Psychonomic は英語以外の要旨を許可） | ⏳ | 英語要旨の直下に日本語要旨を配置→受理時に併載（コピーエディット無し）。本研究の日本語ドラフト資産を活かせる |
@@ -86,6 +86,7 @@
 | F4 | 宗田さんdocx編集の差分照合 #39（修正で主張が変わっていないか） | ⏳ | 同上 |
 | F5 | 山下先生Word戻り → LaTeX後追い同期（先行確定しない） | 🔄 | altozano2026→wright2026差し替え等(C1)と連動 |
 | F6 | 校閲記録(track changes)を保持したまま受け渡し | ⏳ | 削除記録の相互確認のため |
+| F7 | **paper1_ja_st.docx の Big5 表記同期** | ⏳ | LaTeX側は「Big Five→Big5」統一済(commit da97332)。Word正本はバイナリで未反映 → MTG後にpandoc再生成 or 宗田さん側で同期 |
 
 ## 次の1手
 本MTG（6/22）で日本語版の D2（GroupKFold用語統一）と D7（#867方針）を確定させ、確定後に A3〜A10 の [要確認] を Editorial Manager で一括確認するタスクを切る。
