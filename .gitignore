@@ -113,3 +113,6 @@ docs/jp_miipro_Nanami.html
 
 # LaTeX -> docx 変換の生成物 (scripts/build/latex_to_docx.sh)
 /build/
+
+# ローカル専用カンペ（査読リハーサルQ&A、リポジトリ非共有）
+docs/minutes/mtg_20260622_rehearsal.md

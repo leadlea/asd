@@ -35,7 +35,7 @@
 | B4 | Ethics approval / Consent | ⏳ | CEJC二次利用の倫理的位置づけ。山下先生と要相談 |
 | B5 | Competing interests | ⏳ | |
 | B6 | Funding statement | ⏳ | |
-| B7 | Author contributions（CRediT） | ⏳ | 福原=実装/分析/執筆、山下=監修、宗田=助言 |
+| B7 | Author contributions（CRediT） | ⏳ | 福原=実装/分析/執筆、山下=監修、宗田さん=助言 |
 | B8 | 全著者 ORCID | ⏳ | |
 | B9 | Open Practices badges 申請可否 | ⏳ | Open Data / Open Materials / Preregistered の3種 |
 | B10 | **日本語要旨の併載**（Psychonomic は英語以外の要旨を許可） | ⏳ | 英語要旨の直下に日本語要旨を配置→受理時に併載（コピーエディット無し）。本研究の日本語ドラフト資産を活かせる |
