@@ -110,3 +110,6 @@ README_PATCH.md
 tmp_files.txt
 docs/cha_vs_audio_match.html
 docs/jp_miipro_Nanami.html
+
+# LaTeX -> docx 変換の生成物 (scripts/build/latex_to_docx.sh)
+/build/
