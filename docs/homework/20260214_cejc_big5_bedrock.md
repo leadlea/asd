@@ -404,7 +404,7 @@ PY | tee artifacts/big5/prompt_items_snapshot_20260215.txt
 
 ---
 
-## A/C/E/N/O（Big Five）の意味（論文のNEOドメイン）
+## A/C/E/N/O（Big5）の意味（論文のNEOドメイン）
 
 * A = Agreeableness（協調性）
 * C = Conscientiousness（誠実性）

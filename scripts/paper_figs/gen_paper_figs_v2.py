@@ -482,7 +482,7 @@ def gen_fig_ensemble_permutation(results_dir: Path, out_dir: Path) -> None:
     ax_scatter.set_xticks(x_positions)
     ax_scatter.set_xticklabels(traits, fontsize=12)
     ax_scatter.set_ylabel("Observed correlation ($r_{obs}$)", fontsize=11)
-    ax_scatter.set_title("Ensemble Permutation Test: Big Five (5 Traits)",
+    ax_scatter.set_title("Ensemble Permutation Test: Big5 (5 Traits)",
                          fontsize=12, pad=10)
     # y-axis range: include 0 and some margin
     y_min = min(0, min(r_obs_vals)) - 0.05
@@ -536,7 +536,7 @@ def gen_fig_baseline_vs_extended(results_dir: Path, out_dir: Path) -> None:
 
     Reads all ``baseline_vs_extended_*.tsv`` files from *results_dir* and
     draws a grouped bar chart comparing r_baseline (Classical 10 features)
-    vs r_extended (all 19 features) for each Big Five trait (O, C, E, A, N).
+    vs r_extended (all 19 features) for each Big5 trait (O, C, E, A, N).
     Δr is annotated above each pair.
 
     If multiple teachers exist for the same trait, values are averaged
@@ -797,7 +797,7 @@ def gen_fig_teacher_heatmap(out_dir: Path) -> None:
 def gen_fig_teacher_corr_matrix(results_dir: Path, out_dir: Path) -> None:
     """Generate 4×4 teacher Pearson correlation heatmaps for each Big5 trait.
 
-    For each of the 5 Big Five traits (O, C, E, A, N), reads the 4×4
+    For each of the 5 Big5 traits (O, C, E, A, N), reads the 4×4
     inter-teacher Pearson correlation matrix and draws a seaborn-style
     annotated heatmap.  The 5 heatmaps are arranged in a 1×5 grid.
 
@@ -1953,7 +1953,7 @@ def gen_fig_predicted_vs_observed(
 ) -> None:
     """Generate predicted vs observed scatter plot for ensemble Big5.
 
-    For each of 5 Big Five traits:
+    For each of 5 Big5 traits:
     1. Load ensemble scores (4-teacher average)
     2. Merge with 19 interaction features
     3. Run Ridge (α=100) 5-fold subject-wise CV
@@ -2165,7 +2165,7 @@ def gen_fig_predicted_vs_observed(
     )
 
     fig.suptitle(
-        "Predicted vs Observed: Ensemble Big Five (Ridge Regression)",
+        "Predicted vs Observed: Ensemble Big5 (Ridge Regression)",
         fontsize=14, fontweight="bold", y=1.01,
     )
     fig.tight_layout()

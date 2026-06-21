@@ -201,7 +201,7 @@
   - 本文中の `\cite{hu2025}` → `\citet{hu2025}` / `\citep{hu2025}` に natbib 形式で書き分け
 - **Reference 数の拡充検討**
   - 現状22件 → BRM 平均30〜60件
-  - 追加候補: Big Five 性格推定、IPIP-NEO の原典（Goldberg 1992 / Johnson 2014）、Ridge 回帰、機械学習ベースライン
+  - 追加候補: Big5 性格推定、IPIP-NEO の原典（Goldberg 1992 / Johnson 2014）、Ridge 回帰、機械学習ベースライン
 
 ---
 

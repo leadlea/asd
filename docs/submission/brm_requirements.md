@@ -51,11 +51,11 @@
    - Tutorial 投稿（2026年3月 priority 締切）は本研究の性質と合わない。
 
 2. **タイトル候補の絞り込み**
-   - 現行: 「日本語日常会話における相互行為特徴量の定量化指標の提案——コーパス基本情報および Big Five 性格特性による妥当性検証」
+   - 現行: 「日本語日常会話における相互行為特徴量の定量化指標の提案——コーパス基本情報および Big5 性格特性による妥当性検証」
    - 英語候補 3案:
-     - *Quantifying Interactional Features of Japanese Everyday Conversation: Validation via Corpus Metadata and LLM-estimated Big Five Personality*
+     - *Quantifying Interactional Features of Japanese Everyday Conversation: Validation via Corpus Metadata and LLM-estimated Big5 Personality*
      - *Interactional Feature Extraction from Japanese Conversation: A Validation Framework Using LLM-based Personality Scoring*
-     - *Proposing and Validating Interactional Features in Japanese Everyday Conversation with LLM-based Big Five Personality Scoring*
+     - *Proposing and Validating Interactional Features in Japanese Everyday Conversation with LLM-based Big5 Personality Scoring*
    - BRM は method 提案寄りなので、**"Quantifying"** で始めるタイトルが審査員の目を引きやすい。
 
 3. **Abstract 圧縮（200〜250語）**
@@ -105,7 +105,7 @@
 現状19件、英訳時に追加しても24件程度。BRM 平均は30〜60件。**足りない可能性**。
 - **対策**: 英訳時に以下のカテゴリで引用を追加検討
   - LLM-based assessment 系（既に Hu 2025, Altozano 2026, Mun 2024 等はあり、1〜2件追加）
-  - Big Five 性格推定の既存手法（IPIP-NEO 原典、Big5 prediction のベンチマーク論文）
+  - Big5 性格推定の既存手法（IPIP-NEO 原典、Big5 prediction のベンチマーク論文）
   - Ridge 回帰・Permutation test・Bootstrap の古典
   - 日本語会話特徴量の既存研究（Maynard 1989, 泉 2004 等）
 
