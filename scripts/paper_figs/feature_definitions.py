@@ -43,7 +43,7 @@ _EXPLANATORY: List[FeatureDefinition] = [
         summary="Speech ratio",
         algorithm=(
             "Speaker's total speech time / total conversation time. "
-            "NaN if total_time is 0 or missing."
+            "missing if total_time is 0 or missing."
         ),
         is_control=False,
         classification="Classical",
@@ -54,7 +54,7 @@ _EXPLANATORY: List[FeatureDefinition] = [
         summary="Mean pause duration",
         algorithm=(
             "Mean of intra-speaker consecutive utterance gaps "
-            "(>=gap_tol sec). NaN if no qualifying gaps."
+            "(>=gap_tol sec). missing if no qualifying gaps."
         ),
         is_control=False,
         classification="Classical",
@@ -65,7 +65,7 @@ _EXPLANATORY: List[FeatureDefinition] = [
         summary="Median pause",
         algorithm=(
             "50th percentile of intra-speaker gaps. "
-            "NaN if no qualifying gaps."
+            "missing if no qualifying gaps."
         ),
         is_control=False,
         classification="Classical",
@@ -76,7 +76,7 @@ _EXPLANATORY: List[FeatureDefinition] = [
         summary="90th percentile pause",
         algorithm=(
             "90th percentile of intra-speaker gaps. "
-            "NaN if no qualifying gaps."
+            "missing if no qualifying gaps."
         ),
         is_control=False,
         classification="Classical",
@@ -87,7 +87,7 @@ _EXPLANATORY: List[FeatureDefinition] = [
         summary="Mean response gap",
         algorithm=(
             "Mean of turn-taking gaps (prev_end -> resp_start, "
-            ">=gap_tol sec). NaN if no qualifying gaps."
+            ">=gap_tol sec). missing if no qualifying gaps."
         ),
         is_control=False,
         classification="Classical",
@@ -98,7 +98,7 @@ _EXPLANATORY: List[FeatureDefinition] = [
         summary="Median response gap",
         algorithm=(
             "50th percentile of turn-taking gaps. "
-            "NaN if no qualifying gaps."
+            "missing if no qualifying gaps."
         ),
         is_control=False,
         classification="Classical",
@@ -109,7 +109,7 @@ _EXPLANATORY: List[FeatureDefinition] = [
         summary="90th percentile response gap",
         algorithm=(
             "90th percentile of turn-taking gaps. "
-            "NaN if no qualifying gaps."
+            "missing if no qualifying gaps."
         ),
         is_control=False,
         classification="Classical",
@@ -120,7 +120,7 @@ _EXPLANATORY: List[FeatureDefinition] = [
         summary="Filler utterance rate",
         algorithm=(
             "Proportion of speaker's utterances containing >=1 filler "
-            "(etto/ee/ano). NaN if speaker has no utterances."
+            "(etto/ee/ano). missing if speaker has no utterances."
         ),
         is_control=False,
         classification="Classical",
@@ -131,7 +131,7 @@ _EXPLANATORY: List[FeatureDefinition] = [
         summary="Filler rate per 100 chars",
         algorithm=(
             "Total filler count / (text character count / 100). "
-            "NaN if text_len is 0."
+            "missing if text_len is 0."
         ),
         is_control=False,
         classification="Classical",
@@ -162,7 +162,7 @@ _EXPLANATORY: List[FeatureDefinition] = [
         summary="Post-question OIR rate",
         algorithm=(
             "OIR marker rate when previous utterance is a question. "
-            "NaN if no question-preceded pairs."
+            "missing if no question-preceded pairs."
         ),
         is_control=False,
         classification="Novel",
@@ -184,7 +184,7 @@ _EXPLANATORY: List[FeatureDefinition] = [
         summary="Post-question Yes/No rate",
         algorithm=(
             "Yes/No rate when previous utterance is a question. "
-            "NaN if no question-preceded pairs."
+            "missing if no question-preceded pairs."
         ),
         is_control=False,
         classification="Novel",
@@ -207,7 +207,7 @@ _EXPLANATORY: List[FeatureDefinition] = [
         algorithm=(
             "Proportion of responses that start with aizuchi prefixes "
             "when previous utterance ends with NE particle. "
-            "NaN if n_pairs_after_NE is 0."
+            "missing if n_pairs_after_NE is 0."
         ),
         is_control=False,
         classification="Novel",
@@ -218,7 +218,7 @@ _EXPLANATORY: List[FeatureDefinition] = [
         summary="Post-NE response entropy",
         algorithm=(
             "Shannon entropy of response-initial tokens after NE "
-            "sentence-final particle. NaN if n_pairs_after_NE is 0."
+            "sentence-final particle. missing if n_pairs_after_NE is 0."
         ),
         is_control=False,
         classification="Novel",
@@ -229,7 +229,7 @@ _EXPLANATORY: List[FeatureDefinition] = [
         summary="Post-YO response entropy",
         algorithm=(
             "Shannon entropy of response-initial tokens after YO "
-            "sentence-final particle. NaN if n_pairs_after_YO is 0."
+            "sentence-final particle. missing if n_pairs_after_YO is 0."
         ),
         is_control=False,
         classification="Novel",
@@ -240,7 +240,7 @@ _EXPLANATORY: List[FeatureDefinition] = [
         summary="Pause duration CV",
         algorithm=(
             "Coefficient of variation (std / mean) of intra-speaker "
-            "pause durations. NaN if fewer than 2 pauses or mean is 0."
+            "pause durations. missing if fewer than 2 pauses or mean is 0."
         ),
         is_control=False,
         classification="Novel",
