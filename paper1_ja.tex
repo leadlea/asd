@@ -544,15 +544,8 @@ PG: タイミング系，FILL: フィラー系，IX: 相互行為系，RESP: 応
 \subsection{特徴量カテゴリ内・カテゴリ間の相関分析}
 \label{sec:result_correlation}
 
-表\ref{tab:corr_matrix}に19特徴量間のPearson相関行列を，
-図\ref{fig:corr_heatmap}にカテゴリ別ブロック構造のヒートマップを示す．
-
-\begin{table}[htbp]
-\centering
-\caption{19特徴量間のPearson相関行列．}
-\label{tab:corr_matrix}
-\input{reports/paper_figs_v2/tab_corr_matrix.tex}
-\end{table}
+図\ref{fig:corr_heatmap}に19特徴量間のPearson相関のカテゴリ別ブロック構造をヒートマップで示す．
+数値の相関行列（19$\times$19）は付録\ref{sec:supp_corr}に掲載する．
 
 \begin{figure}[htbp]
 \centering
@@ -1564,6 +1557,18 @@ CEJCでは同一話者が複数の会話に参加している場合があり，
 分割されないよう制御するsubject-wise split を採用した（2.4節参照）．
 これにより，重複話者を含むデータセットにおいても，
 予測精度の評価が話者間の汎化性能を適切に反映するよう設計されている．
+
+\section{特徴量間相関行列（補足）}
+\label{sec:supp_corr}
+% [6/22 福原] 3.2のヒートマップ(図)と重複する19x19数値行列を本文から補足へ移送(ADR-0014)。宗田さんが削除指示したColumn keyは、番号列(1)-(19)の解釈に必要なため数値表とともに本補足にのみ残す。
+表\ref{tab:corr_matrix}に，図\ref{fig:corr_heatmap}に対応する19特徴量間のPearson相関係数の数値行列を示す．
+
+\begin{table}[htbp]
+\centering
+\caption{19特徴量間のPearson相関行列．}
+\label{tab:corr_matrix}
+\input{reports/paper_figs_v2/tab_corr_matrix.tex}
+\end{table}
 
 \section{交差検証の実装詳細}
 \label{sec:appendix_cv}
