@@ -2113,6 +2113,14 @@ def gen_fig_predicted_vs_observed(
             zorder=2, label="y = x",
         )
 
+        # 等軸・等アスペクト: x(Observed)とy(Predicted)を同一範囲・正方形にし，
+        # y=xを視覚的に45度の参照線とする．これにより，Ridge正則化による
+        # 予測値レンジの圧縮（平均への縮約 / regression to the mean）が正しく可視化される．
+        lim_lo, lim_hi = diag_min - margin, diag_max + margin
+        ax.set_xlim(lim_lo, lim_hi)
+        ax.set_ylim(lim_lo, lim_hi)
+        ax.set_aspect("equal", adjustable="box")
+
         # Annotate r and p
         sig_star = " *" if is_sig else ""
         ax.text(
