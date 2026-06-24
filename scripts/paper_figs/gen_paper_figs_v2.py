@@ -1267,7 +1267,10 @@ def _gen_tab_corr_matrix(
                 vals.append("NaN")
             else:
                 vals.append(f"{v:.2f}")
-        row_label = f"({i + 1}) {tex_full[i]}"
+        # Row label: number only (full name is given in the column key below).
+        # Keeping row labels numeric avoids a wide first column, so that the
+        # \resizebox-scaled 19x19 matrix renders at a readable font size.
+        row_label = f"({i + 1})"
         rows.append(f"{row_label} & {' & '.join(vals)} \\\\")
 
     body = "\n".join(rows)
@@ -3256,8 +3259,12 @@ def main(argv: list[str] | None = None) -> None:
         # --- Predicted vs Observed scatter plot ---
         ("fig_predicted_vs_observed.png", gen_fig_predicted_vs_observed, [results_dir, features_parquet, out_dir]),
         # --- 3-stage Ridge, Bootstrap variance, Permutation coef, Teacher corr ---
-        ("fig_three_stage_comparison.png", gen_fig_three_stage_comparison, [results_dir, out_dir]),
-        ("tab_three_stage.tex", gen_tab_three_stage, [results_dir, out_dir]),
+        # NOTE: fig_three_stage_comparison.png / tab_three_stage.tex は R²/RMSE 主指標版を
+        #   専用スクリプトで生成する（[山下6/22] 対応, 先祖返り防止のため batch から除外）:
+        #     .venv/bin/python scripts/paper_figs/gen_fig_three_stage_r2.py --teacher ensemble
+        #     .venv/bin/python scripts/paper_figs/gen_tab_three_stage_r2.py --teacher ensemble
+        #   付録 r 版 tab_three_stage_r.tex も後者が生成。旧 r 版関数
+        #   (gen_fig_three_stage_comparison / gen_tab_three_stage) は呼び出さない。
         ("fig_bootstrap_variance.png", gen_fig_bootstrap_variance, [results_dir, out_dir]),
         ("tab_bootstrap_variance.tex", gen_tab_bootstrap_variance, [results_dir, out_dir]),
         ("tab_permutation_coef.tex", gen_tab_permutation_coef, [results_dir, out_dir]),
