@@ -362,7 +362,7 @@ def gen_fig_permutation_C_bar(results_dir: Path, out_dir: Path) -> None:
         r_obs_vals.append(res.r_obs)
         p_vals.append(res.p_value)
 
-    fig, ax = plt.subplots(figsize=(6, 4))
+    fig, ax = plt.subplots(figsize=(5.4, 3.6))
     colors = ["#2166ac" if p < 0.05 else "#b2182b" for p in p_vals]
     bars = ax.bar(range(len(teachers_disp)), r_obs_vals, color=colors, width=0.55,
                   edgecolor="white", linewidth=0.8)
@@ -381,7 +381,7 @@ def gen_fig_permutation_C_bar(results_dir: Path, out_dir: Path) -> None:
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
     fig.tight_layout()
-    fig.savefig(out_dir / "fig_permutation_C_bar.png", dpi=300, bbox_inches="tight")
+    fig.savefig(out_dir / "fig_permutation_C_bar.png", dpi=600, bbox_inches="tight")
     plt.close(fig)
 
 
@@ -521,7 +521,7 @@ def gen_fig_ensemble_permutation(results_dir: Path, out_dir: Path) -> None:
                 tbl[i + 1, j].set_facecolor("#d4e6f1")
 
     fig.tight_layout()
-    fig.savefig(out_dir / "fig_ensemble_permutation.png", dpi=300, bbox_inches="tight")
+    fig.savefig(out_dir / "fig_ensemble_permutation.png", dpi=600, bbox_inches="tight")
     plt.close(fig)
 
 
@@ -629,7 +629,7 @@ def gen_fig_baseline_vs_extended(results_dir: Path, out_dir: Path) -> None:
     ax.spines["right"].set_visible(False)
 
     fig.tight_layout()
-    fig.savefig(out_dir / "fig_baseline_vs_extended.png", dpi=300, bbox_inches="tight")
+    fig.savefig(out_dir / "fig_baseline_vs_extended.png", dpi=600, bbox_inches="tight")
     plt.close(fig)
 
 
@@ -698,7 +698,7 @@ def gen_fig_bootstrap_C_radar(bootstrap_dir: Path, out_dir: Path) -> None:
 
     fig.tight_layout()
     out_path = out_dir / "fig_bootstrap_C_radar.png"
-    fig.savefig(out_path, dpi=300, bbox_inches="tight")
+    fig.savefig(out_path, dpi=600, bbox_inches="tight")
     plt.close(fig)
 
 
@@ -750,7 +750,7 @@ def gen_fig_teacher_heatmap(out_dir: Path) -> None:
             data[i, j] = np.mean(off_diag)
 
     # --- Draw heatmap ---
-    fig, ax = plt.subplots(figsize=(7.5, 4.0))
+    fig, ax = plt.subplots(figsize=(5.6, 3.3))
 
     norm = Normalize(vmin=0.3, vmax=0.8)
     im = ax.imshow(data, cmap="YlOrRd", aspect="auto", norm=norm)
@@ -766,7 +766,7 @@ def gen_fig_teacher_heatmap(out_dir: Path) -> None:
     # Axis labels
     teacher_labels = [TEACHER_DISPLAY[t] for t in TEACHERS]
     ax.set_xticks(range(len(TEACHERS)))
-    ax.set_xticklabels(teacher_labels, fontsize=10)
+    ax.set_xticklabels(teacher_labels, fontsize=9, rotation=25, ha="right")
     ax.set_yticks(range(len(TRAITS)))
     ax.set_yticklabels(TRAITS, fontsize=12, fontweight="bold")
 
@@ -790,7 +790,7 @@ def gen_fig_teacher_heatmap(out_dir: Path) -> None:
 
     fig.tight_layout()
     out_path = out_dir / "fig_teacher_heatmap.png"
-    fig.savefig(out_path, dpi=300, bbox_inches="tight")
+    fig.savefig(out_path, dpi=600, bbox_inches="tight")
     plt.close(fig)
 
 
@@ -830,8 +830,10 @@ def gen_fig_teacher_corr_matrix(results_dir: Path, out_dir: Path) -> None:
     trait_order = ["O", "C", "E", "A", "N"]
     tsv_teachers = ["sonnet4", "qwen3-235b", "deepseek-v3", "gpt-oss-120b"]
     display_labels = ["Sonnet4", "Qwen3\n235B", "DeepSeek\nV3", "GPT-OSS\n120B"]
+    # x軸は単一行・斜め配置でラベル衝突を防ぐ（モデルファミリ名で一意に識別可能）
+    x_labels = ["Sonnet 4", "Qwen3", "DeepSeek", "GPT-OSS"]
 
-    fig, axes = plt.subplots(3, 2, figsize=(10, 14))
+    fig, axes = plt.subplots(3, 2, figsize=(5.8, 8.1))
     axes_flat = axes.flatten()
 
     for idx, trait in enumerate(trait_order):
@@ -858,8 +860,8 @@ def gen_fig_teacher_corr_matrix(results_dir: Path, out_dir: Path) -> None:
         )
 
         ax.set_title(f"{trait}", fontsize=14, fontweight="bold", pad=8)
-        ax.set_xticklabels(display_labels, fontsize=9, rotation=0, ha="center")
-        ax.set_yticklabels(display_labels, fontsize=9, rotation=0, va="center")
+        ax.set_xticklabels(x_labels, fontsize=8, rotation=30, ha="right")
+        ax.set_yticklabels(display_labels, fontsize=8, rotation=0, va="center")
 
     # Use the 6th subplot for a shared colorbar
     ax_cb = axes_flat[5]
@@ -879,7 +881,7 @@ def gen_fig_teacher_corr_matrix(results_dir: Path, out_dir: Path) -> None:
     )
     fig.tight_layout()
     out_path = out_dir / "fig_teacher_corr_matrix.png"
-    fig.savefig(out_path, dpi=300, bbox_inches="tight")
+    fig.savefig(out_path, dpi=600, bbox_inches="tight")
     plt.close(fig)
 
 
@@ -981,7 +983,12 @@ def gen_descriptive_stats_full_table(features_df: pd.DataFrame, out_dir: Path) -
         )
 
     body = "\n".join(rows)
+    # \small + reduced \tabcolsep keep the 9-column table within \textwidth
+    # (long feature identifiers otherwise overflow by ~27pt). Font stays >=7pt
+    # at 11pt base (\small ~= 10pt), satisfying BRM legibility rules.
     latex = (
+        "{\\small\n"
+        "\\setlength{\\tabcolsep}{4pt}\n"
         "\\begin{tabular}{lrrrrrrrr}\n"
         "\\toprule\n"
         "Feature & $N$ & Mean & SD & Min & p25 & p50 & p75 & Max \\\\\n"
@@ -989,6 +996,7 @@ def gen_descriptive_stats_full_table(features_df: pd.DataFrame, out_dir: Path) -
         f"{body}\n"
         "\\bottomrule\n"
         "\\end{tabular}\n"
+        "}\n"
     )
 
     out_path = out_dir / "tab_descriptive_stats_full.tex"
@@ -1026,12 +1034,6 @@ def gen_feature_distribution(features_df: pd.DataFrame, out_dir: Path) -> None:
                 cat_summaries[cat].append(short)
                 break
 
-    n_cats = len(categories)
-    fig, axes = plt.subplots(1, n_cats, figsize=(18, 5.5),
-                             gridspec_kw={"width_ratios": [
-                                 len(cat_feats[c]) for c in categories
-                             ]})
-
     cat_colors = {
         "PG": "#2166ac",
         "FILL": "#4daf4a",
@@ -1039,12 +1041,10 @@ def gen_feature_distribution(features_df: pd.DataFrame, out_dir: Path) -> None:
         "RESP": "#984ea3",
     }
 
-    for idx, cat in enumerate(categories):
-        ax = axes[idx]
+    def _plot_cat(ax, cat):
+        """Draw violin plot for one feature category on the given axis."""
         names = cat_feats[cat]
         labels = cat_summaries[cat]
-
-        # Collect data for violin plot, dropping NaN per feature
         data_list = []
         valid_labels = []
         for name, label in zip(names, labels):
@@ -1058,36 +1058,49 @@ def gen_feature_distribution(features_df: pd.DataFrame, out_dir: Path) -> None:
             ax.set_title(f"{cat}", fontsize=12, fontweight="bold")
             ax.text(0.5, 0.5, "No data", ha="center", va="center",
                     transform=ax.transAxes, fontsize=10, color="grey")
-            continue
+            return
 
         color = cat_colors.get(cat, "#333333")
         parts = ax.violinplot(data_list, positions=range(len(data_list)),
                               showmeans=True, showmedians=True,
                               showextrema=True)
-
-        # Style violin bodies
         for pc in parts["bodies"]:
             pc.set_facecolor(color)
             pc.set_alpha(0.6)
             pc.set_edgecolor(color)
-        # Style lines
         for key in ("cmeans", "cmedians", "cbars", "cmins", "cmaxes"):
             if key in parts:
                 parts[key].set_color(color)
                 parts[key].set_linewidth(1.2)
 
         ax.set_xticks(range(len(valid_labels)))
-        ax.set_xticklabels(valid_labels, fontsize=8, rotation=45, ha="right")
+        ax.set_xticklabels(valid_labels, fontsize=9, rotation=40, ha="right")
         ax.set_title(f"{cat}", fontsize=12, fontweight="bold", color=color)
         ax.spines["top"].set_visible(False)
         ax.spines["right"].set_visible(False)
         ax.tick_params(axis="y", labelsize=9)
 
+    # Two-row layout so the figure renders near 1:1 at \linewidth and
+    # lettering stays >=7pt at final size (Springer/BRM legibility).
+    # Row 1: PG (full width). Row 2: FILL / IX / RESP (width by feature count).
+    fig = plt.figure(figsize=(7.2, 6.8))
+    outer = fig.add_gridspec(2, 1, height_ratios=[1, 1], hspace=0.85)
+    ax_pg = fig.add_subplot(outer[0])
+    _plot_cat(ax_pg, "PG")
+
+    row2 = [c for c in categories if c != "PG"]
+    inner = outer[1].subgridspec(
+        1, len(row2),
+        width_ratios=[max(1, len(cat_feats[c])) for c in row2],
+        wspace=0.4,
+    )
+    for j, cat in enumerate(row2):
+        _plot_cat(fig.add_subplot(inner[0, j]), cat)
+
     fig.suptitle("Distribution of 19 Interaction Features by Category",
-                 fontsize=13, fontweight="bold", y=1.02)
-    fig.tight_layout()
+                 fontsize=13, fontweight="bold", y=0.995)
     out_path = out_dir / "fig_feature_distribution.png"
-    fig.savefig(out_path, dpi=300, bbox_inches="tight")
+    fig.savefig(out_path, dpi=600, bbox_inches="tight")
     plt.close(fig)
 
 
@@ -1151,19 +1164,14 @@ def gen_corr_heatmap_block(features_df: pd.DataFrame, out_dir: Path) -> None:
             short_labels.append(name)
 
     # --- Draw heatmap ---
-    fig, ax = plt.subplots(figsize=(12, 10))
+    fig, ax = plt.subplots(figsize=(5.8, 5.4))
 
     norm = TwoSlopeNorm(vmin=-1, vcenter=0, vmax=1)
     im = ax.imshow(corr.values, cmap="RdBu_r", norm=norm, aspect="equal")
 
-    # Annotate cells with correlation values (small font for readability)
-    for i in range(n):
-        for j in range(n):
-            val = corr.values[i, j]
-            # Use white text on dark backgrounds
-            text_color = "white" if abs(val) > 0.6 else "black"
-            ax.text(j, i, f"{val:.2f}", ha="center", va="center",
-                    fontsize=7, color=text_color)
+    # Cell-level correlation values are reported in the supplementary
+    # correlation table (tab_corr_matrix); the heatmap conveys the block
+    # pattern via colour to keep tick labels legible at column width.
 
     # --- Category boundary lines ---
     cumulative = 0
@@ -1187,12 +1195,12 @@ def gen_corr_heatmap_block(features_df: pd.DataFrame, out_dir: Path) -> None:
 
     # --- Tick labels ---
     ax.set_xticks(range(n))
-    ax.set_xticklabels(short_labels, fontsize=7, rotation=55, ha="right")
+    ax.set_xticklabels(short_labels, fontsize=8, rotation=55, ha="right")
     ax.set_yticks(range(n))
-    ax.set_yticklabels(short_labels, fontsize=7)
+    ax.set_yticklabels(short_labels, fontsize=8)
 
-    ax.set_title("Pearson Correlation Matrix (Block Structure: PG → FILL → IX → RESP)",
-                 fontsize=12, fontweight="bold", pad=28)
+    ax.set_title("Pearson Correlation Matrix (Block: PG/FILL/IX/RESP)",
+                 fontsize=9, fontweight="bold", pad=24)
 
     # Colorbar
     cbar = fig.colorbar(im, ax=ax, fraction=0.046, pad=0.04, shrink=0.85)
@@ -1201,7 +1209,7 @@ def gen_corr_heatmap_block(features_df: pd.DataFrame, out_dir: Path) -> None:
 
     fig.tight_layout()
     out_path = out_dir / "fig_corr_heatmap_block.png"
-    fig.savefig(out_path, dpi=300, bbox_inches="tight")
+    fig.savefig(out_path, dpi=600, bbox_inches="tight")
     plt.close(fig)
 
     # --- Generate LaTeX correlation matrix table ---
@@ -1341,7 +1349,7 @@ def gen_metadata_gender(
     n_cols = 3
     n_rows = (n_features + n_cols - 1) // n_cols  # ceil division → 6
 
-    fig, axes = plt.subplots(n_rows, n_cols, figsize=(14, n_rows * 3.2))
+    fig, axes = plt.subplots(n_rows, n_cols, figsize=(5.8, n_rows * 1.2))
     axes_flat = axes.flatten()
 
     for idx, feat in enumerate(FEATURE_COLUMNS):
@@ -1410,7 +1418,7 @@ def gen_metadata_gender(
     )
     fig.tight_layout()
     out_path = out_dir / "fig_metadata_gender.png"
-    fig.savefig(out_path, dpi=300, bbox_inches="tight")
+    fig.savefig(out_path, dpi=600, bbox_inches="tight")
     plt.close(fig)
 
 
@@ -1434,6 +1442,7 @@ def gen_metadata_age(
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
+    from matplotlib.ticker import MaxNLocator
     from scipy.stats import pearsonr, spearmanr
 
     if "age" not in metadata_df.columns:
@@ -1462,7 +1471,7 @@ def gen_metadata_age(
     n_cols = 3
     n_rows = (n_features + n_cols - 1) // n_cols
 
-    fig, axes = plt.subplots(n_rows, n_cols, figsize=(14, n_rows * 3.2))
+    fig, axes = plt.subplots(n_rows, n_cols, figsize=(5.8, n_rows * 1.2))
     axes_flat = axes.flatten()
 
     for idx, feat in enumerate(FEATURE_COLUMNS):
@@ -1471,8 +1480,11 @@ def gen_metadata_age(
         age_vals = valid["age"].values
         feat_vals = valid[feat].values
 
-        ax.scatter(age_vals, feat_vals, alpha=0.5, s=18, color="#2166ac", edgecolors="white", linewidths=0.3)
+        ax.scatter(age_vals, feat_vals, alpha=0.45, s=11, color="#2166ac", edgecolors="white", linewidths=0.2)
 
+        # 2行タイトル: (1)特徴量名 (2)r と ρ（有意は*）。
+        # 冗長な "p=0.xxxx" は省略してプロット領域を確保（有意性は*で表示，
+        # Spearman の正確なp値は表 tab_metadata_tests に記載）。
         annotation_lines = [feat]
 
         if len(valid) >= 3:
@@ -1485,27 +1497,29 @@ def gen_metadata_age(
             except (np.linalg.LinAlgError, ValueError):
                 pass
 
+            stat_parts = []
             # Pearson
             try:
                 r_p, p_p = pearsonr(age_vals, feat_vals)
-                sig_p = "*" if p_p < 0.05 else ""
-                annotation_lines.append(f"r={r_p:.3f}, p={p_p:.4f}{sig_p}")
+                stat_parts.append(f"r={r_p:.2f}{'*' if p_p < 0.05 else ''}")
             except ValueError:
-                annotation_lines.append("Pearson: N/A")
-
+                stat_parts.append("r=NA")
             # Spearman
             try:
                 rho_s, p_s = spearmanr(age_vals, feat_vals)
-                sig_s = "*" if p_s < 0.05 else ""
-                annotation_lines.append(f"ρ={rho_s:.3f}, p={p_s:.4f}{sig_s}")
+                stat_parts.append(f"ρ={rho_s:.2f}{'*' if p_s < 0.05 else ''}")
             except ValueError:
-                annotation_lines.append("Spearman: N/A")
+                stat_parts.append("ρ=NA")
+            annotation_lines.append("  ".join(stat_parts))
         else:
             annotation_lines.append("(n < 3)")
 
-        ax.set_title("\n".join(annotation_lines), fontsize=9, fontweight="normal")
-        ax.set_xlabel("Age", fontsize=9)
-        ax.tick_params(axis="both", labelsize=8)
+        ax.set_title("\n".join(annotation_lines), fontsize=8, fontweight="normal")
+        ax.set_xlabel("Age", fontsize=8)
+        ax.tick_params(axis="both", labelsize=7)
+        # 目盛りを間引いてラベルの重なり（縦積み）を防ぐ
+        ax.yaxis.set_major_locator(MaxNLocator(nbins=2))
+        ax.xaxis.set_major_locator(MaxNLocator(nbins=4))
         ax.spines["top"].set_visible(False)
         ax.spines["right"].set_visible(False)
 
@@ -1517,9 +1531,9 @@ def gen_metadata_age(
         f"Age × Feature Correlation (n={len(merged)})",
         fontsize=13, fontweight="bold", y=1.01,
     )
-    fig.tight_layout()
+    fig.tight_layout(h_pad=1.3)
     out_path = out_dir / "fig_metadata_age.png"
-    fig.savefig(out_path, dpi=300, bbox_inches="tight")
+    fig.savefig(out_path, dpi=600, bbox_inches="tight")
     plt.close(fig)
 
 
@@ -1874,13 +1888,27 @@ def gen_tab_feature_definitions(out_dir: Path) -> None:
     body = "\n".join(rows)
     latex = (
         "{\\footnotesize\n"
-        "\\begin{longtable}{lllp{2.5cm}p{4.5cm}}\n"
+        "\\setlength{\\tabcolsep}{4pt}\n"
+        "\\begin{longtable}{lllp{2.2cm}p{3.9cm}}\n"
+        "\\caption{19特徴量の定義．Class.列はClassical（既存研究ベース）または"
+        "Novel（新規提案）を示す．"
+        "変数名は実装上の識別子をそのまま記載している．}\n"
+        "\\label{tab:feature_def}\\\\\n"
+        "\\toprule\n"
+        "Name & Cat. & Class. & Summary & Algorithm \\\\\n"
+        "\\midrule\n"
+        "\\endfirsthead\n"
+        "\\multicolumn{5}{c}{\\tablename~\\thetable{}（続き）}\\\\\n"
         "\\toprule\n"
         "Name & Cat. & Class. & Summary & Algorithm \\\\\n"
         "\\midrule\n"
         "\\endhead\n"
-        f"{body}\n"
+        "\\midrule\n"
+        "\\multicolumn{5}{r}{（次ページに続く）}\\\\\n"
+        "\\endfoot\n"
         "\\bottomrule\n"
+        "\\endlastfoot\n"
+        f"{body}\n"
         "\\end{longtable}\n"
         "}\n"
     )
@@ -2019,7 +2047,7 @@ def gen_fig_predicted_vs_observed(
         "N": "Neuroticism (N)",
     }
 
-    fig, axes = plt.subplots(2, 3, figsize=(14, 9))
+    fig, axes = plt.subplots(2, 3, figsize=(6.6, 5.3))
     axes_flat = axes.flatten()
 
     for idx, trait in enumerate(trait_order):
@@ -2124,14 +2152,14 @@ def gen_fig_predicted_vs_observed(
         # Annotate r and p
         sig_star = " *" if is_sig else ""
         ax.text(
-            0.05, 0.95,
+            0.04, 0.96,
             f"r = {r_val:.3f}, p = {p_val:.4f}{sig_star}",
             transform=ax.transAxes,
-            fontsize=10, va="top", ha="left",
+            fontsize=8.5, va="top", ha="left",
             fontweight="bold" if is_sig else "normal",
             color=marker_color,
-            bbox=dict(boxstyle="round,pad=0.3", facecolor="white",
-                      edgecolor="#dddddd", alpha=0.8),
+            bbox=dict(boxstyle="round,pad=0.25", facecolor="white",
+                      edgecolor="#dddddd", alpha=0.85),
         )
 
         ax.set_xlabel("Observed", fontsize=11)
@@ -2161,15 +2189,15 @@ def gen_fig_predicted_vs_observed(
                label="y = x (ideal)"),
     ]
     ax_legend.legend(
-        handles=legend_handles, loc="center", fontsize=11,
+        handles=legend_handles, loc="upper center", fontsize=9.5,
         frameon=True, framealpha=0.9, edgecolor="#dddddd",
-        title="Legend", title_fontsize=12,
+        title="Legend", title_fontsize=10.5,
     )
     ax_legend.text(
-        0.5, 0.15,
+        0.5, 0.06,
         f"Ridge α={alpha}, {cv_folds}-fold CV\nOut-of-fold predictions",
         ha="center", va="center", transform=ax_legend.transAxes,
-        fontsize=10, color="#666666",
+        fontsize=9, color="#666666",
     )
 
     fig.suptitle(
@@ -2178,7 +2206,7 @@ def gen_fig_predicted_vs_observed(
     )
     fig.tight_layout()
     out_path = out_dir / "fig_predicted_vs_observed.png"
-    fig.savefig(out_path, dpi=300, bbox_inches="tight")
+    fig.savefig(out_path, dpi=600, bbox_inches="tight")
     plt.close(fig)
 
 
@@ -2275,7 +2303,7 @@ def gen_fig_three_stage_comparison(results_dir: Path, out_dir: Path) -> None:
     x = np.arange(len(trait_order))
     width = 0.24
 
-    fig, ax = plt.subplots(figsize=(9, 5.5))
+    fig, ax = plt.subplots(figsize=(5.8, 4.3))
 
     # Store bar positions and heights for Δr arrow annotations
     bar_info: dict[tuple[str, int], tuple[float, float]] = {}  # (trait, stage) -> (x_center, r_obs)
@@ -2312,7 +2340,7 @@ def gen_fig_three_stage_comparison(results_dir: Path, out_dir: Path) -> None:
             ax.text(
                 positions[i], r_vals[i] + 0.008,
                 f"{r_vals[i]:.3f}",
-                ha="center", va="bottom", fontsize=10,
+                ha="center", va="bottom", fontsize=9,
                 fontweight="medium", color="#333333",
             )
 
@@ -2327,7 +2355,7 @@ def gen_fig_three_stage_comparison(results_dir: Path, out_dir: Path) -> None:
                 x1, y1 = bar_info[(trait, 1)]
                 x2, y2 = bar_info[(trait, 2)]
                 # Arrow from top of Stage 1 bar to top of Stage 2 bar
-                y_arrow = max(y1, y2) + 0.04
+                y_arrow = max(y1, y2) + 0.05
                 ax.annotate(
                     "",
                     xy=(x2, y_arrow), xytext=(x1, y_arrow),
@@ -2337,9 +2365,9 @@ def gen_fig_three_stage_comparison(results_dir: Path, out_dir: Path) -> None:
                     ),
                 )
                 ax.text(
-                    (x1 + x2) / 2, y_arrow + 0.015,
+                    (x1 + x2) / 2, y_arrow + 0.018,
                     f"Δr={sign12}{dr12:.3f}",
-                    ha="center", va="bottom", fontsize=10,
+                    ha="center", va="bottom", fontsize=9,
                     fontstyle="italic", color="#5dade2",
                 )
 
@@ -2352,7 +2380,7 @@ def gen_fig_three_stage_comparison(results_dir: Path, out_dir: Path) -> None:
                 x2, y2 = bar_info[(trait, 2)]
                 x3, y3 = bar_info[(trait, 3)]
                 # Arrow from top of Stage 2 bar to top of Stage 3 bar
-                y_arrow = max(y2, y3) + 0.08
+                y_arrow = max(y2, y3) + 0.13
                 ax.annotate(
                     "",
                     xy=(x3, y_arrow), xytext=(x2, y_arrow),
@@ -2362,9 +2390,9 @@ def gen_fig_three_stage_comparison(results_dir: Path, out_dir: Path) -> None:
                     ),
                 )
                 ax.text(
-                    (x2 + x3) / 2, y_arrow + 0.015,
+                    (x2 + x3) / 2, y_arrow + 0.018,
                     f"Δr={sign23}{dr23:.3f}",
-                    ha="center", va="bottom", fontsize=10,
+                    ha="center", va="bottom", fontsize=9,
                     fontstyle="italic", color="#2166ac",
                 )
 
@@ -2376,7 +2404,7 @@ def gen_fig_three_stage_comparison(results_dir: Path, out_dir: Path) -> None:
         fontsize=14, pad=12,
     )
     y_max = agg["r_obs"].max() if len(agg) > 0 else 0.5
-    ax.set_ylim(0, y_max * 1.55)
+    ax.set_ylim(0, y_max * 1.8)
     ax.legend(loc="upper right", fontsize=10, framealpha=0.9)
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
@@ -2389,7 +2417,7 @@ def gen_fig_three_stage_comparison(results_dir: Path, out_dir: Path) -> None:
 
     fig.tight_layout()
     out_path = out_dir / "fig_three_stage_comparison.png"
-    fig.savefig(out_path, dpi=300, bbox_inches="tight")
+    fig.savefig(out_path, dpi=600, bbox_inches="tight")
     plt.close(fig)
 
 
@@ -2486,7 +2514,7 @@ def gen_fig_bootstrap_variance(results_dir: Path, out_dir: Path) -> None:
     n = len(df)
     y_pos = np.arange(n)
 
-    fig, ax = plt.subplots(figsize=(8, max(5, n * 0.38)))
+    fig, ax = plt.subplots(figsize=(5.6, max(3.5, n * 0.27)))
 
     # Vertical reference line at x=0
     ax.axvline(x=0, color="#999999", linewidth=1.0, linestyle="--", zorder=1)
@@ -2549,7 +2577,7 @@ def gen_fig_bootstrap_variance(results_dir: Path, out_dir: Path) -> None:
 
     fig.tight_layout()
     out_path = out_dir / "fig_bootstrap_variance.png"
-    fig.savefig(out_path, dpi=300, bbox_inches="tight")
+    fig.savefig(out_path, dpi=600, bbox_inches="tight")
     plt.close(fig)
 
 
@@ -3150,7 +3178,7 @@ def gen_fig_consort_flowchart(
     fig.tight_layout()
     out_path = out_dir / "fig_consort_flowchart.png"
     out_dir.mkdir(parents=True, exist_ok=True)
-    fig.savefig(out_path, dpi=300, bbox_inches="tight")
+    fig.savefig(out_path, dpi=600, bbox_inches="tight")
     plt.close(fig)
 
 

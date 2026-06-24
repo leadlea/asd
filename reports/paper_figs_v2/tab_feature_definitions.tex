@@ -1,9 +1,22 @@
 {\footnotesize
-\begin{longtable}{lllp{2.5cm}p{4.5cm}}
+\setlength{\tabcolsep}{4pt}
+\begin{longtable}{lllp{2.2cm}p{3.9cm}}
+\caption{19特徴量の定義．Class.列はClassical（既存研究ベース）またはNovel（新規提案）を示す．変数名は実装上の識別子をそのまま記載している．}
+\label{tab:feature_def}\\
+\toprule
+Name & Cat. & Class. & Summary & Algorithm \\
+\midrule
+\endfirsthead
+\multicolumn{5}{c}{\tablename~\thetable{}（続き）}\\
 \toprule
 Name & Cat. & Class. & Summary & Algorithm \\
 \midrule
 \endhead
+\midrule
+\multicolumn{5}{r}{（次ページに続く）}\\
+\endfoot
+\bottomrule
+\endlastfoot
 PG\_speech\_ratio & PG & Classical & Speech ratio & Speaker's total speech time / total conversation time. missing if total\_time is 0 or missing. \\
 PG\_pause\_mean & PG & Classical & Mean pause duration & Mean of intra-speaker consecutive utterance gaps ($\geq$gap\_tol sec). missing if no qualifying gaps. \\
 PG\_pause\_p50 & PG & Classical & Median pause & 50th percentile of intra-speaker gaps. missing if no qualifying gaps. \\
@@ -23,6 +36,5 @@ RESP\_NE\_AIZUCHI\_RATE & RESP & Novel & Post-NE aizuchi rate & Proportion of re
 RESP\_NE\_ENTROPY & RESP & Novel & Post-NE response entropy & Shannon entropy of response-initial tokens after NE sentence-final particle. missing if n\_pairs\_after\_NE is 0. \\
 RESP\_YO\_ENTROPY & RESP & Novel & Post-YO response entropy & Shannon entropy of response-initial tokens after YO sentence-final particle. missing if n\_pairs\_after\_YO is 0. \\
 PG\_pause\_variability & PG & Novel & Pause duration CV & Coefficient of variation (std / mean) of intra-speaker pause durations. missing if fewer than 2 pauses or mean is 0. \\
-\bottomrule
 \end{longtable}
 }

@@ -1,25 +1,25 @@
-\begin{tabular}{llrcccc}
+\begin{tabular}{llrccc}
 \toprule
-Trait & Stage & $n_{feat}$ & $R^2_{oof}$ & RMSE & $\Delta R^2$ & $\Delta$RMSE \\
+Trait & Stage & $n_{feat}$ & $r_{obs}$ & $p$-value & $\Delta r$ \\
 \midrule
-O & Demographics & 2 & 0.064 & 0.327 & --- & --- \\
- & +Classical & 12 & 0.193 & 0.304 & +0.129 & -0.023 \\
- & +Novel & 21 & 0.206 & 0.301 & +0.013$^{\mathrm{ns}}$ & -0.003$^{\mathrm{ns}}$ \\
+O & Demographics & 2 & \textbf{0.309} & \textbf{0.0142} & --- \\
+ & +Classical & 12 & \textbf{0.471} & \textbf{0.0002} & +0.163 \\
+ & +Novel & 21 & \textbf{0.449} & \textbf{0.0006} & -0.022 \\
 \midrule
-C & Demographics & 2 & 0.128 & 0.394 & --- & --- \\
- & +Classical & 12 & 0.146 & 0.390 & +0.018 & -0.004 \\
- & +Novel & 21 & 0.196 & 0.379 & +0.049$^{\mathrm{ns}}$ & -0.011$^{\mathrm{ns}}$ \\
+C & Demographics & 2 & \textbf{0.408} & \textbf{0.0005} & --- \\
+ & +Classical & 12 & \textbf{0.402} & \textbf{0.0013} & -0.007 \\
+ & +Novel & 21 & \textbf{0.435} & \textbf{0.0010} & +0.034 \\
 \midrule
-E & Demographics & 2 & -0.015 & 0.345 & --- & --- \\
- & +Classical & 12 & 0.067 & 0.331 & +0.082 & -0.014 \\
- & +Novel & 21 & 0.025 & 0.339 & -0.043$^{*}$ & +0.007$^{*}$ \\
+E & Demographics & 2 & 0.100 & 0.5081 & --- \\
+ & +Classical & 12 & \textbf{0.280} & \textbf{0.0282} & +0.181 \\
+ & +Novel & 21 & 0.216 & 0.0952 & -0.065 \\
 \midrule
-A & Demographics & 2 & 0.196 & 0.231 & --- & --- \\
- & +Classical & 12 & 0.223 & 0.227 & +0.027 & -0.004 \\
- & +Novel & 21 & 0.253 & 0.222 & +0.031$^{\mathrm{ns}}$ & -0.004$^{\mathrm{ns}}$ \\
+A & Demographics & 2 & \textbf{0.494} & \textbf{0.0002} & --- \\
+ & +Classical & 12 & \textbf{0.455} & \textbf{0.0014} & -0.039 \\
+ & +Novel & 21 & \textbf{0.458} & \textbf{0.0011} & +0.003 \\
 \midrule
-N & Demographics & 2 & 0.009 & 0.362 & --- & --- \\
- & +Classical & 12 & 0.021 & 0.360 & +0.011 & -0.002 \\
- & +Novel & 21 & 0.061 & 0.353 & +0.040$^{\mathrm{ns}}$ & -0.007$^{\mathrm{ns}}$ \\
+N & Demographics & 2 & 0.173 & 0.1998 & --- \\
+ & +Classical & 12 & 0.149 & 0.3523 & -0.023 \\
+ & +Novel & 21 & 0.244 & 0.0916 & +0.095 \\
 \bottomrule
 \end{tabular}
