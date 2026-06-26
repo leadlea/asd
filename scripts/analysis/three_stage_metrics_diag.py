@@ -10,9 +10,9 @@
 
 方針:
   - 特徴量セットとメタデータ結合は three_stage_ridge.py を再利用（同一定義を保証）
-  - CV設定も three_stage_ridge.py と同一（Ridge alpha=100, KFold shuffle seed=42,
-    median imputation + StandardScaler）
-  - ただし集計は OOF-pooled（全foldのout-of-fold予測を連結してから1回計算）
+  - CV設定は本文と同一の subject-wise split（Ridge alpha=100, GroupKFold groups=cejc_person_id,
+    5-fold, median imputation + StandardScaler）。同一話者が訓練・検証foldに跨らない
+  - 集計は OOF-pooled（全foldのout-of-fold予測を連結してから1回計算）
     → fold平均より安定で，予測値vs観測値の散布図(本文の図)と整合する集計
   - 各 stage で pooled の r / R² / RMSE / MAE を算出，stage間Δを併記
   - 参考として fold平均 r（既存図と同じ集計）も併記
@@ -36,7 +36,7 @@ import numpy as np
 import pandas as pd
 from sklearn.impute import SimpleImputer
 from sklearn.linear_model import Ridge
-from sklearn.model_selection import KFold
+from sklearn.model_selection import GroupKFold, KFold
 from sklearn.preprocessing import StandardScaler
 
 from scripts.analysis.three_stage_ridge import (
@@ -58,13 +58,23 @@ def _pearsonr(a, b) -> float:
     return float((a * b).sum() / den) if den != 0 else float("nan")
 
 
-def cv_oof_predictions(X, y, folds, seed, alpha):
-    """同一CV設定でOOF予測を連結して返す． fold平均rも併せて返す．"""
-    kf = KFold(n_splits=folds, shuffle=True, random_state=seed)
+def cv_oof_predictions(X, y, folds, seed, alpha, groups=None):
+    """同一CV設定でOOF予測を連結して返す． fold平均rも併せて返す．
+
+    groups（cejc_person_id）が与えられた場合は GroupKFold（subject-wise split）で
+    同一話者が訓練・検証foldに跨らないようにする（本文の subject-wise CV と整合）。
+    groups=None の場合は従来どおり通常 KFold（shuffle, seed）。
+    """
+    if groups is not None:
+        kf = GroupKFold(n_splits=folds)
+        split_iter = kf.split(X, y, groups)
+    else:
+        kf = KFold(n_splits=folds, shuffle=True, random_state=seed)
+        split_iter = kf.split(X)
     y_true_pool = np.empty_like(y, dtype=float)
     y_pred_pool = np.empty_like(y, dtype=float)
     fold_rs = []
-    for tr, te in kf.split(X):
+    for tr, te in split_iter:
         Xtr, Xte = X[tr], X[te]
         ytr, yte = y[tr], y[te]
 
@@ -115,6 +125,7 @@ def run_one_trait(trait, teacher, metadata_tsv, alpha, folds, seed):
     ok = ~np.isnan(y)
     merged = merged.loc[ok].copy()
     y = y[ok]
+    groups = merged["cejc_person_id"].to_numpy()  # subject-wise split (GroupKFold)
 
     avail_demo = [c for c in DEMOGRAPHICS if c in merged.columns]
     stage_sets = {
@@ -128,7 +139,7 @@ def run_one_trait(trait, teacher, metadata_tsv, alpha, folds, seed):
     for stage in (1, 2, 3):
         cols = stage_sets[stage]
         X = merged[cols].apply(pd.to_numeric, errors="coerce").to_numpy(float)
-        yt, yp, fold_mean_r = cv_oof_predictions(X, y, folds, seed, alpha)
+        yt, yp, fold_mean_r = cv_oof_predictions(X, y, folds, seed, alpha, groups=groups)
         m = metrics_from_oof(yt, yp)
         row = {
             "trait": trait,

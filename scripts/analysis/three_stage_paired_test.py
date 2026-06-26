@@ -8,7 +8,8 @@
   ペア比較で検定する．
 
 手法:
-  - three_stage_metrics_diag.py と同一CV設定でStage2/Stage3のOOF予測を取得
+  - three_stage_metrics_diag.py と同一CV設定（GroupKFold subject-wise, groups=cejc_person_id）で
+    Stage2/Stage3のOOF予測を取得（同一話者が訓練・検証foldに跨らない）
   - 各レコードの二乗誤差 SE2, SE3 を算出（ペア）
   - 改善量 d_i = SE2_i - SE3_i （正なら Stage3 が誤差を減らした）
   - paired bootstrap（5000回, seed固定）で mean(d) の95%CIと両側p
@@ -67,6 +68,7 @@ def run_one_trait(trait, teacher, metadata_tsv, alpha, folds, seed, n_boot):
     ok = ~np.isnan(y)
     merged = merged.loc[ok].copy()
     y = y[ok]
+    groups = merged["cejc_person_id"].to_numpy()  # subject-wise split (GroupKFold)
 
     avail_demo = [c for c in DEMOGRAPHICS if c in merged.columns]
     cols2 = avail_demo + CLASSICAL_FEATURES
@@ -75,9 +77,9 @@ def run_one_trait(trait, teacher, metadata_tsv, alpha, folds, seed, n_boot):
     X2 = merged[cols2].apply(pd.to_numeric, errors="coerce").to_numpy(float)
     X3 = merged[cols3].apply(pd.to_numeric, errors="coerce").to_numpy(float)
 
-    yt2, yp2, _ = cv_oof_predictions(X2, y, folds, seed, alpha)
-    yt3, yp3, _ = cv_oof_predictions(X3, y, folds, seed, alpha)
-    # yt2 と yt3 は同一（同じy, 同じfold分割）なのでペア対応が保証される
+    yt2, yp2, _ = cv_oof_predictions(X2, y, folds, seed, alpha, groups=groups)
+    yt3, yp3, _ = cv_oof_predictions(X3, y, folds, seed, alpha, groups=groups)
+    # yt2 と yt3 は同一（同じy, 同じgroups, 同じGroupKFold分割）なのでペア対応が保証される
     assert np.allclose(yt2, yt3)
 
     se2 = (yp2 - yt2) ** 2

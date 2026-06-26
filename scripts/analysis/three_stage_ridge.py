@@ -139,7 +139,7 @@ def load_and_join_metadata(
     # Inner join on conversation_id × speaker_id
     n_before = len(df)
     merged = df.merge(
-        meta[["conversation_id", "speaker_id", "gender", "age"]].drop_duplicates(),
+        meta[["conversation_id", "speaker_id", "cejc_person_id", "gender", "age"]].drop_duplicates(),
         on=["conversation_id", "speaker_id"],
         how="inner",
         suffixes=("", "_meta"),
