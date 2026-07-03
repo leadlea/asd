@@ -3,7 +3,7 @@
 - 状態: Accepted
 - 日付: 2026-06-22
 - 決定者: 福原玄（NCNP共同研究・筆頭）
-- 関連: `paper1_ja.tex`（3.2 / 付録）, `reports/paper_figs_v2/tab_corr_matrix.tex`, `paper1_ja_st.docx`（宗田校閲）, ADR-0004/0012
+- 関連: `paper1_ja.tex`（3.2 / 付録）, `reports/paper_figs_v2/tab_corr_matrix.tex`, `paper1_ja_st.docx`（宗田さん校閲）, ADR-0004/0012
 
 ## コンテキスト
 
