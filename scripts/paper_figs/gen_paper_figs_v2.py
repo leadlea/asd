@@ -1771,7 +1771,7 @@ def gen_tab_ensemble_permutation(results_dir: Path, out_dir: Path) -> None:
     latex = (
         "\\begin{tabular}{lccc}\n"
         "\\toprule\n"
-        "Trait & $r_{obs}$ & $p_{corrected}$ & Sig. \\\\\n"
+        "Trait & $r_{\\mathrm{obs}}$ & $p_{\\mathrm{corrected}}$ & Sig. \\\\\n"
         "\\midrule\n"
         f"{body}\n"
         "\\bottomrule\n"
