@@ -1597,8 +1597,7 @@ def gen_tab_metadata_tests(
                     u_str = f"{u_stat:.0f}"
                     gp_str = f"{g_p:.4f}"
                     if g_p < 0.05:
-                        u_str = f"\\textbf{{{u_str}}}"
-                        gp_str = f"\\textbf{{{gp_str}*}}"
+                        gp_str = f"{gp_str}*"
                 except ValueError:
                     u_str, gp_str = "---", "---"
             else:
@@ -1626,8 +1625,7 @@ def gen_tab_metadata_tests(
                     rs_str = f"{rho_s:.3f}"
                     ps_str = f"{p_s:.4f}"
                     if p_s < 0.05:
-                        rs_str = f"\\textbf{{{rs_str}}}"
-                        ps_str = f"\\textbf{{{ps_str}*}}"
+                        ps_str = f"{ps_str}*"
                 except ValueError:
                     rs_str, ps_str = "---", "---"
             else:
@@ -1644,8 +1642,9 @@ def gen_tab_metadata_tests(
         "{\\small\n"
         "\\begin{tabular}{lrrrr}\n"
         "\\toprule\n"
-        "Feature & $U$ & $p_{\\text{gender}}$ "
-        "& $\\rho_{\\text{Spearman}}$ & $p_{\\text{Spearman}}$ \\\\\n"
+        " & \\multicolumn{2}{c}{Gender} & \\multicolumn{2}{c}{Age} \\\\\n"
+        "\\cmidrule(lr){2-3} \\cmidrule(lr){4-5}\n"
+        "Feature & $U$ & $p$ & $\\rho$ & $p$ \\\\\n"
         "\\midrule\n"
         f"{body}\n"
         "\\bottomrule\n"
