@@ -29,7 +29,7 @@
 | 14 | 505 | 結果・性格特性との関連 | 相関報告の調整、本文と表で数字が異なる点を確認 | ✅ | 本文値が集計元TSV（ensemble_summary.tsv）・表と不一致だった。集計元を正として本文を修正（A0.465→0.449 等）。順位A>C>O>N>Eは不変。データを一次ソースとして採用。 |
 | 15 | 506 | 結果・性格特性との関連 | 表のr/p右下添字を斜体→ブロック体に | ✅ | 添字は変数でなくラベル（obs, corrected）のため、正書法としてローマン体（`\mathrm`）が適切。生成元も修正。 |
 | 16 | 574 | 結果・予測に重要な特徴量 | 2つの表は太字のみ、チェックマーク不要 | ✅ | キャプションで「太字=有意」と既に説明済み。チェックマーク列は冗長のため削除。太字表示は維持。数値不変。 |
-| 17 | 606 | 結果・予測に重要な特徴量 | 図のレジェンドがグラフと被る、位置調整 | ⬜ | — |
+| 17 | 606 | 結果・予測に重要な特徴量 | 図のレジェンドがグラフと被る、位置調整 | ✅ | fig_bootstrap_variance のフォレストプロットで凡例がCIバーと重なっていた。凡例を軸の外（右側・中央、bbox_to_anchor=(1.02,0.5)）へ移動しデータとの重なりを解消。savefigのbbox_inches="tight"で軸外凡例もクリップされない。生成元スクリプトを修正し再生成。 |
 | 18 | 641 | 考察 | 考察を一般的なお作法の構造に修正 | ⬜ | — |
 | 19 | 992 | 補足・付録A(会話データ) | 「推定が不安定」表現の補足・修正（会話量担保の観点へ） | ⬜ | — |
 | 20 | 1010 | 補足・付録A(会話データ) | 当該セクション説明の要否（再現に不要なら削除） | ⬜ | — |
@@ -160,3 +160,9 @@
 | fig_permutation_C_bar.png | gen_paper_figs_v2.py::gen_fig_permutation_C_bar | artifacts/analysis/results/cejc_home2_hq1_Conly_*_controls_excluded |
 | fig_teacher_corr_matrix.png | gen_paper_figs_v2.py::gen_fig_teacher_corr_matrix | docs/homework/assets/teacher_corr_*.tsv |
 | tab_permutation_all.tex | gen_paper_figs_v2.py::gen_tab_permutation_all | artifacts/analysis/results/cejc_home2_hq1_*only_*_controls_excluded |
+
+### #17 図の凡例位置調整（fig_bootstrap_variance）
+- 対象: `fig_bootstrap_variance.png`（本文L619で使用、フォレストプロット）。凡例（CI excludes zero / CI includes zero）がプロット領域内でCIバーと重なっていた。
+- 対応: 生成元 `gen_paper_figs_v2.py::gen_fig_bootstrap_variance` の凡例を `loc="lower right"`（軸内）から `loc="center left", bbox_to_anchor=(1.02, 0.5)`（軸の外・右側中央）に変更。`savefig(bbox_inches="tight")` により軸外凡例もクリップされない。データ・数値は不変。
+- 隣接する解決済み[CHECK]コメント（L607）を削除。同位置の[NOTE]（「負の寄与」等の削除提案）は別項目のため保持。
+- 再生成物: fig_bootstrap_variance.png。検証: `uplatex paper1_ja_st.tex` exit 0（45ページ）。

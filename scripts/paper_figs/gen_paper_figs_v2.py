@@ -2575,8 +2575,10 @@ def gen_fig_bootstrap_variance(results_dir: Path, out_dir: Path) -> None:
                markerfacecolor="#b2182b", markersize=5, alpha=0.6,
                label="CI includes zero"),
     ]
-    ax.legend(handles=legend_handles, loc="lower right", fontsize=9,
-              framealpha=0.9)
+    # 凡例は軸の外（右側・中央）に配置し、CIバーやプロットとの重なりを避ける。
+    # savefig は bbox_inches="tight" のため軸外の凡例もクリップされない。
+    ax.legend(handles=legend_handles, loc="center left",
+              bbox_to_anchor=(1.02, 0.5), fontsize=9, framealpha=0.9)
 
     fig.tight_layout()
     out_path = out_dir / "fig_bootstrap_variance.png"
