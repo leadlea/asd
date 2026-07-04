@@ -22,7 +22,7 @@
 | 5 | 189 | 方法・特徴量 | 性別・年齢の相関分析の欠損補完を加筆 | ✅ | 実装確認：関連分析（性別U/年齢ρ）は特徴量ごとに`.dropna()`<br>＝pairwise deletion（補完なし）<br>回帰のfold内中央値補完とは別扱い<br>有効Nが特徴量ごとに異なりうる旨も2.2に明記 |
 | 6 | 233 | 方法・回帰分析 | 相関1の変数を一方の指標に統一 | ✅ | 完全共線（r=−1.00）はIX_topic_drift_mean（=1−IX_lex_overlap_mean）のみ<br>IX_lex_overlap_meanに統一しtopic_driftを除外済み<br>実装3本と一致、2.4に統一方針を明示 |
 | 7 | 234 | 方法・回帰分析 | 「除外された変数」の言及確認・説明or削除 | ✅ | EXCL3統制変数12個は本文他所で未言及・非説明変数（中間量/分母）<br>これらの量は特徴量の計算式（例「発話時間/総時間」「100文字あたり」）に内在し別途注記は不要<br>宗田さん方針に沿い**全削除**（概念文も残さない）<br>#6の共線性(IX_topic_drift_mean)一文と「19変数を用いる」結論は維持 |
-| 8 | 243 | 方法・回帰分析 | 予測指標の説明を方法へ・Slack齟齬確認 | ✅ | r/R²/RMSEは方法2.4へ移設済み<br>表6のR²/RMSEはOOF連結で本文・散布図と整合<br>（three_stage_metrics_diag.pyで確認）記述正確につき本文改変なし<br>RMSE主指標化（[NOTE]239）は全体相談＝保留 |
+| 8 | 243 | 方法・回帰分析 | 予測指標の説明を方法へ・Slack齟齬確認 | ✅ | **方法2.4記述はSlack①②と一致**（OOF連結R²/RMSE＋GroupKFold／paired bootstrap詳細）<br>**別の齟齬を発見・修正**: §3.4の3段階Ridge結果本文が旧数値で表・Slackと矛盾していた<br>実データTSVを正に書き直し（Stage2→3上昇はO/C/N・低下E/A、名目有意はNのみ p_boot=0.044/Wilcoxon非有意、旧「E有意悪化p=0.030」は誤りで削除）<br>Stage1→2も旧値を修正。RMSE主指標化（[NOTE]239）は保留 |
 | 9 | 249 | 方法・回帰分析 | Bootstrap検定の記述を加筆 | ✅ | three_stage_paired_test.pyを正に2.4へ詳細加筆<br>d_i=SE²(2)−SE²(3)、5000回paired bootstrap（レコード復元抽出）<br>95%CI(2.5/97.5%ile)・両側p=min(1,2min(P≤0,P≥0))＋(k+1)/(B+1)平滑化<br>Wilcoxon(両側)・ΔRMSE併記<br>単位「被験者→レコード」を本文L242・表L456で統一 |
 | 10 | 314 | 結果・記述統計量 | 特徴量の英/日表記を統一 | ✅ | 正式参照＝コード識別子に統一<br>定義（方法＋定義表）は`code（日本語名）`順に統一<br>導入の概念語・メタデータ節の説明述語は可読性優先で維持<br>数値・意味は不変 |
 | 11 | 315 | 結果・記述統計量 | PG系分布の主張を具体値の根拠付きで修正 | ⬜ | — |
@@ -230,3 +230,23 @@
 | 表\ref{tab:metadata_tests}（性別U/年齢ρ・pairwise） | gen_paper_figs_v2.py::gen_tab_metadata_tests | features_min + cejc_speaker_metadata.tsv |
 | 表6 R²/RMSE（OOF連結） | three_stage_metrics_diag.py | three_stage_metrics_{teacher}.tsv |
 | Stage2→3 paired bootstrap（$p_{boot}$） | three_stage_paired_test.py | three_stage_paired_test_{teacher}.tsv |
+
+### #8 追補: Slack突き合わせで3段階Ridge結果本文の旧数値を修正（2026-07-03）
+
+宗田さんから共有されたSlack（6/26、CVをsubject-wise GroupKFoldに統一し図4・表6・数値を更新した旨）と本文を突き合わせ。
+
+- **方法2.4は齟齬なし**: ①OOF連結（全fold予測を連結しR²/RMSEを1回算出、R²=1−SS_res/SS_tot）②paired bootstrap（d_i=SE2−SE3、5000回レコード復元抽出、95%CI・両側p=2·min(P≤0,P≥0)＋(k+1)/(B+1)平滑化、Wilcoxon、ΔRMSE）とも本文記述と一致。
+- **発見した齟齬**: §3.4の3段階Ridge**結果本文**が旧計算のままで、**表`tab:three_stage`・図・Slack（いずれも現行データ）と矛盾**していた（宗田さんが警告した「本文とテーブルで数字が異なる」に該当）。表・図は現行データで正しかった。
+- 実データ `three_stage_metrics_ensemble.tsv` / `three_stage_paired_test_ensemble.tsv` を正として結果本文を修正:
+
+| 項目 | 旧本文（誤） | 修正後＝表・実データ・Slack（正） |
+|---|---|---|
+| Stage2→3 上昇次元 | 4次元 O・C・A・N | 3次元 **O・C・N**（E・Aは低下） |
+| A の増分 | +0.031（上昇） | **−0.014（低下）** |
+| N の増分 | +0.040 | **+0.069** |
+| 有意性 | 「4次元非有意」「E有意悪化 p=0.030」 | **名目有意はNのみ p_boot=0.044（Wilcoxon p=0.19で非頑健）**、E は p_boot=0.10で非有意（悪化は有意でない） |
+| Stage1→2 | O 0.064→0.193(+0.129), C +0.018 等 | O 0.037→0.144(+0.107), C +0.056, E +0.115 等 |
+
+- 立て付けはSlack通り「Novelは大部分の次元で予測を劣化させないが、モデル全体の増分としては頑健な改善に至らず」に統一（係数レベルの寄与は考察側、[NOTE]方針で結果からは除外）。
+- 考察・結論に同種の旧数値・旧主張（E有意悪化/過学習）は残存なしを確認。
+- 検証: `uplatex paper1_ja_st.tex` exit 0（45ページ）。一時ファイル削除済み。
