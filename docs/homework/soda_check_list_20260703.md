@@ -33,12 +33,12 @@
 | 18 | 641 | 考察 | 考察を一般的なお作法の構造に修正 | ⬜ | — |
 | 19 | 992 | 補足・付録A(会話データ) | 「推定が不安定」表現の補足・修正（会話量担保の観点へ） | ⬜ | — |
 | 20 | 1010 | 補足・付録A(会話データ) | 当該セクション説明の要否（再現に不要なら削除） | ⬜ | — |
-| 21 | 1049 | 補足・LLM仮想Big5 | 各モデルの記述粒度を統一（パラメータ数の有無等） | ⬜ | 方針決定: モデル選定の出典 Wright ら2026（PMC12974486で確認）の表記法「ベンダー名+公式識別子+公開区分（オープン/プロプライエタリ）」に準拠。Sonnetは非公開でパラメータ数統一が不可能だが、Wrightも同様の理由でパラメータ数でなく公開区分で揃えており、査読で論理的に説明できる。実装は#26の図再描画とセットで着手予定。 |
+| 21 | 1049 | 補足・LLM仮想Big5 | 各モデルの記述粒度を統一（パラメータ数の有無等） | ✅ | Wright ら2026（PMC12974486で確認）の表記法「ベンダー名+公式識別子+公開区分（オープン/プロプライエタリ）」に準拠。Sonnetは非公開でパラメータ数統一が不可能だが、Wrightも同理由でパラメータ数でなく公開区分で揃えており査読で説明可能。本文モデルリスト・全図ラベル・本文中の全「Sonnet4」表記を「Claude Sonnet 4」に統一。生成元も修正・再生成。 |
 | 22 | 1232 | 補足・感度分析 | 補足資料として提示するなら結果もきちんと示す | ⬜ | — |
 | 23 | 1237 | 補足・感度分析 | 「特徴量サブセットの感度」記述の適否を確認 | ⬜ | — |
 | 24 | 1241 | 補足・感度分析 | 当該セクションと3段階リッジの差異を明確化（同一なら削除検討） | ⬜ | — |
 | 25 | 1311 | 補足・LLMモデル間の差異 | Big5次元の呼称を Conscientiousness に統一 | ⬜ | — |
-| 26 | 1331 | 補足・LLMモデル間の差異 | 本文値と図の値の不一致を確認（例: 0.699 vs 0.69） | ✅ | 掲載図が旧版で0.69に切り捨て表示だった。集計元TSV（C上三角平均=0.6987→0.699）が正で本文も正しかったため、現行スクリプトで図を再生成し0.699表示に統一。※モデル名ラベルの表記統一は#21確定後に再描画が必要。 |
+| 26 | 1331 | 補足・LLMモデル間の差異 | 本文値と図の値の不一致を確認（例: 0.699 vs 0.69） | ✅ | 掲載図が旧版で0.69に切り捨て表示だった。集計元TSV（C上三角平均=0.6987→0.699）が正で本文も正しかったため、現行スクリプトで図を再生成し0.699表示に統一。依存していたモデル名ラベルの再描画は#21で完了（teacher_heatmap等）。 |
 | 27 | 1350 | 補足・LLMモデル間の差異 | C因子を特別扱いしない／粒度を揃える（または頑健性を明確に主張） | 💬 | 全体相談待ち。全次元掲載か頑健性主張かは山下先生含めMTGで決定するため原稿修正は保留。 |
 | 28 | 1368 | 補足・LLMモデル間の差異 | 図 fig:perm_C の削除検討（C だけ図示する必要性） | ⬜ | — |
 | 29 | 1402 | 補足・LLMモデル間の差異(考察) | 考察でC因子を過度に強調しない、内容の誤り確認 | ⬜ | — |
@@ -146,3 +146,17 @@
 - 決定した統一形（本文）: `Anthropic Claude Sonnet 4（プロプライエタリ）` / `Alibaba Qwen3-235B（オープンウェイト）` / `DeepSeek DeepSeek-V3（オープンウェイト）` / `OpenAI GPT-OSS-120B（オープンウェイト）`。パラメータ数の不揃い併記を廃止。
 - 依存関係: 図のモデル名ラベル（#26の fig_teacher_heatmap ほか teacher_corr_matrix / ensemble_permutation / permutation_C_bar）は本統一形に合わせて短縮ラベルで再描画が必要。`gen_paper_figs_v2.py` のラベル定義（`TEACHER_DISPLAY` と `fig_teacher_corr_matrix` 独自ラベル）を一本化して一括再生成する。
 - 状態: 表記統一形は福原の確認済み。実装（本文修正＋全図再生成＋uplatex検証）は次アクション。
+
+### #21 実装完了（2026-07-03）
+- 本文L1043-1048のモデルリストをWright準拠に統一: `Anthropic Claude Sonnet 4（プロプライエタリ）` / `Alibaba Qwen3-235B（オープンウェイト）` / `DeepSeek DeepSeek-V3（オープンウェイト）` / `OpenAI GPT-OSS-120B（オープンウェイト）`。粒度の根拠を1文で明記し、解決済みの[CHECK]コメントを削除。
+- 本文中の全「Sonnet4」表記（散文＋IPIP例示表、計15箇所）を「Claude Sonnet 4」に統一。他3モデルは既に図表と一致。
+- 図ラベルを一本化: `gen_paper_figs_v2.py` の `TEACHER_DISPLAY["sonnet"]` を `Claude Sonnet 4` に変更（fig_permutation_C_bar / fig_teacher_heatmap / tab_permutation_all に波及）。`fig_teacher_corr_matrix` の独自ラベルも両軸で同一の統一ラベル（2行折返し）に修正（従来はx軸がファミリ名のみで粒度不一致だった）。
+- 再生成した成果物: fig_permutation_C_bar.png / fig_teacher_heatmap.png / fig_teacher_corr_matrix.png / tab_permutation_all.tex。
+- 検証: `uplatex paper1_ja_st.tex` exit 0（45ページ）。leftover「Sonnet4」0件、二重接頭辞なしを確認。一時ファイル削除済み。
+- 図表↔解析ファイル対応表（追加分）:
+
+| 原稿の図表 | 生成スクリプト | 集計元データ |
+|---|---|---|
+| fig_permutation_C_bar.png | gen_paper_figs_v2.py::gen_fig_permutation_C_bar | artifacts/analysis/results/cejc_home2_hq1_Conly_*_controls_excluded |
+| fig_teacher_corr_matrix.png | gen_paper_figs_v2.py::gen_fig_teacher_corr_matrix | docs/homework/assets/teacher_corr_*.tsv |
+| tab_permutation_all.tex | gen_paper_figs_v2.py::gen_tab_permutation_all | artifacts/analysis/results/cejc_home2_hq1_*only_*_controls_excluded |

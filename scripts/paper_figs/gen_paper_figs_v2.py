@@ -34,7 +34,7 @@ except ModuleNotFoundError:
 TRAITS = ["C", "A", "E", "N", "O"]
 TEACHERS = ["sonnet", "qwen3-235b", "gpt-oss-120b", "deepseek-v3"]
 TEACHER_DISPLAY = {
-    "sonnet": "Sonnet4",
+    "sonnet": "Claude Sonnet 4",
     "qwen3-235b": "Qwen3-235B",
     "gpt-oss-120b": "GPT-OSS-120B",
     "deepseek-v3": "DeepSeek-V3",
@@ -689,7 +689,7 @@ def gen_fig_bootstrap_C_radar(bootstrap_dir: Path, out_dir: Path) -> None:
     ax.set_yticklabels(["0.2", "0.4", "0.6", "0.8", "1.0"], fontsize=8, color="grey")
 
     ax.set_title(
-        "Bootstrap Stability: Top-10 Features for C (Sonnet4)",
+        "Bootstrap Stability: Top-10 Features for C (Claude Sonnet 4)",
         fontsize=12,
         fontweight="bold",
         pad=24,
@@ -829,9 +829,10 @@ def gen_fig_teacher_corr_matrix(results_dir: Path, out_dir: Path) -> None:
 
     trait_order = ["O", "C", "E", "A", "N"]
     tsv_teachers = ["sonnet4", "qwen3-235b", "deepseek-v3", "gpt-oss-120b"]
-    display_labels = ["Sonnet4", "Qwen3\n235B", "DeepSeek\nV3", "GPT-OSS\n120B"]
-    # x軸は単一行・斜め配置でラベル衝突を防ぐ（モデルファミリ名で一意に識別可能）
-    x_labels = ["Sonnet 4", "Qwen3", "DeepSeek", "GPT-OSS"]
+    # モデル名は本文（\ref{sec:big5score}）と統一（ベンダー＋公式識別子）。
+    # 4×4行列で行・列は同一の教師なので両軸で同じラベルを用いる。狭幅のため2行折返し。
+    display_labels = ["Claude\nSonnet 4", "Qwen3\n235B", "DeepSeek\nV3", "GPT-OSS\n120B"]
+    x_labels = display_labels
 
     fig, axes = plt.subplots(3, 2, figsize=(5.8, 8.1))
     axes_flat = axes.flatten()
@@ -1661,7 +1662,7 @@ def gen_tab_permutation_all(results_dir: Path, out_dir: Path) -> None:
     """Generate full permutation results LaTeX table. [Task 1.8]
 
     Rows: 5 traits (C, A, E, N, O).
-    Columns: 4 teachers (Sonnet4, Qwen3-235B, GPT-OSS-120B, DeepSeek-V3).
+    Columns: 4 teachers (Claude Sonnet 4, Qwen3-235B, GPT-OSS-120B, DeepSeek-V3).
     Each cell: r_obs (p-value), bold if p < 0.05.
     Missing permutation.log → "---".
 
