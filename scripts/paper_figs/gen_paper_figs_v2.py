@@ -2639,7 +2639,6 @@ def gen_tab_bootstrap_variance(results_dir: Path, out_dir: Path) -> None:
         sd_str = f"{row['coef_sd']:.4f}"
         ci_lo_str = f"{row['ci_lower']:.4f}"
         ci_hi_str = f"{row['ci_upper']:.4f}"
-        sig_str = "\\checkmark" if excl else ""
 
         if excl:
             feat_tex = f"\\textbf{{{feat_tex}}}"
@@ -2649,14 +2648,14 @@ def gen_tab_bootstrap_variance(results_dir: Path, out_dir: Path) -> None:
             ci_hi_str = f"\\textbf{{{ci_hi_str}}}"
 
         rows.append(
-            f"{feat_tex} & {mean_str} & {sd_str} & {ci_lo_str} & {ci_hi_str} & {sig_str} \\\\"
+            f"{feat_tex} & {mean_str} & {sd_str} & {ci_lo_str} & {ci_hi_str} \\\\"
         )
 
     body = "\n".join(rows)
     latex = (
-        "\\begin{tabular}{lrrrrc}\n"
+        "\\begin{tabular}{lrrrr}\n"
         "\\toprule\n"
-        "Feature & $\\bar{\\beta}$ & SD & CI$_{2.5}$ & CI$_{97.5}$ & Sig. \\\\\n"
+        "Feature & $\\bar{\\beta}$ & SD & CI$_{2.5}$ & CI$_{97.5}$ \\\\\n"
         "\\midrule\n"
         f"{body}\n"
         "\\bottomrule\n"
@@ -2759,7 +2758,6 @@ def gen_tab_permutation_coef(results_dir: Path, out_dir: Path) -> None:
 
         coef_str = f"{row['coef_obs']:.4f}"
         p_str = f"{row['p_value']:.4f}"
-        sig_str = "\\checkmark" if is_sig else ""
 
         if is_sig:
             feat_tex = f"\\textbf{{{feat_tex}}}"
@@ -2767,14 +2765,14 @@ def gen_tab_permutation_coef(results_dir: Path, out_dir: Path) -> None:
             p_str = f"\\textbf{{{p_str}}}"
 
         rows.append(
-            f"{feat_tex} & {coef_str} & {p_str} & {sig_str} \\\\"
+            f"{feat_tex} & {coef_str} & {p_str} \\\\"
         )
 
     body = "\n".join(rows)
     latex = (
-        "\\begin{tabular}{lrrc}\n"
+        "\\begin{tabular}{lrr}\n"
         "\\toprule\n"
-        "Feature & $\\beta_{obs}$ & $p$-value & Sig. \\\\\n"
+        "Feature & $\\beta_{\\mathrm{obs}}$ & $p$-value \\\\\n"
         "\\midrule\n"
         f"{body}\n"
         "\\bottomrule\n"
