@@ -16,12 +16,12 @@
 | 1 | 155 | 方法・会話データ | レコード280想定に対しズレる理由の説明 | ⬜ | — |
 | 2 | 157 | 方法・会話データ | 発話タイミング情報の出所・重要性・欠損の説明 | ⬜ | — |
 | 3 | 167 | 方法・会話データ | 「66会話中2会話」の66会話とは何か（120レコード→60会話では？） | ⬜ | — |
-| 4 | 175 | 方法・特徴量 | 多重共線性で削除した変数を含め合計18種になるか確認 | ⬜ | — |
-| 5 | 189 | 方法・特徴量 | 性別・年齢との相関分析での欠損値補完方法を加筆 | ⬜ | — |
-| 6 | 233 | 方法・回帰分析 | 相関1で多重共線性が出る変数を一方の指標に統一 | ⬜ | — |
-| 7 | 234 | 方法・回帰分析 | 「除外された変数」の言及有無を確認、無ければ説明追加or削除 | ⬜ | — |
-| 8 | 243 | 方法・回帰分析 | 予測指標の説明を方法セクションへ、Slack内容と齟齬ないか確認 | ⬜ | — |
-| 9 | 249 | 方法・回帰分析 | Bootstrap検定の記述を加筆（Slack説明では不十分） | ⬜ | — |
+| 4 | 175 | 方法・特徴量 | 多重共線性で削除した変数を含め合計18種になるか確認 | ✅ | 正: 解析で使う説明変数は**19種**（Classical 10＝PG 8+FILL 2／Novel 9＝IX 5+RESP 3+PG_pause_variability 1）。三スクリプト（three_stage_ridge.py・baseline_vs_extended.py・feature_definitions.py）と表\ref{tab:feature_def}（19特徴量）・導入(L126「計19」)・付録の3段階Ridge表(L459「21変数」)が全て19基準で一致。宗田さんの「18」はPGカテゴリを8と数えた誤り（PG総数は沈黙変動性を含め9）。IX_topic_drift_meanはr=−1.00で除外済みの「候補」であり19には元々含まれない。方法2.2の食い違い3箇所を19基準に統一（L177 18→19の特徴量+除外の1文追記／L181 PG 8→9変数+誤字「）系の」→「）の」／L231 Stage3 全20→21変数）。数値・解析結果は不変。uplatex exit0（45p）。 |
+| 5 | 189 | 方法・特徴量 | 性別・年齢との相関分析での欠損値補完方法を加筆 | ✅ | 実装（gen_paper_figs_v2.py の gen_tab_metadata_tests / gen_metadata_gender / gen_metadata_age）を正として確認: 相関・検定分析は各特徴量ごとに `.dropna()` する**利用可能ケース分析（pairwise deletion）**で補完なし（回帰の中央値補完とは別扱い）。方法2.2の欠損値記述を「回帰=fold内中央値補完／関連分析=pairwise deletion（有効Nは特徴量ごとに異なりうる）」と明記し、解決済み[CHECK]削除。数値不変。uplatex exit0。 |
+| 6 | 233 | 方法・回帰分析 | 相関1で多重共線性が出る変数を一方の指標に統一 | ✅ | 完全共線（$r=-1.00$）は IX_topic_drift_mean（＝$1-$IX_lex_overlap_mean）のみ。既に IX_lex_overlap_mean に統一し topic_drift を除外済み（実装3スクリプトと一致）。本文2.4に「一方（IX_lex_overlap_mean）に統一し他方を除外」と明示。#4の特徴量節記述と整合。数値不変。 |
+| 7 | 234 | 方法・回帰分析 | 「除外された変数」の言及有無を確認、無ければ説明追加or削除 | ✅ | EXCL3統制変数（n_pairs_total等12個）は本文の他所で一切言及されず、実解析でも説明変数でない（denominator/中間量）。宗田さん方針に沿い、cryptic な変数名羅列（コメントアウト済み）は採用せず、代わりに「会話長・ペア数に依存する量は正規化の中間量・分母で説明変数に含めない」旨の概念的1文に置換。解決済み[CHECK]2件削除。 |
+| 8 | 243 | 方法・回帰分析 | 予測指標の説明を方法セクションへ、Slack内容と齟齬ないか確認 | ✅ | 予測指標（Pearson r／決定係数R²／RMSE）は既に方法2.4へ移設済み。集約方式を実装（three_stage_metrics_diag.py）で確認: 表6のR²/RMSEは**OOF連結（全fold予測を連結して1回算出）**で本文記述と一致（散布図とも整合）。CVはsubject-wise GroupKFold。記述は正確のため本文改変なし、解決済み[CHECK]削除。※RMSE主指標化（[NOTE]239）は全体相談＝保留（[NOTE]は維持）。 |
+| 9 | 249 | 方法・回帰分析 | Bootstrap検定の記述を加筆（Slack説明では不十分） | ✅ | 実装（three_stage_paired_test.py）を正として2.4に詳細加筆: $d_i=\mathrm{SE}^{(2)}_i-\mathrm{SE}^{(3)}_i$、5000回paired bootstrap（レコード復元抽出）、2.5/97.5%ileの95%CI、両側$p=\min(1,2\min(P_{\le0},P_{\ge0}))$＋$(k+1)/(B+1)$平滑化、Wilcoxon符号付順位（両側）、$\Delta$RMSE。**「被験者」→「レコード」**を修正（誤差・リサンプル単位はレコード=会話×話者ペアN=120、CV分割のみsubject-wise）。本文L242と図表キャプションL456の2箇所を統一。 |
 | 10 | 314 | 結果・記述統計量 | 特徴量の英語/日本語表記を統一 | ✅ | 正式名＝コード識別子に統一。方法セクションの定義順を `code（日本語名）` に揃え（`日本語（code）` を反転: PG_speech_ratio/PG_overlap_rate/IX_oirmarker_rate/IX_yesno_rate/IX_lex_overlap_mean/PG_pause_variability）、malformedな括弧(L204)も修正。個別特徴量の日本語主導参照（L335/L647/L962等）をコード識別子に統一。カテゴリ群記述（沈黙系指標 等）・導入の概念語・コード主導＋日本語述語（メタデータ節）は維持。数値・意味は不変。 |
 | 11 | 315 | 結果・記述統計量 | PG系分布の主張（右偏り等）を具体値の根拠付きで修正 | ⬜ | — |
 | 12 | 374 | 結果・相関分析 | 相関分析でRidge正則化の話は流れが悪い、多重共線性/相関1の記述削除検討 | ⬜ | — |
@@ -186,3 +186,45 @@
   - 維持: カテゴリ群記述（沈黙系指標／FILL系指標／OIR関連指標 等の `群名（code list）`）、導入の概念語、メタデータ節のコード主導＋日本語述語。
   - 解決済み[CHECK]コメント（旧L314）を削除。
 - 検証: 非コメント行の「個別特徴量の日本語主導参照」の残存ゼロを確認（残りは群記述のみ）。`uplatex paper1_ja_st.tex` exit 0（45ページ）。一時ファイル削除済み。
+
+### #4 特徴量の合計種類数の確認（18か19か）— 19に統一
+
+- 論点（宗田さんL175）: 「多重共線性で削除した変数があるので合計18種になるか確認」。
+- 実データ（正）: 解析で使用する説明変数は **19種**。内訳は Classical 10（PG 8 + FILL 2）+ Novel 9（IX 5 + RESP 3 + PG_pause_variability 1）。PGカテゴリの総数は沈黙変動性(PG_pause_variability)を含め **9**（Classical 8 + Novel 1）。
+- 出典の突き合わせ（全て19基準で一致）:
+  - `scripts/analysis/three_stage_ridge.py` / `baseline_vs_extended.py`: `ALL_FEATURES = CLASSICAL(10) + NOVEL(9) = 19`。Stage 3 = 2(人口統計) + 19 = 21変数（docstring明記）。
+  - `scripts/paper_figs/feature_definitions.py`: `get_explanatory_features()` = 19（`IX_topic_drift_mean` は `is_control=True` の候補で19に含まれない）。
+  - 表 `tab_feature_definitions.tex`: キャプション「19特徴量」・本体19行。
+  - 本文 導入 L126「Classical 10個 + Novel 9個 = 計19」／付録 3段階Ridge表 L459「Stage 3: +Novel（21変数）」。
+- 宗田さんの「18」の原因: PGカテゴリを8（Classicalのみ）と数え、Novelの PG_pause_variability を数え落としたための1件差。`IX_topic_drift_mean` は `IX_lex_overlap_mean` と完全共線（$r=-1.00$）で除外済みだが、これは元々19に含まれない候補であり「19−1=18」にはならない。
+- 修正（方法2.2の食い違い3箇所を19基準に統一。数値・解析結果は不変）:
+  - L177: 「18の特徴量を構築した」→「19の特徴量を構築した」＋ `IX_topic_drift_mean` 除外（完全共線）で19変数を対象とする旨を1文追記（2.4節へ参照）。解決済み[CHECK]コメント削除。
+  - L181: カテゴリ分類「タイミング系（PG，8変数）」→「9変数」（Cat.列基準でPG=9）。同文の誤字「）系の4つ」→「）の4つ」も修正。
+  - L231: Stage 3「全20変数」→「全21変数」（2+19。付録表L459と一致）。
+- 留意: L183「古典的特徴量は…発話タイミング系8変数（PG）」はClass.列（Classical）基準の記述で8が正。カテゴリ総数(L181, 9)と役割が異なるため変更しない。
+- 検証: `uplatex paper1_ja_st.tex` exit 0（45ページ）。一時ファイル削除済み。
+
+| 原稿の記述 | 生成/定義元 | 正 |
+|---|---|---|
+| 特徴量総数（19）・Cat.列PG=9 | feature_definitions.py / tab_feature_definitions.tex | 19（PG 9/FILL 2/IX 5/RESP 3） |
+| Stage 3 変数数（21） | three_stage_ridge.py / fig:three_stage 表(L459) | 2+19=21 |
+
+### #5–#9 方法セクション系（B群）— 実装を正として整合・加筆（2026-07-03）
+
+方法（2.2特徴量・2.4回帰）の[CHECK]を、解析スクリプトを一次ソースとして突き合わせて解消。数値・解析結果は不変。
+
+- **#5 相関分析の欠損処理**: 実装確認 → 性別(Mann-Whitney U)・年齢(Spearman ρ)の関連分析は各特徴量ごとの `.dropna()`（pairwise deletion／利用可能ケース分析）で補完なし。回帰分析（fold内中央値補完）との違いを2.2の欠損値記述に明記。有効標本サイズが特徴量ごとに異なりうる旨も追記。
+- **#6 完全共線変数の統一**: 完全共線（$r=-1.00$）は IX_topic_drift_mean（定義上 $1-$IX_lex_overlap_mean）のみ。既に lex_overlap に統一・topic_drift 除外済み。2.4に統一方針を1文で明示（#4の2.2記述と二重化せず役割分担: 2.2=事実/カウント、2.4=分析上の理由）。
+- **#7 除外変数（EXCL3）の扱い**: EXCL3統制変数12個は本文他所で未言及・実解析でも説明変数でない中間量。cryptic な変数名羅列は不採用（宗田さん「削除 or 説明」の方針）。「会話長・ペア数依存量は正規化の中間量/分母で説明変数に含めない」概念文へ置換し混乱を除去。
+- **#8 予測指標の方法節移設・整合**: r/R²/RMSE は方法2.4に移設済み。集約は表6=OOF連結（three_stage_metrics_diag.py で確認）で本文と一致、散布図とも整合。記述正確につき本文改変なし・[CHECK]のみ削除。RMSEを主指標にするかは[NOTE]239の通り全体相談＝保留（NOTE維持）。
+- **#9 Bootstrap検定の加筆＋単位修正**: three_stage_paired_test.py を正として詳細化。手順=レコード単位OOF二乗誤差差 $d_i$ → 5000回paired bootstrap（レコード復元抽出, seed固定）→ 95%CI(2.5/97.5%ile)・両側$p=\min(1,2\min(P_{\le0},P_{\ge0}))$＋$(k+1)/(B+1)$平滑化 → Wilcoxon(両側)・$\Delta$RMSE併記。**単位の誤り「被験者→レコード」を本文(L242)と表キャプション(L456)で統一**（誤差/リサンプル単位はレコード、CV分割のみ subject-wise GroupKFold(cejc_person_id)）。
+
+### 検証（#4–#9 まとめ）
+- `uplatex paper1_ja_st.tex` exit 0（46ページ。#9加筆で+1ページ）。一時ファイル削除済み。
+- 図表↔解析ファイル対応（B群 追加分）:
+
+| 原稿の記述 | 生成/定義元 | 集計元 |
+|---|---|---|
+| 表\ref{tab:metadata_tests}（性別U/年齢ρ・pairwise） | gen_paper_figs_v2.py::gen_tab_metadata_tests | features_min + cejc_speaker_metadata.tsv |
+| 表6 R²/RMSE（OOF連結） | three_stage_metrics_diag.py | three_stage_metrics_{teacher}.tsv |
+| Stage2→3 paired bootstrap（$p_{boot}$） | three_stage_paired_test.py | three_stage_paired_test_{teacher}.tsv |
