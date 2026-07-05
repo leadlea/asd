@@ -1831,10 +1831,10 @@ def gen_tab_sensitivity_alpha(sensitivity_dir: Path, out_dir: Path) -> None:
         # 3-decimal main-text value (ensemble C r_obs = 0.432).
         r_str = f"{row['r_obs']:.4f}"
         p_str = f"{row['p_value']:.4f}"
+        # 採用した alpha 行は太字ではなくダガー記号で示す（宗田レビュー方針:
+        # 表の強調に太字を用いない）。有意表示ではなく「本文採用値」の目印。
         if abs(a - adopted_alpha) < 1e-9:
-            a_str = f"\\textbf{{{a_str}}}"
-            r_str = f"\\textbf{{{r_str}}}"
-            p_str = f"\\textbf{{{p_str}}}"
+            a_str = f"{a_str}$^{{\\dagger}}$"
         rows.append(f"{a_str} & {r_str} & {p_str} \\\\")
 
     body = "\n".join(rows)
