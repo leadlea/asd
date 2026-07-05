@@ -1690,7 +1690,7 @@ def gen_tab_permutation_all(results_dir: Path, out_dir: Path) -> None:
                 continue
             cell_text = f"{res.r_obs:.3f} ({res.p_value:.4f})"
             if res.p_value < 0.05:
-                cell_text = f"\\textbf{{{cell_text}}}"
+                cell_text = f"{cell_text}$^{{*}}$"
             cells.append(cell_text)
         rows.append(f"{trait} & {' & '.join(cells)} \\\\")
 
@@ -1760,11 +1760,7 @@ def gen_tab_ensemble_permutation(results_dir: Path, out_dir: Path) -> None:
         r_str = f"{r_obs:.3f}"
         pc_str = f"{p_corr:.4f}"
 
-        if is_sig:
-            r_str = f"\\textbf{{{r_str}}}"
-            pc_str = f"\\textbf{{{pc_str}}}"
-            sig_str = f"\\textbf{{{sig_str}}}"
-
+        # 有意はアスタリスク（Sig.列）で示す。太字は用いない（宗田レビュー: 全表アスタリスク統一）。
         rows.append(f"{trait} & {r_str} & {pc_str} & {sig_str} \\\\")
 
     body = "\n".join(rows)
@@ -2717,12 +2713,10 @@ def gen_tab_bootstrap_variance(results_dir: Path, out_dir: Path) -> None:
         ci_lo_str = f"{row['ci_lower']:.4f}"
         ci_hi_str = f"{row['ci_upper']:.4f}"
 
+        # 有意（95%CIがゼロを除外）は特徴量名にアスタリスクを付す。太字は用いない
+        # （宗田レビュー: 全表アスタリスク統一）。
         if excl:
-            feat_tex = f"\\textbf{{{feat_tex}}}"
-            mean_str = f"\\textbf{{{mean_str}}}"
-            sd_str = f"\\textbf{{{sd_str}}}"
-            ci_lo_str = f"\\textbf{{{ci_lo_str}}}"
-            ci_hi_str = f"\\textbf{{{ci_hi_str}}}"
+            feat_tex = f"{feat_tex}$^{{*}}$"
 
         rows.append(
             f"{feat_tex} & {mean_str} & {sd_str} & {ci_lo_str} & {ci_hi_str} \\\\"
@@ -2836,10 +2830,10 @@ def gen_tab_permutation_coef(results_dir: Path, out_dir: Path) -> None:
         coef_str = f"{row['coef_obs']:.4f}"
         p_str = f"{row['p_value']:.4f}"
 
+        # 有意（p<0.05）はp値にアスタリスクを付す。太字は用いない
+        # （宗田レビュー: 全表アスタリスク統一）。
         if is_sig:
-            feat_tex = f"\\textbf{{{feat_tex}}}"
-            coef_str = f"\\textbf{{{coef_str}}}"
-            p_str = f"\\textbf{{{p_str}}}"
+            p_str = f"{p_str}$^{{*}}$"
 
         rows.append(
             f"{feat_tex} & {coef_str} & {p_str} \\\\"

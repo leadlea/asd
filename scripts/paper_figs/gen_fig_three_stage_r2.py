@@ -130,17 +130,24 @@ def main():
     )
     r2max = df["R2_oof"].max()
     ax.set_ylim(min(0, df["R2_oof"].min() - 0.03), r2max * 1.6)
-    ax.legend(loc="upper right", fontsize=10, framealpha=0.9)
+    # 左右に余白を確保し，端の次元のΔR²注記が見切れないようにする
+    ax.set_xlim(-0.6, len(TRAIT_ORDER) - 1 + 0.6)
+    # 凡例は軸の外（下部）に配置し，上部の注記・矢印との重なりを避ける
+    ax.legend(
+        loc="upper center", bbox_to_anchor=(0.5, -0.09),
+        ncol=3, fontsize=10, frameon=False,
+    )
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
-    ax.text(
-        0.01, 0.97,
-        "ΔR² on arrows = incremental change. "
-        "* = paired bootstrap p<0.05 (Stage2→3); n.s. = not significant.",
-        transform=ax.transAxes, fontsize=8.5, va="top", color="#666666",
+    # 注記は図の最下部にまとめて配置（凡例・プロット領域と干渉しない）
+    fig.text(
+        0.5, 0.005,
+        "ΔR² on arrows = incremental change.  "
+        "* = paired bootstrap p<0.05 (Stage2→3);  n.s. = not significant.",
+        ha="center", va="bottom", fontsize=8.5, color="#666666",
     )
 
-    fig.tight_layout()
+    fig.tight_layout(rect=(0, 0.06, 1, 1))
     out_path = Path(args.out_dir) / "fig_three_stage_comparison.png"
     fig.savefig(out_path, dpi=300, bbox_inches="tight")
     plt.close(fig)
