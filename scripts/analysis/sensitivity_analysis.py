@@ -387,11 +387,64 @@ def run_ne_yo_match_sensitivity(
     return results
 
 
+# ── Regularization alpha sensitivity ─────────────────────────────────
+ALPHA_CONDITIONS: list[float] = [10.0, 50.0, 100.0, 200.0, 500.0]
+
+
+def run_alpha_sensitivity(
+    utterances_df: pd.DataFrame,
+    base_features_df: pd.DataFrame,
+    items_dir: str,
+    *,
+    trait: str = DEFAULT_TRAIT,
+    alpha: float = DEFAULT_ALPHA,
+    n_perm: int = DEFAULT_N_PERM,
+    seed: int = DEFAULT_SEED,
+    cv_folds: int = DEFAULT_CV_FOLDS,
+) -> list[dict]:
+    """Run Ridge regularization strength (alpha) sensitivity analysis.
+
+    Unlike gap_tol / yesno_list / ne_yo_match, the feature set is fixed to the
+    canonical final features parquet (no re-extraction); only the Ridge alpha
+    is varied over ALPHA_CONDITIONS. At alpha=100 this reproduces the main
+    model exactly, so the sweep quantifies how r_obs / p_value shift with
+    regularization strength.
+
+    Note: the ``alpha`` keyword argument is ignored here (the sweep defines its
+    own alpha grid); it is accepted only for a uniform runner signature.
+    """
+    # Load ensemble trait scores once
+    scores_df = load_trait_scores(items_dir, trait, TEACHERS)
+    exclude = set(DEFAULT_EXCLUDE) | {"trait_score"}
+
+    # Feature set is fixed to the canonical parquet (no re-extraction).
+    feat_df = base_features_df.replace([np.inf, -np.inf], np.nan)
+    X, y, feat_cols = _prepare_Xy(feat_df, scores_df, exclude)
+    print(f"alpha sweep: {len(feat_cols)} features, {X.shape[0]} samples")
+
+    results: list[dict] = []
+    for a in ALPHA_CONDITIONS:
+        print(f"\n--- alpha = {a} ---")
+        r_obs, p_val = _run_permutation(
+            X, y, alpha=a, n_perm=n_perm, seed=seed, cv_folds=cv_folds,
+        )
+        print(f"  r_obs = {r_obs:.3f}, p = {p_val:.4f}")
+        results.append({
+            "analysis_type": "alpha",
+            "condition": str(a),
+            "trait": trait,
+            "r_obs": round(r_obs, 4),
+            "p_value": round(p_val, 4),
+        })
+    return results
+
+
 # ── Dispatcher ───────────────────────────────────────────────────────
 ANALYSIS_RUNNERS = {
     "gap_tol": "run_gap_tol_sensitivity",
     "yesno_list": "run_yesno_list_sensitivity",
     "ne_yo_match": "run_ne_yo_match_sensitivity",
+    "alpha": "run_alpha_sensitivity",
 }
 
 
@@ -428,8 +481,10 @@ def main():
         description="Sensitivity analysis for interaction feature parameters",
     )
     ap.add_argument(
-        "--utterances_parquet", required=True,
-        help="Path to utterances parquet (e.g. artifacts/cejc/utterances_home2_hq1.parquet)",
+        "--utterances_parquet", default=None,
+        help="Path to utterances parquet (required for gap_tol/yesno_list/"
+             "ne_yo_match/all; not needed for the 'alpha' sweep, which reuses "
+             "the fixed feature set)",
     )
     ap.add_argument(
         "--features_parquet", required=True,
@@ -452,10 +507,20 @@ def main():
     ap.add_argument("--out_dir", required=True, help="Output directory")
     args = ap.parse_args()
 
-    # Load data
-    print(f"Loading utterances: {args.utterances_parquet}")
-    utterances_df = pd.read_parquet(args.utterances_parquet)
-    print(f"  {len(utterances_df)} rows")
+    # Load data. The 'alpha' sweep reuses the fixed feature set and does not
+    # re-extract features, so utterances are not required for it.
+    needs_utterances = args.analysis_type != "alpha"
+    if needs_utterances and not args.utterances_parquet:
+        ap.error(
+            f"--utterances_parquet is required for analysis_type="
+            f"{args.analysis_type!r} (only 'alpha' can omit it)"
+        )
+    if args.utterances_parquet:
+        print(f"Loading utterances: {args.utterances_parquet}")
+        utterances_df = pd.read_parquet(args.utterances_parquet)
+        print(f"  {len(utterances_df)} rows")
+    else:
+        utterances_df = None
 
     print(f"Loading base features: {args.features_parquet}")
     base_features_df = pd.read_parquet(args.features_parquet)

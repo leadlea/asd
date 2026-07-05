@@ -1204,11 +1204,20 @@ $r_{\text{foldmean}}$は5-fold平均，$\Delta r_{\text{oof}}$は隣接ステー
 
 \subsection{正則化パラメータ$\alpha$}
 Ridge回帰の正則化パラメータ$\alpha$を$\{10, 50, 100, 200, 500\}$の範囲で変化させ，
-Cの予測精度（$r_{\text{obs}}$）および$p$値の変動を確認した．$\alpha = 100$（本文
-で採用した値）の前後で結果は安定しており，Cの有意性は$\alpha$の選択に対して頑健
-であった．
+Cの予測精度（$r_{\text{obs}}$）と置換検定（5,000回）による$p$値の変動を確認した
+（表\ref{tab:sensitivity_alpha}）．特徴量集合は本文と同一の19変数に固定し，$\alpha$
+のみを変化させた（$\alpha = 100$は本文で採用した主モデルに一致する）．$r_{\text{obs}}$
+は検討した全範囲で$0.42$--$0.43$の狭い範囲に収まり，$p$値はいずれも$0.001$未満で
+あった．すなわち，Cの有意性は$\alpha$の選択に対して頑健である．
 
-% [CHECK] 補足資料として提示するのであれば結果もきちんと示すのが良いですね．
+\begin{table}[htbp]
+\centering
+\caption{正則化パラメータ$\alpha$に対する感度（Big5次元C，ensemble教師，
+5-fold CV，置換検定5,000回）．太字は本文で採用した$\alpha = 100$の行．
+$\alpha = 100$の$r_{\text{obs}} = 0.4315$は本文の3桁表記$0.432$に対応する．}
+\label{tab:sensitivity_alpha}
+\input{reports/paper_figs_v2/tab_sensitivity_alpha.tex}
+\end{table}
 
 \subsection{特徴量サブセット}
 \label{sec:appendix_confound}

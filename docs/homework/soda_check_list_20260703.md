@@ -36,7 +36,7 @@
 | 19 | 992 | 補足・付録A(会話データ) | 「推定が不安定」表現の補足・修正 | ✅ | 宗田さん指摘に同意（特徴量の計算自体は会話量によらず可能）<br>「推定が不安定になる」→「比率推定の標本変動が大きくなる」に趣旨変更<br>選定基準の導入文に「計算は可能だが少数観測だと標本変動が大きく個人傾向を反映しない」旨を明記し、各項目2箇所も同方針で書換え（ゼロ除算のみ例外と明示）<br>解決済み[CHECK]削除。数値不変 |
 | 20 | 1010 | 補足・付録A(会話データ) | 当該セクション説明の要否 | ✅ | 判断＝**全削除でなく再現必須部分に絞って残す**<br>理由: 属性関連分析(性別U/年齢ρ)の再現には結合ファイル(話者.csv/話者会話対応表.csv)と結合キー(conversation_id×cejc_person_id)が必要<br>ID書式の例示・「1会話に複数話者が参加するため」等の自明な説明は削除し圧縮<br>120/120紐付け成功の事実は保持し§3.5属性分析への参照(\ref{sec:result_metadata})を付与<br>解決済み[CHECK]削除 |
 | 21 | 1049 | 補足・LLM仮想Big5 | 各モデルの記述粒度を統一 | ✅ | Wright2026（PMC12974486）準拠の表記に統一<br>「ベンダー名+公式識別子+公開区分」でパラメータ数併記を廃止<br>本文モデルリスト・全図ラベル・「Sonnet4」表記を統一<br>生成元も修正・再生成 |
-| 22 | 1232 | 補足・感度分析 | 補足として提示するなら結果も示す | ⬜ | — |
+| 22 | 1232 | 補足・感度分析 | 補足として提示するなら結果も示す | ✅ | 宗田さん指摘に同意（α感度は結果数値が無く主張だけだった）<br>実データで α∈{10,50,100,200,500} 掃引を実行し表(tab:sensitivity_alpha)を追加<br>特徴量19固定・ensemble教師・5-fold・置換5000回でCの r_obs/p を算出<br>結果: r_obs=0.42–0.43で安定、全p<0.001。α=100は主モデルに一致(r=0.4315→本文3桁0.432)<br>sensitivity_analysis.pyにalphaタイプ追加、gen_paper_figs_v2.pyに表生成関数追加(再現可能) |
 | 23 | 1237 | 補足・感度分析 | 「特徴量サブセットの感度」記述の適否 | ⬜ | — |
 | 24 | 1241 | 補足・感度分析 | 3段階リッジとの差異を明確化 | ⬜ | — |
 | 25 | 1311 | 補足・LLMモデル間の差異 | Big5次元の呼称を統一 | ✅ | 5次元一律で英語スキームに統一<br>初出フルネーム＋略字定義→以降は略字(O/C/E/A/N)<br>日本語グロス`X（Letter:日本語）`を全削除<br>定義リスト・図キャプションのO/C/E/A/Nは維持（数値不変） |
@@ -288,3 +288,29 @@
   - 削除した自明な記述: 会話ID/話者IDの書式例（K001_011 / K001）、「1つの会話には複数の話者が参加するため…」の説明文、属性の列挙（出身地・居住地・職業等）。
   - 保持: 分析基本単位、結合ファイル名・結合キー、N=120全件の紐付け成功。§3.5への相互参照 \ref{sec:result_metadata} を付与（参照未定義なし）。
 - 検証: `uplatex paper1_ja_st.tex` 2回 exit 0（46ページ）。Reference undefined 警告なし（残る警告は既存の OMS/cmtt フォント形状のみで無害）。一時ファイル削除済み。
+
+### #22 感度分析（正則化パラメータα）— 結果数値を追加（2026-07-03）
+
+宗田さん（L1232）「補足として提示するなら結果もきちんと示すのが良い」に対応。本文§感度分析.正則化パラメータαは、α∈{10,50,100,200,500}で頑健と主張していたが**具体的な数値（各αのr_obs・p）が無かった**。
+
+- **実データで掃引を実行**: `scripts/analysis/sensitivity_analysis.py` に `--analysis_type alpha` を新設。特徴量は正準の19変数に固定（再抽出なし）、ensemble教師（4モデル平均）、5-fold（KFold shuffle, seed=42）、置換検定5,000回。既存のα以外の感度分析（gap_tol/yesno_list/ne_yo_match）と同一ロジック（`ensemble_permutation.cv_ridge_r`）で一貫。
+- **α掃引はutterances parquet不要**（特徴量固定のため）。CLIの `--utterances_parquet` を任意化し、alpha以外では従来通り必須のガードを追加。
+- **結果**（`artifacts/analysis/results/sensitivity/sensitivity_results.tsv`、trait=C）:
+
+| α | r_obs | p |
+|---|---|---|
+| 10 | 0.4175 | 0.0008 |
+| 50 | 0.4313 | 0.0006 |
+| **100** | **0.4315** | **0.0006** |
+| 200 | 0.4280 | 0.0006 |
+| 500 | 0.4212 | 0.0008 |
+
+- α=100 は主モデルと一致（r_obs=0.4315、本文3桁表記=0.432、ensemble_summary.tsvのC=0.432と一致）。全α域で r_obs=0.42–0.43・p<0.001＝Cの有意性はαに頑健。
+- **本文修正**: §正則化パラメータαに具体値（範囲0.42–0.43、全p<0.001）と表 \ref{tab:sensitivity_alpha} を追加。解決済み[CHECK]コメント削除。
+- **表生成の恒久化**: `gen_paper_figs_v2.py::gen_tab_sensitivity_alpha` を追加し batch にも配線。r_obsは4桁表示（0.4315）とし、二重丸め（0.4315→0.431）による本文0.432との齟齬を回避（キャプションに対応関係を明記）。生成物 `reports/paper_figs_v2/tab_sensitivity_alpha.tex` はsibling表と同様 `git add -f`（reports/はgitignore配下）。
+- 検証: `uplatex paper1_ja_st.tex` 2回 exit 0（46ページ）。Reference/Citation undefined なし。一時ファイル削除済み。
+
+| 原稿の図表 | 生成スクリプト | 集計元データ |
+|---|---|---|
+| tab_sensitivity_alpha.tex | gen_paper_figs_v2.py::gen_tab_sensitivity_alpha | artifacts/analysis/results/sensitivity/sensitivity_results.tsv（analysis_type=alpha） |
+| （α掃引の実行元） | scripts/analysis/sensitivity_analysis.py --analysis_type alpha | features_min + big5/llm_scores（4教師ensemble） |

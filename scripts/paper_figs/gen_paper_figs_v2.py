@@ -1783,6 +1783,80 @@ def gen_tab_ensemble_permutation(results_dir: Path, out_dir: Path) -> None:
     out_path.write_text(latex, encoding="utf-8")
 
 
+def gen_tab_sensitivity_alpha(sensitivity_dir: Path, out_dir: Path) -> None:
+    """Generate Ridge-alpha sensitivity LaTeX table (tab_sensitivity_alpha.tex).
+
+    Reads ``sensitivity_results.tsv`` (produced by
+    ``scripts/analysis/sensitivity_analysis.py --analysis_type alpha``),
+    filters rows with ``analysis_type == "alpha"``, and produces a
+    booktabs-style table with columns: alpha, r_obs, p_value.
+
+    The trait C is used (the main-result trait); alpha=100 reproduces the
+    main model exactly. The adopted value (alpha=100) is bolded.
+
+    Parameters
+    ----------
+    sensitivity_dir : Path
+        Directory containing ``sensitivity_results.tsv``
+        (columns: analysis_type, condition, trait, r_obs, p_value).
+    out_dir : Path
+        Directory where tab_sensitivity_alpha.tex will be saved.
+
+    Raises
+    ------
+    FileNotFoundError
+        If sensitivity_results.tsv does not exist.
+    """
+    tsv_path = sensitivity_dir / "sensitivity_results.tsv"
+    if not tsv_path.exists():
+        raise FileNotFoundError(
+            f"sensitivity_results.tsv not found: {tsv_path}\n"
+            f"Run: python scripts/analysis/sensitivity_analysis.py "
+            f"--analysis_type alpha ..."
+        )
+
+    df = pd.read_csv(tsv_path, sep="\t")
+    df = df[df["analysis_type"] == "alpha"].copy()
+    if df.empty:
+        raise ValueError(
+            f"No rows with analysis_type == 'alpha' in {tsv_path}"
+        )
+    # Sort by numeric alpha (condition holds the alpha value as string).
+    df["_alpha"] = df["condition"].astype(float)
+    df = df.sort_values("_alpha")
+
+    adopted_alpha = 100.0
+    rows: list[str] = []
+    for _, row in df.iterrows():
+        a = row["_alpha"]
+        a_str = f"{a:g}"
+        # 4-decimal display matches the stored artifact exactly and avoids a
+        # lossy re-round (e.g. 0.4315 -> 0.431) that would clash with the
+        # 3-decimal main-text value (ensemble C r_obs = 0.432).
+        r_str = f"{row['r_obs']:.4f}"
+        p_str = f"{row['p_value']:.4f}"
+        if abs(a - adopted_alpha) < 1e-9:
+            a_str = f"\\textbf{{{a_str}}}"
+            r_str = f"\\textbf{{{r_str}}}"
+            p_str = f"\\textbf{{{p_str}}}"
+        rows.append(f"{a_str} & {r_str} & {p_str} \\\\")
+
+    body = "\n".join(rows)
+    latex = (
+        "\\begin{tabular}{ccc}\n"
+        "\\toprule\n"
+        "$\\alpha$ & $r_{\\mathrm{obs}}$ & $p$ \\\\\n"
+        "\\midrule\n"
+        f"{body}\n"
+        "\\bottomrule\n"
+        "\\end{tabular}\n"
+    )
+
+    out_path = out_dir / "tab_sensitivity_alpha.tex"
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    out_path.write_text(latex, encoding="utf-8")
+
+
 def gen_tab_baseline_vs_extended(results_dir: Path, out_dir: Path) -> None:
     """Generate baseline vs extended comparison LaTeX table (tab_baseline_vs_extended.tex).
 
@@ -3256,6 +3330,9 @@ def main(argv: list[str] | None = None) -> None:
         ("fig_baseline_vs_extended.png", gen_fig_baseline_vs_extended, [results_dir, out_dir]),
         ("tab_ensemble_permutation.tex", gen_tab_ensemble_permutation, [results_dir, out_dir]),
         ("tab_baseline_vs_extended.tex", gen_tab_baseline_vs_extended, [results_dir, out_dir]),
+        # --- Ridge-alpha sensitivity table (#22): reads the fixed sensitivity dir ---
+        ("tab_sensitivity_alpha.tex", gen_tab_sensitivity_alpha,
+         [Path("artifacts/analysis/results/sensitivity"), out_dir]),
         # --- Predicted vs Observed scatter plot ---
         ("fig_predicted_vs_observed.png", gen_fig_predicted_vs_observed, [results_dir, features_parquet, out_dir]),
         # --- 3-stage Ridge, Bootstrap variance, Permutation coef, Teacher corr ---
