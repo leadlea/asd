@@ -42,7 +42,7 @@
 | 25 | 1311 | 補足・LLMモデル間の差異 | Big5次元の呼称を統一 | ✅ | 5次元一律で英語スキームに統一<br>初出フルネーム＋略字定義→以降は略字(O/C/E/A/N)<br>日本語グロス`X（Letter:日本語）`を全削除<br>定義リスト・図キャプションのO/C/E/A/Nは維持（数値不変） |
 | 26 | 1331 | 補足・LLMモデル間の差異 | 本文値と図の値の不一致を確認 | ✅ | 本文0.699は正（集計元TSV C上三角平均0.6987→0.699）<br>掲載図が旧版で0.69に切り捨て表示だった<br>現行スクリプトで図を再生成し0.699表示に統一 |
 | 27 | 1350 | 補足・LLMモデル間の差異 | C因子の粒度／頑健性主張の方針 | 💬 | 全体相談待ち<br>全次元掲載か頑健性主張かはMTGで決定<br>原稿修正は保留 |
-| 28 | 1368 | 補足・LLMモデル間の差異 | 図 fig:perm_C の削除検討 | ⬜ | — |
+| 28 | 1368 | 補足・LLMモデル間の差異 | 図 fig:perm_C の削除検討 | ✅ | 宗田さん指摘に同意し**削除確定**（情報量が少ない／Cだけ図示する必要なし／キャプションと図の不整合）<br>paper1_ja_st.texから figure環境・参照文「図\ref{fig:perm_C}に…」・解決済み[CHECK]を削除<br>冒頭のRequired filesコメントからも fig_permutation_C_bar.png を除去<br>個別モデル結果はtab:perm_allの数値記述で維持（情報欠落なし）<br>生成関数gen_fig_permutation_C_bar・PNGは他成果物（紙芝居/README/旧稿paper1_ja.tex）で使用のため温存 |
 | 29 | 1402 | 補足・LLMモデル間の差異(考察) | 考察でC因子を過度に強調しない | ⬜ | — |
 
 ## 全体相談事項（原稿修正は保留、MTGで議論）
@@ -336,3 +336,13 @@
 |---|---|---|
 | 交絡統制 Model A/B（r, p, Δr, teacherごと） | scripts/analysis/confound_analysis_groupkfold.py | artifacts/analysis/results/confound_groupkfold_all.tsv |
 | Model B 変数数（21=19+2） | confound_analysis_groupkfold.py（ALL_FEATURES=19 + confound_gender/age） | — |
+
+### #28 図 fig:perm_C の削除（2026-07-03）
+
+宗田さん（L1351）「この図は削除でよい。情報量が少なく、Cだけ図示する必要もない。残すならC以外の図も要る。キャプションが図と対応していない点にも注意」に同意し、**削除確定**。
+
+- **削除対象（paper1_ja_st.texのみ）**: figure環境（\includegraphics{fig_permutation_C_bar.png} + キャプション + \label{fig:perm_C}）、直前の参照文「図\ref{fig:perm_C}に，Cの4モデル比較バーチャートを示す．」、解決済み[CHECK]コメント（L1351）。冒頭「Required files」コメントからも fig_permutation_C_bar.png を除去。
+- **情報欠落なし**: 個別モデルの置換検定結果は表\ref{tab:perm_all}および散文の数値（C: Sonnet r=0.360 p=0.0038 等、A/O/E/N各次元）で維持。図は同じ内容の再掲だったため削除で情報は失われない。
+- **温存したもの**: 生成関数 `gen_fig_permutation_C_bar` と PNG は、他成果物（紙芝居スライド paper-authoring spec スライド4、README資産一覧、旧稿 paper1_ja.tex、docs/homework/ncnp_review_v2.md）で参照されるため削除せず。batchからも外さない（先祖返り防止と他成果物の再現性維持）。
+- **参照未定義チェック**: paper1_ja_st.tex 内に `fig:perm_C` / `fig_permutation_C_bar` の残存ゼロを確認。
+- 検証: `uplatex paper1_ja_st.tex` 2回 exit 0（46ページ、図削除で-1）。Reference/Citation undefined なし。一時ファイル削除済み。

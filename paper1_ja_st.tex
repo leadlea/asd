@@ -3,7 +3,7 @@
 %   uplatex paper1_ja.tex && dvipdfmx paper1_ja.dvi
 %
 % Required files under reports/paper_figs_v2/:
-%   fig_permutation_C_bar.png, fig_teacher_heatmap.png, fig_bootstrap_variance.png
+%   fig_teacher_heatmap.png, fig_bootstrap_variance.png
 %   tab_feature_definitions.tex, tab_descriptive_stats.tex, tab_permutation_all.tex
 
 % [NOTE] 宗田からのコメントは[NOTE]と記載の上TEXファイルに埋め込んでおります．[CHECK]は福原さんに確認いただきたい事項なので，ご確認の上加筆・修正をお願いします．
@@ -1347,18 +1347,6 @@ Claude Sonnet 4（$r = 0.360$, $p = 0.0038$），
 Qwen3-235B（$r = 0.403$, $p = 0.0010$），
 GPT-OSS-120B（$r = 0.452$, $p = 0.0006$）．
 DeepSeek-V3のみ有意水準に達しなかった（$r = 0.229$, $p = 0.0674$）．
-
-% [CHECK] この図\ref{fig:perm_C}は削除でよいと思います．情報量が少ないことに加え，Cだけ特別に図を掲示する必要もなさそうでしたので（もし図を残すのであればC以外の図も掲示するのが良いですね．あとキャプションに記載されていることが図と対応づいていないことにも注意してください）
-図\ref{fig:perm_C}に，Cの4モデル比較バーチャートを示す．
-
-\begin{figure}[htbp]
-\centering
-\includegraphics[width=0.9\linewidth]{fig_permutation_C_bar.png}
-\caption{Conscientiousnessの置換検定結果（4モデル比較）．
-バーは観測相関係数$r_{\text{obs}}$，括弧内は$p$値を示す．
-破線は有意水準$p = 0.05$に対応する参照線．}
-\label{fig:perm_C}
-\end{figure}
 
 Agreeableness（A）は，4モデル中3モデルで有意であった:
 Qwen3-235B（$r = 0.285$, $p = 0.0258$），
