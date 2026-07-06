@@ -750,7 +750,7 @@ def gen_fig_teacher_heatmap(out_dir: Path) -> None:
             data[i, j] = np.mean(off_diag)
 
     # --- Draw heatmap ---
-    fig, ax = plt.subplots(figsize=(5.6, 3.3))
+    fig, ax = plt.subplots(figsize=(7.2, 3.3))
 
     norm = Normalize(vmin=0.3, vmax=0.8)
     im = ax.imshow(data, cmap="YlOrRd", aspect="auto", norm=norm)
@@ -772,12 +772,12 @@ def gen_fig_teacher_heatmap(out_dir: Path) -> None:
 
     # Annotate trait mean r on the right side
     for i, mr in enumerate(trait_mean_r):
-        ax.text(len(TEACHERS) + 0.15, i, f"mean r = {mr:.3f}",
-                ha="left", va="center", fontsize=9, fontstyle="italic",
+        ax.text(len(TEACHERS) + 0.10, i, f"mean r = {mr:.3f}",
+                ha="left", va="center", fontsize=8, fontstyle="italic",
                 color="#333333")
 
-    # Expand x-axis to make room for the mean r annotation
-    ax.set_xlim(-0.5, len(TEACHERS) - 0.5 + 1.8)
+    # Expand x-axis to make room for the mean r annotation (avoid colorbar overlap)
+    ax.set_xlim(-0.5, len(TEACHERS) - 0.5 + 3.0)
 
     ax.set_title("Inter-Teacher Agreement (per-teacher mean r)",
                  fontsize=12, fontweight="bold", pad=12)
@@ -785,7 +785,7 @@ def gen_fig_teacher_heatmap(out_dir: Path) -> None:
     ax.set_ylabel("Trait", fontsize=12)
 
     # Colorbar
-    cbar = fig.colorbar(im, ax=ax, fraction=0.025, pad=0.02)
+    cbar = fig.colorbar(im, ax=ax, fraction=0.025, pad=0.05)
     cbar.set_label("Mean Pearson r", fontsize=10)
 
     fig.tight_layout()
@@ -832,9 +832,10 @@ def gen_fig_teacher_corr_matrix(results_dir: Path, out_dir: Path) -> None:
     # モデル名は本文（\ref{sec:big5score}）と統一（ベンダー＋公式識別子）。
     # 4×4行列で行・列は同一の教師なので両軸で同じラベルを用いる。狭幅のため2行折返し。
     display_labels = ["Claude\nSonnet 4", "Qwen3\n235B", "DeepSeek\nV3", "GPT-OSS\n120B"]
-    x_labels = display_labels
+    # x軸は単一行＋45°回転で隣接ラベルの重なりを解消（y軸は縦に余裕があるため2行のまま）
+    x_labels = ["Claude Sonnet 4", "Qwen3-235B", "DeepSeek-V3", "GPT-OSS-120B"]
 
-    fig, axes = plt.subplots(3, 2, figsize=(5.8, 8.1))
+    fig, axes = plt.subplots(3, 2, figsize=(6.8, 8.8))
     axes_flat = axes.flatten()
 
     for idx, trait in enumerate(trait_order):
@@ -861,7 +862,8 @@ def gen_fig_teacher_corr_matrix(results_dir: Path, out_dir: Path) -> None:
         )
 
         ax.set_title(f"{trait}", fontsize=14, fontweight="bold", pad=8)
-        ax.set_xticklabels(x_labels, fontsize=8, rotation=30, ha="right")
+        ax.set_xticklabels(x_labels, fontsize=7, rotation=45, ha="right",
+                           rotation_mode="anchor")
         ax.set_yticklabels(display_labels, fontsize=8, rotation=0, va="center")
 
     # Use the 6th subplot for a shared colorbar
@@ -880,7 +882,7 @@ def gen_fig_teacher_corr_matrix(results_dir: Path, out_dir: Path) -> None:
         fontweight="bold",
         y=0.98,
     )
-    fig.tight_layout()
+    fig.tight_layout(h_pad=1.8, w_pad=1.2, rect=[0, 0, 1, 0.96])
     out_path = out_dir / "fig_teacher_corr_matrix.png"
     fig.savefig(out_path, dpi=600, bbox_inches="tight")
     plt.close(fig)
