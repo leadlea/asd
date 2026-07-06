@@ -2613,22 +2613,15 @@ def gen_fig_bootstrap_variance(results_dir: Path, out_dir: Path) -> None:
             zorder=3,
         )
 
-    # Y-axis labels: bold for ci_excludes_zero
-    labels = []
-    for _, row in df.iterrows():
-        feat = row["feature"]
-        if row["ci_excludes_zero"]:
-            labels.append(feat)
-        else:
-            labels.append(feat)
+    # Y-axis labels: 有意性（ci_excludes_zero）は色・マーカーサイズ・凡例で
+    # 表現するため、ラベルの太字は用いない（宗田レビュー[NOTE]389/405:
+    # 太字で有意を示さずアスタリスク等に統一する方針。フォレストプロットでは
+    # 色分け＋凡例が標準作法で、太字廃止による情報欠落はない）。
+    labels = [row["feature"] for _, row in df.iterrows()]
 
     ax.set_yticks(y_pos)
     ax.set_yticklabels(labels, fontsize=9)
 
-    # Bold the labels for ci_excludes_zero features
-    for i, (_, row) in enumerate(df.iterrows()):
-        if row["ci_excludes_zero"]:
-            ax.get_yticklabels()[i].set_fontweight("bold")
     ax.set_xlabel("Ridge coefficient (mean ± 95% CI)", fontsize=11)
     ax.set_title(
         "Bootstrap Coefficient Stability (Forest Plot)",
