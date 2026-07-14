@@ -146,6 +146,6 @@
 
 **canonical かつ2026-06-22のCrossRef照合済みで、本セッションでは再検索を省略（6件）**：schegloff1977（Language 53(2) 361-382）、deruiter2006（Language 82(3) 515-535）、clark1996（Using Language, CUP）、levitan2012（NAACL-HLT 2012, 11-19）、campione2002（Speech Prosody 2002, 199-202）、watanabe2003（ICPhS-15, 2473-2476）。いずれも各分野の定番文献。
 
-**要・著者確認（1件）**：nakamura2025（SICE東北支部研究会資料, 353-9）。国内ワークショップ資料でWeb索引されず独立照合が困難。研究文脈とは整合的だが、投稿前に手元の原典で誌名・ページを最終確認することを推奨。
+**過去記録で実在確認済み（1件）**：nakamura2025（SICE東北支部研究会資料, 353-9）。当初は「Web索引なし＝要確認」と記したが、`docs/homework/bibliography_integrity_check.md`（2026-05-10）に**原典PDF（https://www.topic.ad.jp/sice/htdocs/papers/353/353-9.pdf）で実在確認済み**との記録があり、存在は確定。残るのは著者フルネーム・ページ範囲・DOI等の細部を投稿前に原典で最終確認する軽微な推奨のみ（訂正不要）。
 
-**結論**：Web照合した文献はすべて実在し書誌も正確。**参考文献の訂正は不要**（2026-06-22 roundで訂正した3件＝kita2007/wehrle2024/brennan1996 も今回正しいことを再確認）。tex変更なし。
+**結論**：全20件が実在し書誌も正確で、**参考文献の訂正は不要**。過去記録との整合も確認：`bibliography_integrity_check.md`（2026-05-08〜05-10）で洗い出されたクリーンアップ（altozano2026→wright2026差し替え、hu2025のArticle番号302→763修正、kita2007サブタイトル修正、bortfeld2001/horton2010/leaper2007追加）は、いずれも現行 `paper1_ja_st_rev_20260706.tex` に反映済み。2026-06-22 roundで訂正した3件（kita2007/wehrle2024/brennan1996）も今回正しいことを再確認。tex変更なし。
