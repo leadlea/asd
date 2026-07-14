@@ -80,3 +80,72 @@
 **結論**：孤立した `\cite{wright2026}．` 行を削除。
 
 **対応**：`paper1_ja_st_rev_20260706.tex` の当該行を削除（済）。
+
+---
+
+# 提出前ファイナライズ（3ステップ）
+
+## Step A: 全体の文章の繋ぎ方チェック（セクション間・段落間の接続）
+
+本文（§1はじめに〜§5結論）を通読し、接続の自然さと冗長・フロー悪化（宗田さんの指摘観点）を点検。主要な指摘2件を修正。
+
+**A-1（フロー・冗長）**：§4.1「主要な知見の要約」と§4.2「相互行為特徴量とBig5の関連」の書き出しが、主要知見の同一文をほぼ逐語反復していた（「主要な知見は，会話の相互行為特徴量がCのLLMスコアをモデル横断で最も頑健に予測することである」）。§4.1が要約節として述べた直後の再掲は冗長。
+- 対応：§4.2の重複する第1文を削除し、詳細（予測精度と一致度の非対称：AがrでCをわずかにうわまわるがCは一致度最高）から入る形に。§4.1が「以下では…順に論じる」と予告しているため接続は自然。
+
+**A-2（整合・7→5ドライバ更新の消し漏れ）**：§4.2末尾に「RESP\_NE\_ENTROPYの負の寄与は…共感的応答の安定性として解釈できる」という文が残存。RESP\_NE\_ENTROPYは更新後の5ドライバに含まれない（旧7ドライバの名残。ensembleでp=0.633・Bootstrap CIゼロ跨ぎで非有意）ため事実と矛盾。
+- 対応：当該文を、5ドライバの一つで未解釈だった IX\_lex\_overlap\_mean（負）の事実ベースの最小限の解釈に置換。列挙5個中3個しか解釈がない不整合も同時に解消。
+- 横断確認：`RESP\_NE\_ENTROPY` の全出現をgrepし、残りは定義（§2.2）・記述統計（§3.1）・相関（§3.2）の正当な文脈のみと確認。pause系・IX\_yesno\_after\_question\_rate をC主要因子として挙げる残存記述もなし。
+
+**その他**：本文の接続は概ね良好（はじめに→方法→結果→考察→結論、および#1・#2削除後の接続も自然）。§4.1/§4.2/§5に残るC中心の枠組みは #556/#27（C次元セレクト→全次元掲載）の全体相談マターであり、フロー欠陥ではないため本ステップでは変更せず保留。
+
+**対応ファイル**：`paper1_ja_st_rev_20260706.tex`（§4.2の2箇所修正、済）。
+
+---
+
+## Step B: 図表の数値と本文中の数値の整合チェック
+
+本文が参照する全テーブル（記述統計・属性関連・3段階Ridge・ensemble置換・係数検定・Bootstrap・19×19相関行列）および付録（モデル間一致度・交絡）の実値を取得し、本文記載と突合。
+
+**一致を確認した項目**：
+- §3.1 記述統計（PG\_pause\_mean $M=2.702/SD=1.134$ 等、6箇所）↔ `tab_descriptive_stats_full.tex` 完全一致。
+- §3.2/§4.4 相関値（沈黙系 $r=0.78$–$0.97$、応答遅れ系 $0.61$–$0.94$、speech比×沈黙 $-0.77$〜$-0.85$、FILL $0.85$、oirmarker $0.71$、yesno $0.82$、NE/YOエントロピー $0.29$、speech比×FILL $0.61$）↔ `tab_corr_matrix.tex` 全ペア一致。
+- §3.4 3段階Ridge（Stage2 ΔR²: E$+0.115$/O$+0.107$/C$+0.056$/N$+0.037$/A$+0.029$、Stage3 N$+0.069^{*}$/C$+0.048$/O$+0.010$/E$-0.026$/A$-0.014$）↔ `tab_three_stage.tex` 一致。
+- §3.4 ensemble置換（A$0.449$/C$0.432$/O$0.410$/N$0.317$/E$0.234$、$p_{corrected}$）↔ `tab_ensemble_permutation.tex` 一致。
+- §3.5 係数検定・Bootstrap（5ドライバのβ・p・CI）↔ `tab_permutation_coef.tex`・`tab_bootstrap_variance.tex` 一致（昨日再生成済み）。
+- モデル間一致度 C $\bar{r}=0.699$・A $\bar{r}=0.435$ ↔ 付録・図・本文・結論の全箇所で一致。
+- 性差有意6特徴量 ↔ `tab_metadata_tests.tex` のGender有意(*)6個と一致。
+
+**修正した不整合**：
+- **B-1（数値不整合）**：年齢と有意に相関する特徴量が **表では13個（`tab_metadata_tests.tex` のAge有意*を機械カウント）、本文では12個**と不一致。**PG\_overlap\_rate（$\rho=0.500$, $p<0.0001$＝全特徴量中で最強の年齢相関）が本文の記述・カウントから欠落**していた（v4でoverlap\_rate復帰後の§3.3/§4.4更新漏れ）。本文はPG\_speech\_ratio（0.447）を「相対的に強い」としていたが実際の最強は欠落中のoverlap\_rate（0.500）だった。→ §3.3（2箇所）・§4.4の「12」を「13」に修正し、PG\_overlap\_rate（$\rho=0.500$）を正の相関として追記。
+- **B-2（フレーミング整合）**：#3で§4.3を「ほぼ変化しなかった」に抑制したのに、付録F.2（同一のΔr=+0.026）が「精度が向上した」のまま残存。→ 付録も「予測精度はほぼ変化しなかった」に統一（過剰主張の再混入を防止）。
+
+**検証**：`uplatex`×2＋`dvipdfmx`（43ページ、undefined ref/citation 0件）。
+
+**対応ファイル**：`paper1_ja_st_rev_20260706.tex`（§3.3×2・§4.4・付録F.2 の4箇所修正、済）。
+
+---
+
+## Step C: 参考文献のファクトチェック（実在性・書誌・DOI/リンク）
+
+全20件（`\bibitem`）を対象に、実在性と書誌情報（著者・誌名・巻号・ページ・年・DOI）を照合。undefined citationは0件（全`\cite`が定義済み）。
+
+**本セッションでWeb再検証し、実在・書誌一致を確認（13件）**：
+- hu2025：npj Digital Medicine 8, Article 763（2025-12-16）。タイトル一致（nature.com/articles/s41746-025-02133-9）。
+- wright2026：Nature Human Behaviour。**DOI 10.1038/s41562-025-02389-x が解決し、タイトル「Assessing personality using zero-shot generative AI scoring of brief open-ended text」完全一致**。第一著者Wright, Ringwald も確認。
+- mun2024：arXiv:2409.00158。タイトル・ID一致。
+- wehrle2024：Language and Cognition 16(1) 108-133。タイトル・著者(Wehrle/Vogeley/Grice)一致（Cambridge）。
+- kita2007：Journal of Pragmatics 39(7) 1242-1254。Wikipedia/SAGE引用(p.1245)で範囲整合。
+- kendrick2015：Open Linguistics 1(1)（De Gruyter opli-2014-0009）一致。
+- albert2018：Topics in Cognitive Science 10(2) 279-313（Wiley tops.12339）完全一致。
+- leaper2007：Personality and Social Psychology Review 11(4) 328-363 一致（本文の「男性の方がやや多弁＝逆方向の小効果」の引用趣旨も原著と整合）。
+- bortfeld2001：Language and Speech 44(2) 123-147 完全一致。
+- horton2010：**PMC原文で「Psychol Aging. 2010 Sep;25(3):708-713, doi:10.1037/a0019424」を確認**（著者CVの「2008」は受理年、正式刊行は2010）。本文§4.4の「加齢でフィラー増加／話速は低下（本研究と逆）」の引用趣旨も原著と整合。
+- sacks1974：Language 50(4) 696-735（Project MUSE, 10.1353/lan.1974.0010）完全一致。
+- holm1979：Scandinavian Journal of Statistics 6(2) 65-70 完全一致。
+- brennan1996：JEP:LMC 22(6) 1482-1493 完全一致（ACM/Cambridge）。
+
+**canonical かつ2026-06-22のCrossRef照合済みで、本セッションでは再検索を省略（6件）**：schegloff1977（Language 53(2) 361-382）、deruiter2006（Language 82(3) 515-535）、clark1996（Using Language, CUP）、levitan2012（NAACL-HLT 2012, 11-19）、campione2002（Speech Prosody 2002, 199-202）、watanabe2003（ICPhS-15, 2473-2476）。いずれも各分野の定番文献。
+
+**要・著者確認（1件）**：nakamura2025（SICE東北支部研究会資料, 353-9）。国内ワークショップ資料でWeb索引されず独立照合が困難。研究文脈とは整合的だが、投稿前に手元の原典で誌名・ページを最終確認することを推奨。
+
+**結論**：Web照合した文献はすべて実在し書誌も正確。**参考文献の訂正は不要**（2026-06-22 roundで訂正した3件＝kita2007/wehrle2024/brennan1996 も今回正しいことを再確認）。tex変更なし。
